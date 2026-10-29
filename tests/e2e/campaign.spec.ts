@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 async function begin(page: Page, name = "Visitante de teste") {
-  await page.goto("/");
+  await page.goto("/classico.html");
   await page
     .getByRole("button", { name: "Entrar no jogo", exact: true })
     .click();
@@ -200,7 +200,7 @@ test("recarregar retoma a sessão, encerrar não transfere dados ao próximo jog
 test("teclado, modal, movimento reduzido e comparação sem resultado", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/classico.html");
   await page.getByRole("button", { name: "Ajustes de acessibilidade" }).click();
   await page.getByRole("checkbox", { name: /Reduzir movimento/ }).check();
   await page.getByRole("dialog").press("Escape");
