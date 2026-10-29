@@ -2,7 +2,7 @@
 
 Jogo educativo do Ciclo 4, Colégio Rio Branco. A **experiência principal** agora é uma simulação imersiva de rede social, com feed, stories, posts de amigos e anúncios adaptados às escolhas do jogador. O jogador começa com R$ 620 fictícios e tenta preservar R$ 400 para uma viagem escolar.
 
-- **Jogo atual:** abra a raiz do site (`/`). São quatro fases conectadas: fone de ouvido, tênis, assinatura musical e mochila. Cada fase apresenta uma situação, uma rede social, um anúncio e uma decisão (comprar, salvar no carrinho ou não comprar).
+- **Fotografias da experiência:** 10 cenas originais criadas por IA, com 10 enquadramentos adicionais, em 20 arquivos WebP locais otimizados. Imagens de amigos, páginas, anúncios e lojas estão em `public/assets/social/`; veja `docs/IMAGENS-JOGO.md`.\n- **Jogo atual:** abra a raiz do site (`/`). São quatro fases conectadas: fone de ouvido, tênis, assinatura musical e mochila. Cada fase apresenta uma situação, uma rede social, um anúncio e uma decisão (comprar, salvar no carrinho ou não comprar).
 - **Versão anterior:** abra `/classico.html` para acessar a campanha React original de seis capítulos. O código e seus testes foram preservados.
 - **Privacidade:** marcas, pessoas, preços e compras são fictícios. Nenhum pagamento é realizado. Na nova versão, as escolhas ficam no armazenamento local deste navegador; a demonstração não as envia ao MCP.
 
