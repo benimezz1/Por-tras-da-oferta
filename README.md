@@ -8,6 +8,11 @@ Jogo educativo do Ciclo 4, Colégio Rio Branco. A **experiência principal** ago
 
 O novo protótipo está em `index.html`; o modo clássico segue em `src/` e `classico.html`. O Vite gera as duas entradas no mesmo build. O backend/MCP é mantido no projeto separado [Por-tras-da-oferta-MCP](https://github.com/benimezz1/Por-tras-da-oferta-MCP).
 
+
+## Imagens e orientação do feed
+
+A experiência principal agora contém fotografias ilustrativas fotorrealistas geradas por IA, incorporadas em WebP diretamente no `index.html` (funciona offline). Stories de amigos e de páginas ficam separados; o feed distingue publicações de amigos, perfis de moda/rolês/música e publicidade paga. Uma pequena indicação na borda inferior convida a continuar rolando e desaparece quando o usuário começa a explorar. Todas as pessoas, marcas, anúncios, avaliações e preços são fictícios. As imagens são reutilizadas entre stories e publicações relacionadas; não representam pessoas reais desses perfis simulados.
+
 ## Executar
 
 Node.js 22 ou superior e npm:
