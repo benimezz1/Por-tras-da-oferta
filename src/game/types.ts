@@ -1,3 +1,4 @@
+import type { SimulationState } from "./simulation";
 export type Strategy =
   | "urgencia"
   | "escassez"
@@ -37,6 +38,7 @@ export type Reflection = {
   criteria: string[];
 };
 export type MissionRecord = {
+  world?: SimulationState;
   seen: string[];
   likes: string[];
   outcome?: Outcome;
@@ -57,6 +59,7 @@ export type GameState = {
   startedAt: string;
 };
 export type GameAction =
+  | { type: "world"; mission: string; patch: Partial<SimulationState> }
   | { type: "inspect"; mission: string; evidence: string }
   | { type: "like"; mission: string; target: string }
   | { type: "decide"; mission: string; outcome: Outcome }

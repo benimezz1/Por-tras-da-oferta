@@ -39,7 +39,7 @@ import { TabProgressStore, exportProgress } from "./services/persistence";
 import { LegacyApi, backendEnabled } from "./services/api";
 import { Headphones } from "./components/Art";
 import { Modal } from "./components/Modal";
-import { sceneComponents } from "./components/Scenes";
+import { Simulation } from "./components/Simulation";
 import { Reflection } from "./components/Reflection";
 let store: TabProgressStore | undefined;
 try {
@@ -654,23 +654,29 @@ export default function App() {
                   {mission.category} <Lock size={11} />
                 </span>
               </div>
-              {(() => {
-                const Scene = sceneComponents[state.current];
-                return (
-                  <Scene
-                    key={mission.id}
-                    state={state}
-                    record={record}
-                    inspect={inspect}
-                    like={(target) =>
-                      dispatch({ type: "like", mission: mission.id, target })
-                    }
-                    decide={decide}
-                    offer={setCart}
-                    notify={notify}
-                  />
-                );
-              })()}
+              <Simulation
+                key={mission.id}
+                state={state}
+                record={record}
+                inspect={inspect}
+                like={(target) =>
+                  dispatch({ type: "like", mission: mission.id, target })
+                }
+                decide={decide}
+                offer={setCart}
+                notify={notify}
+                update={(patch) =>
+                  dispatch({ type: "world", mission: mission.id, patch })
+                }
+                discover={(evidence) => {
+                  if (mission.evidence.some((e) => e.id === evidence))
+                    dispatch({
+                      type: "inspect",
+                      mission: mission.id,
+                      evidence,
+                    });
+                }}
+              />
               <div className="mission-footer">
                 <span>
                   <Eye size={17} />

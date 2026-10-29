@@ -2,18 +2,15 @@
 
 Registro de entrega: 29 de outubro de 2026. Todos os participantes e valores abaixo são fictícios. Nenhuma conta real ou serviço de produção foi alterado.
 
-## Verificações executadas
+## Simulação social — revisão de 29/10/2026
 
-- `npm test`: **31 testes aprovados**, cobrindo progressão, orçamento em centavos, escolhas idempotentes, evidências, reflexão, persistência validada, rascunhos e contrato HTTP.
-- `npm run build`: **aprovado**, incluindo TypeScript e bundle Vite.
-- Campanha completa no navegador desktop: seis capítulos concluídos; compra de fone Essencial e cabo, recusa do tênis, assinatura sem extra e empréstimo final. Saldo de R$ 355 e compromisso mensal futuro de R$ 35. Resultado: 11 evidências e oito estratégias reconhecidas.
-- Exportação desktop: JSON baixado e inspecionado, com `campaignId: c4-v1`, seis registros, saldo de 35500 centavos e compromisso de 3500 centavos. Não contém senha ou token.
-- Campanha completa em iframe de **390 × 844 pixels**: ignorar o anúncio selecionou o fone Essencial na entrada da loja; depois foram comprados Pulse, tênis e bateria, com assinatura incluindo extra. Saldo de R$ 106 e compromisso futuro de R$ 44. O carrinho do kit de R$ 99 apresentou saldo projetado de -R$ 37 e bloqueou a confirmação. O empréstimo permitiu concluir a campanha. Resultado: oito evidências e cinco estratégias reconhecidas.
-- Rascunho móvel: justificativa e critério permaneceram ao sair da reflexão para consultar o histórico de preços e retornar.
-- Recarregamento da mesma aba preservou a campanha móvel concluída, o saldo e os resultados.
-- Encerramento da sessão de teste seguido por um novo participante iniciou R$ 500 e zero evidências, sem transferir o percurso anterior.
-- A opção de movimento reduzido aplicou `data-motion="reduced"`; Escape fechou o diálogo.
-- Nas telas móveis verificadas, a largura do conteúdo coincidiu com a largura disponível de 375 pixels (390 menos a barra de rolagem), sem rolagem horizontal.
+- `npm test`: **39 testes aprovados**; domínio, orçamento, persistência, histórico de navegação, legado, interações, compra antecipada sem duplicidade e cancelamento idempotente.
+- `npm run build`: aprovado, incluindo TypeScript estrito e bundle Vite.
+- Campanha completa operada no navegador desktop: compra do Essencial diretamente pelo anúncio (R$ 120), manutenção da compra na fase seguinte, stories com divulgação da comissão, recusa do tênis, filtro de compras verificadas e compra de cabo (R$ 25), assinatura com extra (R$ 44/mês) seguida de cancelamento, reserva do suporte pelo direct. Resultado: seis capítulos, saldo de R$ 355, nenhuma recorrência, sete evidências. Não foram marcadas estratégias nesse percurso.
+- Rede social: comentário publicado, curtida, salvo, compartilhamento no grupo, mensagem com resposta roteirizada, perfil seguido, stories e retorno à loja com produto selecionado preservado.
+- Mobile em iframe de **390 × 844**: feed, perfil próprio e de Lia, anúncio abrindo loja, retorno, enquete com voto confirmado, direct e restauração após reload. Feed/direct sem overflow horizontal (375 pixels úteis).
+- Corrigido retorno a um story anterior depois do término automático: o tempo do último slide não deve avançar novamente ao selecionar um slide anterior.
+- Playwright contém **cinco cenários em desktop e iPhone 13 (10 casos)**: campanha e exportação; restauração/isolamento; teclado e movimento reduzido; fluxo social e reload; compra antecipada. O runner será executado pela CI do PR; não foi executado localmente. A inspeção interativa usa a prévia gerenciada.
 
 ## Evidências visuais
 
@@ -22,11 +19,12 @@ Registro de entrega: 29 de outubro de 2026. Todos os participantes e valores aba
 - [Resultado desktop](screenshots/03-resultados-desktop.jpg)
 - [Carrinho móvel com limite de orçamento](screenshots/04-carrinho-mobile.jpg)
 
-## Automação preparada e limites
+- [Rede social desktop](screenshots/05-rede-social-desktop.jpg)
+- [Stories e enquete mobile](screenshots/06-stories-mobile.jpg)
 
-O Playwright contém três cenários em dois tamanhos de tela, totalizando seis casos. `npx playwright test --list` confirmou sua descoberta. **O runner Playwright não foi executado neste ambiente**; os percursos acima foram operados no navegador disponível para a prévia. A execução da CI permanece pendente do envio ao GitHub.
+## Limites
 
-A revisão automática de aprovação bloqueou o envio da branch ao repositório público. Os commits e o código estão preparados localmente; este relatório não afirma publicação, PR aberto ou CI remota aprovada.
+O estado efetivo da CI deve ser consultado no PR; a existência de um teste escrito não prova sua aprovação. Os screenshots 01–04 registram a entrega anterior e 05–06 registram a simulação social atual.
 
 Não foram realizados testes em aparelhos físicos, leitores de tela, condições de rede lenta ou participantes reais. A revisão de acessibilidade feita aqui é parcial e não constitui certificação.
 

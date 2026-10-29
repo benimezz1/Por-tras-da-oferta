@@ -1,4 +1,5 @@
 import { missions } from "./content";
+import { initialSimulation, validSimulation } from "./simulation";
 import type { GameState, GameAction, MissionRecord, Reflection } from "./types";
 export function sessionId(): string {
   if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
@@ -30,6 +31,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   if (!mission || action.mission !== mission.id) return state;
   const record = state.records[mission.id] ?? emptyRecord();
   if (record.completedAt) return state;
+  if (action.type === "world") {
+    const world = {
+      ...(record.world ?? initialSimulation(mission.id)),
+      ...action.patch,
+    };
+    if (!validSimulation(world)) return state;
+    return {
+      ...state,
+      records: { ...state.records, [mission.id]: { ...record, world } },
+    };
+  }
   if (action.type === "draft") {
     if (!record.outcome) return state;
     return {
@@ -63,8 +75,21 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       : [...record.likes, action.target];
   } else if (action.type === "decide") {
     const o = action.outcome;
+    const cancelTrial =
+      mission.id === "subscription" &&
+      record.outcome?.kind === "subscribe" &&
+      o.kind === "cancel" &&
+      o.cost === 0 &&
+      o.recurring === 0;
+    // A purchase from the feed already debited the shared wallet.
     if (
-      record.outcome ||
+      mission.id === "store" &&
+      state.records.feed?.outcome?.kind === "buy" &&
+      o.cost > 0
+    )
+      return state;
+    if (
+      (record.outcome && !cancelTrial) ||
       !Number.isSafeInteger(o.cost) ||
       !Number.isSafeInteger(o.recurring) ||
       o.cost < 0 ||
@@ -75,6 +100,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     if (o.cost + state.recurring + o.recurring > balance) return state;
     next.outcome = { ...o };
     balance -= o.cost;
+    if (cancelTrial) recurring -= record.outcome!.recurring;
     recurring += o.recurring;
   } else {
     if (
@@ -98,12 +124,27 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     delete next.draft;
     current++;
   }
+  const records = { ...state.records, [mission.id]: next };
+  if (
+    current > state.current &&
+    missions[current] &&
+    !records[missions[current].id]
+  ) {
+    records[missions[current].id] = {
+      ...emptyRecord(),
+      likes: next.likes.filter((id) => id.startsWith("follow:")),
+      world: {
+        ...initialSimulation(missions[current].id),
+        messages: next.world?.messages ?? [],
+      },
+    };
+  }
   return {
     ...state,
     balance,
     recurring,
     current,
-    records: { ...state.records, [mission.id]: next },
+    records,
     events: [
       ...state.events,
       {

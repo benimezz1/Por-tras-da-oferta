@@ -1,18 +1,11 @@
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
-  Heart,
-  Bookmark,
-  MessageCircle,
-  MoreHorizontal,
   Search,
   ShoppingBag,
   Star,
   ArrowUpRight,
   Check,
-  Play,
-  Pause,
-  Volume2,
   Info,
   ChevronRight,
   Clock,
@@ -26,8 +19,9 @@ import {
 } from "lucide-react";
 import type { GameState, MissionRecord, Outcome } from "../game/types";
 import { money } from "../game/content";
-import { Headphones, Sneaker, Battery, Lamp } from "./Art";
-type Props = {
+import { Headphones, Battery, Lamp } from "./Art";
+export type SceneProps = {
+  select: (key: string, value: string) => void;
   state: GameState;
   record: MissionRecord;
   inspect: (id: string) => void;
@@ -78,233 +72,6 @@ function Decision({
     <div className="scene-actions">{children}</div>
   );
 }
-export function Feed({ record, inspect, like, decide, notify }: Props) {
-  const [tab, setTab] = useState("Para você");
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <div className="feed-scene">
-      <AppBar name="loop">
-        <span className="tiny">Seu mundo, um pouco mais perto.</span>
-        <button
-          className="icon-button"
-          aria-label="Mensagem do grupo"
-          onClick={() => inspect("trend")}
-        >
-          <MessageCircle size={21} />
-          <span className="notification-dot" />
-        </button>
-      </AppBar>
-      <div className="feed-tabs">
-        {["Para você", "Seguindo", "Salvos"].map((t) => (
-          <button
-            className={tab === t ? "active" : ""}
-            key={t}
-            onClick={() => setTab(t)}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-      <div className="stories">
-        {["Seu grupo", "Lia M.", "Caio", "Oficina"].map((n, i) => (
-          <button
-            key={n}
-            onClick={() =>
-              i === 1
-                ? inspect("profile")
-                : i === 0
-                  ? inspect("trend")
-                  : notify(
-                      i === 2
-                        ? "Caio: “Vou levar o fone que já tenho. Nos vemos sábado!”"
-                        : "Oficina: sábado, às 14h. Equipamentos compartilhados estarão disponíveis.",
-                    )
-            }
-          >
-            <span className={`avatar story a${i}`}>
-              {["G", "L", "C", "O"][i]}
-            </span>
-            {n}
-          </button>
-        ))}
-      </div>
-      {(tab === "Para você" ||
-        (tab === "Salvos" && record.likes.includes("saved"))) && (
-        <article className="post">
-          <div className="post-author">
-            <button className="avatar a1" onClick={() => inspect("profile")}>
-              L
-            </button>
-            <button className="author" onClick={() => inspect("profile")}>
-              <strong>
-                lia.movimento <CheckCircle2 size={13} />
-              </strong>
-              <small>Parceria paga com Onda</small>
-            </button>
-            <button
-              className="icon-button"
-              aria-label="Por que estou vendo este anúncio?"
-              onClick={() => inspect("ad")}
-            >
-              <MoreHorizontal />
-            </button>
-          </div>
-          <button
-            className="feed-visual"
-            onClick={() => setExpanded(!expanded)}
-            aria-expanded={expanded}
-          >
-            <span className="image-overline">ONDA / PULSE</span>
-            <span className="feed-art-copy">
-              O mundo lá fora.
-              <br />
-              <em>Seu som aqui.</em>
-            </span>
-            <Headphones />
-            <span className="image-bottom">
-              NOVAS CORES. NOVAS POSSIBILIDADES. <ArrowUpRight size={20} />
-            </span>
-          </button>
-          <button
-            className="sponsored-link"
-            onClick={() => setExpanded(!expanded)}
-          >
-            Conhecer o Pulse <ArrowRight size={18} />
-          </button>
-          <div className="post-toolbar">
-            <button
-              className={`icon-button ${record.likes.includes("lia") ? "liked" : ""}`}
-              onClick={() => {
-                like("lia");
-                notify(
-                  record.likes.includes("lia")
-                    ? "Curtida removida."
-                    : "Você curtiu. Seu feed agora dará mais destaque a conteúdos de áudio.",
-                );
-              }}
-              aria-label="Curtir publicação"
-              aria-pressed={record.likes.includes("lia")}
-            >
-              <Heart
-                fill={record.likes.includes("lia") ? "currentColor" : "none"}
-              />
-            </button>
-            <button
-              className="icon-button"
-              aria-label="Ver comentários"
-              onClick={() => inspect("trend")}
-            >
-              <MessageCircle />
-            </button>
-            <span />
-            <button
-              className="icon-button"
-              aria-label="Salvar publicação"
-              aria-pressed={record.likes.includes("saved")}
-              onClick={() => {
-                like("saved");
-                notify(
-                  record.likes.includes("saved")
-                    ? "Publicação removida dos salvos."
-                    : "Publicação salva. Você pode encontrá-la na aba Salvos.",
-                );
-              }}
-            >
-              <Bookmark
-                fill={record.likes.includes("saved") ? "currentColor" : "none"}
-              />
-            </button>
-          </div>
-          <div className="post-caption">
-            <strong>
-              {record.likes.includes("lia") ? "2.849" : "2.848"} curtidas
-            </strong>
-            <p>
-              <b>lia.movimento</b> Meu novo companheiro de criação. Quem vai de
-              Pulse no sábado? 🎧 <span>#publi</span>
-            </p>
-            <button className="text-link" onClick={() => inspect("ad")}>
-              Por que este anúncio apareceu para mim?
-            </button>
-          </div>
-          {expanded && (
-            <div className="inline-detail">
-              <h3>Onda Pulse · R$ 180</h3>
-              <p>
-                Fone sem fio, bateria de 30 horas. A loja pode ter outras
-                opções. Guarde esta oferta para comparar no próximo capítulo.
-              </p>
-              <button
-                className="dark-button"
-                onClick={() => {
-                  if (!record.likes.includes("saved")) like("saved");
-                  notify("Oferta guardada para a visita à loja Onda.");
-                }}
-              >
-                Guardar oferta <Bookmark size={16} />
-              </button>
-            </div>
-          )}
-        </article>
-      )}
-      {(tab === "Seguindo" || tab === "Para você") && (
-        <article className="organic-post">
-          <span className="avatar a2">C</span>
-          <div>
-            <b>caio.faz</b>
-            <p>
-              Um caderno, uma ideia e o que a gente já tem. Preparando a oficina
-              de sábado ✨
-            </p>
-            <button
-              className="text-link"
-              onClick={() =>
-                notify(
-                  "Caio comentou: “Não precisa comprar equipamento para participar. A escola vai emprestar alguns materiais.”",
-                )
-              }
-            >
-              Ver conversa
-            </button>
-          </div>
-        </article>
-      )}
-      {tab === "Salvos" && !record.likes.includes("saved") && (
-        <div className="empty-state">
-          <Bookmark />
-          <h3>Suas referências ficam aqui.</h3>
-          <p>Toque no marcador de uma publicação para guardar.</p>
-        </div>
-      )}
-      {record.likes.includes("lia") && tab === "Para você" && (
-        <div className="recommended">
-          <HeadphoneIcon size={22} />
-          <div>
-            <b>Mais áudio para você</b>
-            <p>Novos acessórios selecionados após sua curtida.</p>
-          </div>
-          <button className="text-link" onClick={() => inspect("ad")}>
-            Entender
-          </button>
-        </div>
-      )}
-      <Decision record={record}>
-        <button
-          className="dark-button"
-          onClick={() => decide(choice("wait", "Guardar e comparar na loja"))}
-        >
-          Guardar e comparar <ArrowRight size={17} />
-        </button>
-        <button
-          className="light-button"
-          onClick={() => decide(choice("skip", "Seguir sem guardar a oferta"))}
-        >
-          Seguir sem guardar
-        </button>
-      </Decision>
-    </div>
-  );
-}
 export function Store({
   state,
   record,
@@ -312,13 +79,22 @@ export function Store({
   offer,
   decide,
   notify,
-}: Props) {
+  select,
+}: SceneProps) {
   const [remaining, setRemaining] = useState(299);
-  const [query, setQuery] = useState("");
-  const [product, setProduct] = useState<"pulse" | "basic">(
-    state.records.feed?.outcome?.kind === "skip" ? "basic" : "pulse",
-  );
-  const [tab, setTab] = useState("Visão geral");
+  const query = record.world?.selections.query ?? "";
+  const setQuery = (value: string) => select("query", value);
+  const product =
+    record.world?.selections.product ??
+    (state.records.feed?.outcome?.kind === "skip" ||
+    state.records.feed?.outcome?.label.includes("Essencial")
+      ? "basic"
+      : "pulse");
+  const setProduct = (value: string) => select("product", value);
+  const previousPurchase =
+    state.current === 1 && state.records.feed?.outcome?.kind === "buy";
+  const tab = record.world?.selections.tab ?? "Visão geral";
+  const setTab = (value: string) => select("tab", value);
   useEffect(() => {
     const timer = setInterval(
       () => setRemaining((v) => Math.max(0, v - 1)),
@@ -337,9 +113,13 @@ export function Store({
         <ShoppingBag size={21} />
       </AppBar>
       <div className="store-context">
-        {state.records.feed?.outcome?.kind === "wait"
-          ? "A oferta que você guardou no feed está aqui. Compare com o Essencial antes de decidir."
-          : "Você seguiu sem guardar a oferta do feed. A loja começa pela alternativa Essencial; o Pulse continua disponível em Comparar."}
+        {previousPurchase
+          ? `Pedido confirmado: ${state.records.feed.outcome?.label}. O valor já foi descontado. Agora você pode conferir as condições da sua escolha.`
+          : state.current === 0
+            ? "Bem-vindo à Onda. Você chegou pelo anúncio da Loop. Explore a loja e volte ao feed quando quiser."
+            : state.records.feed?.outcome?.kind === "wait"
+              ? "A oferta que você guardou no feed está aqui. Compare com o Essencial antes de decidir."
+              : "Você seguiu sem guardar a oferta do feed. A loja começa pela alternativa Essencial; o Pulse continua disponível em Comparar."}
       </div>
       <div className="store-search">
         <Search size={17} />
@@ -430,7 +210,7 @@ export function Store({
               </button>
               <button
                 className="dark-button full"
-                disabled={!!record.outcome}
+                disabled={!!record.outcome || previousPurchase}
                 onClick={() =>
                   offer(
                     choice(
@@ -441,7 +221,10 @@ export function Store({
                   )
                 }
               >
-                Adicionar ao carrinho <ShoppingBag size={17} />
+                {previousPurchase
+                  ? "Compra já registrada"
+                  : "Adicionar ao carrinho"}{" "}
+                <ShoppingBag size={17} />
               </button>
             </div>
           </div>
@@ -521,6 +304,16 @@ export function Store({
         </>
       )}
       <Decision record={record}>
+        {previousPurchase && (
+          <button
+            className="dark-button"
+            onClick={() =>
+              decide(choice("skip", "Manter o fone comprado pelo anúncio"))
+            }
+          >
+            Manter minha escolha
+          </button>
+        )}
         <button
           className="light-button"
           onClick={() => decide(choice("wait", "Adiar a compra do fone"))}
@@ -537,157 +330,17 @@ export function Store({
     </div>
   );
 }
-const frames = [
-  [
-    "O meu kit para criar",
-    "“Vocês sempre perguntam o que eu uso para gravar…”",
-  ],
-  [
-    "O tênis que me acompanha",
-    "“Esse Passo virou parte do meu estilo. Olha a cor!”",
-  ],
-  ["Vem com a gente", "“Quero ver todo mundo com o mesmo no sábado.”"],
-  [
-    "Um cupom para você",
-    "“Meu cupom LIA12 está no link. Parceria paga com Passo.”",
-  ],
-];
-export function Live({ record, inspect, offer, decide }: Props) {
-  const [playing, setPlaying] = useState(false);
-  const [frame, setFrame] = useState(0);
-  useEffect(() => {
-    if (!playing) return;
-    const id = setInterval(
-      () =>
-        setFrame((f) => {
-          if (f === 3) {
-            setPlaying(false);
-            return f;
-          }
-          return f + 1;
-        }),
-      4500,
-    );
-    return () => clearInterval(id);
-  }, [playing]);
-  return (
-    <div className="live-scene">
-      <AppBar name="viva">
-        <span className="tiny">Ideias que se encontram.</span>
-        <span className="live-badge">REPLAY</span>
-      </AppBar>
-      <div className="live-grid">
-        <div>
-          <div className={`video-stage frame-${frame}`}>
-            <div className="video-top">
-              <span className="avatar a1">L</span>
-              <div>
-                <b>lia.movimento</b>
-                <small>2,4 mil espectadores no original</small>
-              </div>
-            </div>
-            <span className="video-chapter">0{frame + 1} / 04</span>
-            <div className="video-art">
-              <Sneaker />
-            </div>
-            <h2>{frames[frame][0]}</h2>
-            <p className="video-caption">{frames[frame][1]}</p>
-            <div className="video-controls">
-              <button
-                className="icon-button"
-                onClick={() => {
-                  if (frame === 3) setFrame(0);
-                  setPlaying(!playing);
-                }}
-                aria-label={
-                  playing ? "Pausar apresentação" : "Reproduzir apresentação"
-                }
-              >
-                {playing ? <Pause /> : <Play fill="currentColor" />}
-              </button>
-              <div className="video-progress">
-                {frames.map((_, i) => (
-                  <button
-                    key={i}
-                    className={i <= frame ? "watched" : ""}
-                    aria-label={`Ir ao trecho ${i + 1}`}
-                    onClick={() => setFrame(i)}
-                  />
-                ))}
-              </div>
-              <Volume2 size={18} />
-              <span>legendas • sem áudio</span>
-            </div>
-          </div>
-          <div className="live-description">
-            <h3>Meu kit para o sábado ✨</h3>
-            <p>
-              Uma apresentação simulada em quatro trechos. Use o play ou avance
-              pela barra para assistir.
-            </p>
-            <button className="text-link" onClick={() => inspect("disclosure")}>
-              Parceria paga · Ver detalhes <Info size={14} />
-            </button>
-          </div>
-        </div>
-        <aside className="chat-panel">
-          <h3>
-            <MessageCircle size={17} /> Na conversa
-          </h3>
-          <div className="chat-message">
-            <b>bia.cria</b>
-            <p>se é do nosso grupo, vem com o mesmo!!</p>
-          </div>
-          <div className="chat-message">
-            <b>joao.zip</b>
-            <p>ela recomenda tudo que eu gosto 👀</p>
-          </div>
-          <div className="chat-message">
-            <b>luiza.faz</b>
-            <p>mas precisa desse tênis para ir?</p>
-          </div>
-          <button className="text-link" onClick={() => inspect("comments")}>
-            Investigar a conversa <ArrowUpRight size={14} />
-          </button>
-          <div className="live-product">
-            <span className="eyebrow">PASSO / CRIAR</span>
-            <b>Tênis casual</b>
-            <span>R$ 125,00</span>
-            <button className="text-link" onClick={() => inspect("spec")}>
-              Ver ficha do produto
-            </button>
-            <button
-              className="dark-button"
-              disabled={!!record.outcome}
-              onClick={() => offer(choice("buy", "Tênis Passo", 12500))}
-            >
-              Ver oferta <ArrowRight size={16} />
-            </button>
-          </div>
-        </aside>
-      </div>
-      <Decision record={record}>
-        <button
-          className="light-button"
-          onClick={() =>
-            decide(choice("wait", "Esperar para decidir sobre o tênis"))
-          }
-        >
-          Pensar mais um pouco
-        </button>
-        <button
-          className="text-link"
-          onClick={() => decide(choice("skip", "Ir com o tênis que já tenho"))}
-        >
-          Ir com o meu tênis
-        </button>
-      </Decision>
-    </div>
-  );
-}
-export function Reviews({ record, inspect, offer, decide }: Props) {
-  const [verified, setVerified] = useState(false);
-  const [sort, setSort] = useState("relevantes");
+export function Reviews({
+  record,
+  inspect,
+  offer,
+  decide,
+  select,
+}: SceneProps) {
+  const verified = record.world?.selections.verified === "yes";
+  const setVerified = (v: boolean) => select("verified", v ? "yes" : "no");
+  const sort = record.world?.selections.sort ?? "relevantes";
+  const setSort = (v: string) => select("sort", v);
   const reviews = verified
     ? [
         [
@@ -850,10 +503,14 @@ export function Subscription({
   offer,
   decide,
   notify,
-}: Props) {
-  const [extra, setExtra] = useState(true);
-  const [cancelStep, setCancelStep] = useState(0);
-  const [showFree, setShowFree] = useState(false);
+  select,
+}: SceneProps) {
+  const extra = record.world?.selections.extra !== "no";
+  const setExtra = (v: boolean) => select("extra", v ? "yes" : "no");
+  const cancelStep = Number(record.world?.selections.cancelStep ?? 0);
+  const setCancelStep = (v: number) => select("cancelStep", String(v));
+  const showFree = record.world?.selections.showFree === "yes";
+  const setShowFree = (v: boolean) => select("showFree", v ? "yes" : "no");
   return (
     <div className="subscription-scene">
       <AppBar name="clube+">
@@ -870,99 +527,100 @@ export function Subscription({
           Minha conta
         </button>
       </AppBar>
-      <div className="subscription-hero">
-        <span className="eyebrow">SEU PRÓXIMO PASSO CRIATIVO</span>
-        <h2>
-          Crie sem limites.
-          <br />
-          <em>Comece sem pagar.</em>
-        </h2>
-        <p>As ferramentas que acompanham suas ideias.</p>
-        <div className="plan">
-          <span className="plan-label">MAIS ESCOLHIDO</span>
-          <div className="plan-title">
-            <b>Clube Criador</b>
-            <span className="plan-orb">✳</span>
-          </div>
-          <div className="price">
-            7 dias <small>grátis</small>
-          </div>
-          <p>Depois, R$ 35,00/mês</p>
-          <ul>
-            <li>
-              <Check size={16} /> Exportações ilimitadas
-            </li>
-            <li>
-              <Check size={16} /> Biblioteca de efeitos
-            </li>
-            <li>
-              <Check size={16} /> Projetos em alta resolução
-            </li>
-          </ul>
-          <label className="extra-option">
-            <input
-              type="checkbox"
-              checked={extra}
-              onChange={(e) => {
-                setExtra(e.target.checked);
-                inspect("terms");
-              }}
-            />
-            <span>
-              Adicionar pacote de modelos
-              <small>+ R$ 9,00/mês após o teste</small>
-            </span>
-          </label>
-          <button
-            className="dark-button full"
-            disabled={!!record.outcome}
-            onClick={() =>
-              offer(
-                choice(
-                  "subscribe",
-                  extra ? "Teste com pacote de modelos" : "Teste sem extras",
-                  0,
-                  extra ? 4400 : 3500,
-                ),
-              )
-            }
-          >
-            Começar meu teste <ArrowRight size={17} />
-          </button>
-          <button
-            className="text-link terms-link"
-            onClick={() => inspect("terms")}
-          >
-            Renovação automática · Ler condições
-          </button>
-        </div>
-        <button
-          className="text-link free-link"
-          onClick={() => {
-            setShowFree(!showFree);
-            inspect("plans");
-          }}
-        >
-          {showFree ? <Minus size={14} /> : <Plus size={14} />} Conhecer a opção
-          gratuita
-        </button>
-        {showFree && (
-          <div className="free-plan">
-            <b>Clube Essencial · R$ 0</b>
-            <p>3 exportações por mês. Você precisa de uma para a oficina.</p>
+      {cancelStep === 0 && (
+        <div className="subscription-hero">
+          <span className="eyebrow">SEU PRÓXIMO PASSO CRIATIVO</span>
+          <h2>
+            Crie sem limites.
+            <br />
+            <em>Comece sem pagar.</em>
+          </h2>
+          <p>As ferramentas que acompanham suas ideias.</p>
+          <div className="plan">
+            <span className="plan-label">MAIS ESCOLHIDO</span>
+            <div className="plan-title">
+              <b>Clube Criador</b>
+              <span className="plan-orb">✳</span>
+            </div>
+            <div className="price">
+              7 dias <small>grátis</small>
+            </div>
+            <p>Depois, R$ 35,00/mês</p>
+            <ul>
+              <li>
+                <Check size={16} /> Exportações ilimitadas
+              </li>
+              <li>
+                <Check size={16} /> Biblioteca de efeitos
+              </li>
+              <li>
+                <Check size={16} /> Projetos em alta resolução
+              </li>
+            </ul>
+            <label className="extra-option">
+              <input
+                type="checkbox"
+                checked={extra}
+                onChange={(e) => {
+                  setExtra(e.target.checked);
+                }}
+              />
+              <span>
+                Adicionar pacote de modelos
+                <small>+ R$ 9,00/mês após o teste</small>
+              </span>
+            </label>
             <button
-              className="light-button"
+              className="dark-button full"
               disabled={!!record.outcome}
-              onClick={() => decide(choice("skip", "Usar o plano gratuito"))}
+              onClick={() =>
+                offer(
+                  choice(
+                    "subscribe",
+                    extra ? "Teste com pacote de modelos" : "Teste sem extras",
+                    0,
+                    extra ? 4400 : 3500,
+                  ),
+                )
+              }
             >
-              Continuar no gratuito
+              Começar meu teste <ArrowRight size={17} />
+            </button>
+            <button
+              className="text-link terms-link"
+              onClick={() => inspect("terms")}
+            >
+              Renovação automática · Ler condições
             </button>
           </div>
-        )}
-      </div>
+          <button
+            className="text-link free-link"
+            onClick={() => {
+              setShowFree(!showFree);
+              inspect("plans");
+            }}
+          >
+            {showFree ? <Minus size={14} /> : <Plus size={14} />} Conhecer a
+            opção gratuita
+          </button>
+          {showFree && (
+            <div className="free-plan">
+              <b>Clube Essencial · R$ 0</b>
+              <p>3 exportações por mês. Você precisa de uma para a oficina.</p>
+              <button
+                className="light-button"
+                disabled={!!record.outcome}
+                onClick={() => decide(choice("skip", "Usar o plano gratuito"))}
+              >
+                Continuar no gratuito
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       {cancelStep > 0 && (
         <section className="cancel-demo">
-          <span className="eyebrow">EXPLORAR A SAÍDA · {cancelStep}/3</span>
+          <span className="eyebrow">MINHA CONTA · ASSINATURA</span>
           <h3>
             {cancelStep === 1
               ? "Assinatura e cobrança"
@@ -993,17 +651,21 @@ export function Subscription({
           ) : (
             <button
               className="light-button"
-              disabled={!!record.outcome}
+              disabled={!!record.outcome && record.outcome.kind !== "subscribe"}
               onClick={() =>
                 decide(
                   choice(
                     "cancel",
-                    "Recusar teste após explorar o cancelamento",
+                    record.outcome?.kind === "subscribe"
+                      ? "Cancelar renovação do teste"
+                      : "Recusar teste após explorar o cancelamento",
                   ),
                 )
               }
             >
-              Encerrar sem assinar
+              {record.outcome?.kind === "subscribe"
+                ? "Confirmar cancelamento"
+                : "Encerrar sem assinar"}
             </button>
           )}
           <button className="text-link" onClick={() => setCancelStep(0)}>
@@ -1024,7 +686,13 @@ export function Subscription({
     </div>
   );
 }
-export function FinalScene({ state, record, inspect, offer, decide }: Props) {
+export function FinalScene({
+  state,
+  record,
+  inspect,
+  offer,
+  decide,
+}: SceneProps) {
   const borrowed = record.seen.includes("borrow");
   return (
     <div className="final-scene">
@@ -1126,11 +794,3 @@ export function FinalScene({ state, record, inspect, offer, decide }: Props) {
     </div>
   );
 }
-export const sceneComponents = [
-  Feed,
-  Store,
-  Live,
-  Reviews,
-  Subscription,
-  FinalScene,
-];
