@@ -30,6 +30,22 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   if (!mission || action.mission !== mission.id) return state;
   const record = state.records[mission.id] ?? emptyRecord();
   if (record.completedAt) return state;
+  if (action.type === "draft") {
+    if (!record.outcome) return state;
+    return {
+      ...state,
+      records: {
+        ...state.records,
+        [mission.id]: {
+          ...record,
+          draft: {
+            ...action.reflection,
+            reason: action.reflection.reason.slice(0, 1500),
+          },
+        },
+      },
+    };
+  }
   let next = { ...record };
   let balance = state.balance,
     recurring = state.recurring,
@@ -79,6 +95,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       assignments,
     };
     next.completedAt = new Date().toISOString();
+    delete next.draft;
     current++;
   }
   return {

@@ -11,18 +11,24 @@ export function Reflection({
   mission,
   record,
   onSubmit,
+  onDraft,
   onBack,
 }: {
   mission: Mission;
   record: MissionRecord;
   onSubmit: (data: ReflectionData) => void;
+  onDraft: (data: ReflectionData) => void;
   onBack: () => void;
 }) {
-  const [assignments, setAssignments] = useState<Record<string, Strategy[]>>(
-    {},
-  );
-  const [reason, setReason] = useState("");
-  const [criteria, setCriteria] = useState<string[]>([]);
+  const assignments = record.draft?.assignments ?? {};
+  const reason = record.draft?.reason ?? "";
+  const criteria = record.draft?.criteria ?? [];
+  const setAssignments = (value: Record<string, Strategy[]>) =>
+    onDraft({ assignments: value, reason, criteria });
+  const setReason = (value: string) =>
+    onDraft({ assignments, reason: value, criteria });
+  const setCriteria = (value: string[]) =>
+    onDraft({ assignments, reason, criteria: value });
   const [active, setActive] = useState(record.seen[0] ?? "");
   const evidence = mission.evidence.filter((e) => record.seen.includes(e.id));
   return (

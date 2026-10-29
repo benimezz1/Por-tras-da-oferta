@@ -57,8 +57,8 @@ export function isGameState(value: unknown): value is GameState {
     )
       return false;
     const seen = r.seen;
-    if (r.reflection !== undefined) {
-      const f = r.reflection;
+    for (const f of [r.draft, r.reflection]) {
+      if (f === undefined) continue;
       if (
         !object(f) ||
         typeof f.reason !== "string" ||

@@ -255,11 +255,9 @@ export default function App() {
             onClick={() =>
               state
                 ? setView("map")
-                : document
-                    .getElementById("chapters")
-                    ?.scrollIntoView({
-                      behavior: reduced ? "instant" : "smooth",
-                    })
+                : document.getElementById("chapters")?.scrollIntoView({
+                    behavior: reduced ? "instant" : "smooth",
+                  })
             }
           >
             A jornada
@@ -697,6 +695,9 @@ export default function App() {
             mission={mission}
             record={record}
             onSubmit={complete}
+            onDraft={(reflection) =>
+              dispatch({ type: "draft", mission: mission.id, reflection })
+            }
             onBack={() => setView("play")}
           />
         )}

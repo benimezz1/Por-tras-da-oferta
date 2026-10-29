@@ -40,6 +40,7 @@ export type MissionRecord = {
   seen: string[];
   likes: string[];
   outcome?: Outcome;
+  draft?: Reflection;
   reflection?: Reflection;
   completedAt?: string;
 };
@@ -59,4 +60,5 @@ export type GameAction =
   | { type: "inspect"; mission: string; evidence: string }
   | { type: "like"; mission: string; target: string }
   | { type: "decide"; mission: string; outcome: Outcome }
+  | { type: "draft"; mission: string; reflection: Reflection }
   | { type: "complete"; mission: string; reflection: Reflection };

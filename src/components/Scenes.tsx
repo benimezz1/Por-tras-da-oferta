@@ -305,7 +305,14 @@ export function Feed({ record, inspect, like, decide, notify }: Props) {
     </div>
   );
 }
-export function Store({ state, record, inspect, offer, decide }: Props) {
+export function Store({
+  state,
+  record,
+  inspect,
+  offer,
+  decide,
+  notify,
+}: Props) {
   const [remaining, setRemaining] = useState(299);
   const [query, setQuery] = useState("");
   const [product, setProduct] = useState<"pulse" | "basic">(
@@ -348,6 +355,7 @@ export function Store({ state, record, inspect, offer, decide }: Props) {
           <span className="pulse-dot" /> DROP DA SEMANA
         </span>
         <button
+          aria-label="Reabrir oferta e conferir prazo"
           onClick={() => {
             setRemaining(299);
             inspect("clock");
@@ -407,7 +415,16 @@ export function Store({ state, record, inspect, offer, decide }: Props) {
                 <span>Cor: {isBasic ? "Grafite" : "Sálvia"}</span>
                 <span className={`swatch ${isBasic ? "ink" : ""}`} />
               </div>
-              <button className="stock-link" onClick={() => inspect("stock")}>
+              <button
+                className="stock-link"
+                onClick={() =>
+                  isBasic
+                    ? notify(
+                        "O Essencial está disponível para a oficina. O aviso de últimas 3 unidades pertence ao Pulse; você pode abrir esse modelo em Comparar.",
+                      )
+                    : inspect("stock")
+                }
+              >
                 {isBasic ? "Disponível para a oficina" : "● Últimas 3 unidades"}{" "}
                 <Info size={13} />
               </button>
