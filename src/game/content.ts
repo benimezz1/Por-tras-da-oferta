@@ -133,11 +133,11 @@ export const missions: Mission[] = [
   {
     id: "live",
     title: "Se ela usa, eu preciso?",
-    app: "viva",
+    app: "loop",
     category: "CRIADORES",
     subtitle: "O poder da influência",
     brief:
-      "Lia está mostrando seu “kit perfeito para criar”. O tênis de R$ 125 combina com o encontro, mas o seu ainda está em bom estado. Veja a apresentação e investigue a recomendação.",
+      "Lia está mostrando seu “kit perfeito para criar”. O tênis de R$ 125 combina com o encontro, mas o seu ainda está em bom estado. Abra os stories, visite o perfil e siga o link para investigar a recomendação.",
     need: "Separar admiração pelo criador de utilidade do produto.",
     duration: "4–6 min",
     color: "#f5b59c",
@@ -151,7 +151,7 @@ export const missions: Mission[] = [
       },
       {
         id: "comments",
-        label: "Comentários da transmissão",
+        label: "Stories e comentários do grupo",
         detail:
           "Mensagens como “se você é do nosso grupo, vem com o mesmo tênis” relacionam o produto ao pertencimento. Um contador de 2,4 mil espectadores reforça a popularidade.",
         strategies: ["fomo", "prova_social"],

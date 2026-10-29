@@ -4,7 +4,7 @@ Jogo educativo do Ciclo 4, Colégio Rio Branco. Uma semana de decisões em seis 
 
 **Demonstração jogável.** Nenhum pagamento real, nenhuma integração silenciosa com o servidor. O progresso fica nesta aba até encerrar a sessão. Este repositório contém exclusivamente o frontend; o backend/MCP permanece em [Por-tras-da-oferta-MCP](https://github.com/benimezz1/Por-tras-da-oferta-MCP).
 
-![Abertura](docs/screenshots/01-inicio-desktop.jpg)
+![Rede social](docs/screenshots/05-rede-social-desktop.jpg)
 
 ## Executar
 
@@ -24,12 +24,14 @@ npm run preview
 
 ## O que está implementado
 
-1. **Loop / feed:** curtidas que geram recomendações, salvos, perfis, conversa do grupo, detalhes de publicidade e decisão que altera a entrada na loja.
+1. **Loop / rede social:** feed e carrosséis, curtidas, comentários editáveis antes de publicar, salvos, pesquisa, perfis, seguir pessoas, compartilhamento e direct com respostas roteirizadas. Anúncios abrem a loja dentro da simulação.
 2. **Onda / loja:** busca, dois modelos de fone, preço anterior, histórico, contador reiniciável, disponibilidade, comparação e carrinho com confirmação.
-3. **Viva / criadora:** apresentação simulada com quatro trechos, play/pause, navegação por trechos, legendas, patrocínio, comentários e oferta.
+3. **Loop / stories e criadora:** stories de Lia e dos amigos com progresso, pausa, navegação, reações, enquete, resposta por direct e link para a loja Passo, com galeria, tamanho e compra.
 4. **Vitrine / avaliações:** filtro de compras verificadas, ordenação, comentários repetidos, critério do ranking, compra da bateria ou alternativa do cabo.
-5. **Clube+ / assinatura:** extra pré-selecionado removível, renovação, plano gratuito, percurso de cancelamento e compromisso futuro separado do saldo.
-6. **Mercado 21 / desafio final:** kit com múltiplos estímulos, comparação de itens, empréstimo da escola e decisão dependente do saldo restante.
+5. **Clube+ / assinatura:** extra pré-selecionado removível, renovação, plano gratuito, percurso de cancelamento e compromisso futuro separado do saldo; cancelar após assinar remove a recorrência.
+6. **Mercado 21 / desafio final:** kit com múltiplos estímulos, comparação de itens, empréstimo da escola e decisão dependente do saldo restante. É possível reservar o suporte no direct da oficina.
+
+Todas as fases têm uma rede social contextual e uma loja conectada, com abas e botões de voltar/avançar. Rotas, comentários, mensagens, salvos, votos e opções da loja permanecem ao recarregar a mesma aba. Perfis seguidos e conversas acompanham a jornada. Uma compra feita pelo anúncio é reconhecida na fase seguinte sem cobrar novamente.
 
 O caderno registra as evidências abertas. O rascunho de reflexão é salvo a cada edição e permanece ao voltar para investigar ou recarregar a mesma aba. Após cada escolha, o jogador conecta técnicas às evidências e explica sua decisão. O resultado apresenta reconhecimento, revisão, escolhas, orçamento e conquistas; permite revisitar os debriefings e exportar JSON. O texto livre é armazenado **sem fingir avaliação semântica por IA**. Comprar ou não comprar não altera o indicador de reconhecimento.
 
@@ -49,7 +51,11 @@ A CI executa testes, build e Playwright em Chromium com viewports desktop e iPho
 - `src/game/content.ts`: capítulos, evidências, estratégias e textos educativos.
 - `src/game/engine.ts`: máquina de progressão, orçamento em centavos, decisões idempotentes e reconhecimento por evidência.
 - `src/game/types.ts`: modelo versionado `c4-v1`.
-- `src/components/Scenes.tsx`: seis ambientes exploráveis, com estado de interface isolado por capítulo.
+- `src/components/Simulation.tsx`: navegação entre rede social e lojas.
+- `src/components/Social.tsx`: feed, perfis, pesquisa, direct e stories.
+- `src/game/socialContent.ts`: personagens e publicações contextualizadas.
+- `src/game/simulation.ts`: estado validado de navegação e interações.
+- `src/components/Scenes.tsx`: lojas, avaliações, assinatura e desafio final.
 - `src/components/Reflection.tsx`: associação de evidências e justificativa.
 - `src/components/Art.tsx`: ilustrações SVG originais.
 - `src/services/persistence.ts`: sessão local validada e exportação JSON.
@@ -68,6 +74,6 @@ O build gera `dist/`. Uma configuração isolada do Cloudflare Workers publica a
 
 ## Referência e limites
 
-Base: _Relatório Final C3_, capítulos 2–5, especialmente a proposta para C4 nas páginas 15–17. Os exemplos são inventados; não reproduzem dados reais de vendedores. O jogo não diagnostica consumismo, não decide pelo participante e não confunde indício com comprovação de fraude. A apresentação da criadora é uma sequência gráfica legendada, não um vídeo humano gravado. O cartaz e a implementação do assistente ficam fora deste repositório.
+Base: _Relatório Final C3_, capítulos 2–5, especialmente a proposta para C4 nas páginas 15–17. Os exemplos são inventados; não reproduzem dados reais de vendedores. O jogo não diagnostica consumismo, não decide pelo participante e não confunde indício com comprovação de fraude. Os stories são cenas gráficas ilustradas, não vídeos humanos gravados. Loop é uma rede fictícia com padrões familiares do Instagram; não replica toda a plataforma. As conversas são locais e roteirizadas, sem envio a pessoas reais. O cartaz e a implementação do assistente ficam fora deste repositório.
 
 As fontes são empacotadas localmente; não há chamadas a Google Fonts, imagens externas, analytics ou IA durante a demonstração. [Créditos e licenças](docs/ATIVOS.md).

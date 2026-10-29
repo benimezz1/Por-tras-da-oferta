@@ -1,5 +1,6 @@
 import type { GameState } from "../game/types";
 import { missions, strategies } from "../game/content";
+import { validSimulation } from "../game/simulation";
 const KEY = "pto.c4.session.v1";
 export interface ProgressStore {
   load(): GameState | null;
@@ -57,6 +58,7 @@ export function isGameState(value: unknown): value is GameState {
     )
       return false;
     const seen = r.seen;
+    if (r.world !== undefined && !validSimulation(r.world)) return false;
     for (const f of [r.draft, r.reflection]) {
       if (f === undefined) continue;
       if (

@@ -21,11 +21,6 @@ async function reflect(page: Page, reason: string) {
 async function next(page: Page) {
   await page.getByRole("button", { name: "Próximo capítulo" }).click();
 }
-async function evidence(page: Page, name: string) {
-  await page.getByRole("button", { name, exact: true }).click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.getByRole("button", { name: "Continuar explorando" }).click();
-}
 async function noOverflow(page: Page) {
   expect(
     await page.evaluate(
@@ -40,7 +35,10 @@ test("campanha completa: investigar, comprar, recusar, concluir e exportar", asy
   page.on("pageerror", (e) => errors.push(e.message));
   await begin(page);
   await noOverflow(page);
-  await evidence(page, "Por que estou vendo este anúncio?");
+  await page
+    .getByRole("button", { name: "Opções do anúncio", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Fechar", exact: true }).click();
   await page
     .getByRole("button", { name: "Curtir publicação", exact: true })
     .click();
@@ -62,7 +60,7 @@ test("campanha completa: investigar, comprar, recusar, concluir e exportar", asy
     );
   await page.getByRole("button", { name: "Revelar os mecanismos" }).click();
   await next(page);
-  await evidence(page, "Comparar");
+  await page.getByRole("button", { name: "Comparar", exact: true }).click();
   await page.getByRole("button", { name: "Escolher Essencial" }).click();
   await page.getByRole("button", { name: "Adicionar ao carrinho" }).click();
   await expect(page.getByRole("dialog")).toContainText("R$ 120,00");
@@ -78,11 +76,20 @@ test("campanha completa: investigar, comprar, recusar, concluir e exportar", asy
     "O modelo básico resolve o áudio e deixa dinheiro reservado para o sábado.",
   );
   await next(page);
-  await page.getByRole("button", { name: "Ir ao trecho 4" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Um cupom para você" }),
-  ).toBeVisible();
-  await evidence(page, "Parceria paga · Ver detalhes");
+  await page
+    .getByRole("button", { name: "Ver stories de Lia Martins", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Ir ao story 3", exact: true })
+    .click();
+  await expect(page.getByText(/Ganho 12% por compra/)).toBeVisible();
+  await page
+    .getByRole("button", { name: "Ir ao story 4", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "VISITAR PASSO", exact: true })
+    .click();
+  await expect(page.locator(".shoe-store")).toBeVisible();
   await page
     .getByRole("button", { name: "Ir com o meu tênis", exact: true })
     .click();
@@ -91,7 +98,12 @@ test("campanha completa: investigar, comprar, recusar, concluir e exportar", asy
     "A criadora recebe comissão e meu tênis atual ainda atende à oficina.",
   );
   await next(page);
-  await evidence(page, "Só compras verificadas");
+  await page
+    .getByRole("button", { name: /Ver avaliações vitrine.example/ })
+    .click();
+  await page
+    .getByRole("button", { name: "Só compras verificadas", exact: true })
+    .click();
   await expect(
     page.getByText("86 compras verificadas", { exact: false }),
   ).toBeVisible();
@@ -104,6 +116,16 @@ test("campanha completa: investigar, comprar, recusar, concluir e exportar", asy
     "A tomada da oficina e um cabo novo atendem melhor ao meu problema.",
   );
   await next(page);
+  await page
+    .getByRole("button", { name: /Experimentar clube.example/ })
+    .click();
+  await page
+    .getByRole("button", { name: "Começar meu teste", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Confirmar escolha fictícia" })
+    .click();
+  await expect(page.locator(".wallet-card")).toContainText("44,00");
   await page.getByRole("button", { name: "Minha conta", exact: true }).click();
   await page
     .getByRole("button", { name: "Gerenciar cancelamento", exact: false })
@@ -111,18 +133,20 @@ test("campanha completa: investigar, comprar, recusar, concluir e exportar", asy
   await page
     .getByRole("button", { name: "Continuar cancelamento", exact: false })
     .click();
-  await page.getByRole("button", { name: "Continuar explorando" }).click();
   await page
-    .getByRole("button", { name: "Encerrar sem assinar", exact: true })
+    .getByRole("button", { name: "Confirmar cancelamento", exact: true })
     .click();
   await reflect(
     page,
     "Explorei o caminho de cancelamento e prefiro evitar a renovação automática.",
   );
   await next(page);
-  await evidence(page, "Consultar empréstimos");
+  await page.getByRole("button", { name: "Mensagens", exact: true }).click();
   await page
-    .getByRole("button", { name: "Pedir suporte emprestado", exact: true })
+    .getByRole("button", { name: "Conversa com Oficina Aberta", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Reservar suporte para sábado", exact: true })
     .click();
   await reflect(
     page,
@@ -199,4 +223,128 @@ test("teclado, modal, movimento reduzido e comparação sem resultado", async ({
   await expect(
     page.getByRole("heading", { name: "Essencial by onda" }),
   ).toBeVisible();
+});
+
+test("rede social: comentário, salvos, story, loja, conversa e reload", async ({
+  page,
+}) => {
+  await begin(page, "Teste social");
+  await page
+    .getByRole("button", { name: "Curtir publicação", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Salvar publicação", exact: true })
+    .click();
+  await page
+    .getByLabel("Adicionar comentário")
+    .fill("Quero conferir o preço antes.");
+  await page.getByRole("button", { name: "Publicar", exact: true }).click();
+  await expect(page.locator(".social-comments")).toContainText(
+    "Quero conferir o preço antes.",
+  );
+  await page.getByRole("button", { name: "Salvos", exact: true }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "Comprar agora onda.example",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Ver perfil de Lia" }).click();
+  await page
+    .locator(".profile-actions")
+    .getByRole("button", { name: "Seguir", exact: true })
+    .click();
+  await expect(
+    page
+      .locator(".profile-actions")
+      .getByRole("button", { name: "Seguindo", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Ir para o feed", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Ver stories de Lia Martins", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Ir ao story 4", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Reproduzir stories", exact: true }),
+  ).toBeVisible({ timeout: 10000 });
+  await page
+    .getByRole("button", { name: "Ir ao story 1", exact: true })
+    .click();
+  await expect(page.locator(".story-player header")).toContainText("1/4");
+  await page
+    .getByRole("button", { name: "Ir ao story 4", exact: true })
+    .click();
+  await page.getByRole("button", { name: "VISITAR ONDA", exact: true }).click();
+  await page.getByRole("button", { name: "Comparar", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Escolher Essencial", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Voltar à publicação", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Curtir publicação", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page
+    .getByRole("button", { name: "Compartilhar publicação", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Sábado criativo Enviar", exact: true })
+    .click();
+  await page.getByLabel("Escrever mensagem").fill("Precisa comprar para ir?");
+  await page
+    .getByRole("button", { name: "Enviar mensagem", exact: true })
+    .click();
+  await expect(page.locator(".direct-messages")).toContainText(
+    "Não precisa comprar para participar",
+  );
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Continuar minha jornada", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: /Só mais um scroll Seu próximo capítulo/ })
+    .click();
+  await expect(page.locator(".direct-messages")).toContainText(
+    "Precisa comprar para ir?",
+  );
+  await page.getByRole("button", { name: "Onda Loja", exact: true }).click();
+  await expect(page.locator(".product-info h2")).toContainText("Essencial");
+  await noOverflow(page);
+});
+
+test("comprar direto do anúncio não repete a cobrança no capítulo seguinte", async ({
+  page,
+}) => {
+  await begin(page);
+  await page
+    .getByRole("button", { name: "Comprar agora onda.example", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Adicionar ao carrinho", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Confirmar escolha fictícia", exact: true })
+    .click();
+  await expect(page.locator(".wallet-card")).toContainText("320,00");
+  await reflect(
+    page,
+    "Vi a loja pelo anúncio e escolhi o fone para substituir o quebrado.",
+  );
+  await next(page);
+  await expect(
+    page.getByRole("button", { name: "Compra já registrada", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByRole("button", { name: "Histórico de preço", exact: true })
+    .click();
+  await expect(page.locator(".price-history")).toContainText("R$ 179");
+  await page
+    .getByRole("button", { name: "Manter minha escolha", exact: true })
+    .click();
+  await expect(page.locator(".wallet-card")).toContainText("320,00");
 });
