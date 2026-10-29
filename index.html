@@ -117,7 +117,7 @@ function drawStory(){const phone=document.querySelector('.phone');if(!phone)retu
 }
 function toast(msg){const phone=document.querySelector('.phone');if(!phone)return;clearTimeout(toastTimer);phone.querySelector('.toast')?.remove();const t=document.createElement('div');t.className='toast';t.textContent=msg;phone.appendChild(t);toastTimer=setTimeout(()=>t.remove(),2700);}
 function openProduct(id){if(!products[id])return;if(!state.viewed.includes(id)){state.viewed.push(id);pushEvent('view',`Visitou a loja de ${products[id].name}`);}signal(id,2);save();overlay={type:'product',id};modal=null;drawOverlay();}
-function closeOverlay(){overlay=null;document.querySelector('.layer')?.remove();}
+function closeOverlay(){const refresh=overlay?.type==='profile';overlay=null;document.querySelector('.layer')?.remove();if(refresh)renderGame(true);}
 function openComments(post){if(post.startsWith('ad-')){const id=post.replace(/^ad-(main|ret)-/,'');if(!state.reviews.includes(id)){state.reviews.push(id);pushEvent('comments',`Leu avaliações de ${products[id].name}`);signal(id,1);save();}}modal={type:'comments',post};drawModal();}
 function closeModal(){modal=null;document.querySelector('.layer-backdrop')?.remove();}
 function addToCart(id){if(!state.cart.includes(id)){state.cart.push(id);signal(id,3);pushEvent('cart',`Salvou ${products[id].name} no carrinho`);}save();renderGame(true);toast(`${products[id].name} salvo no carrinho. Você pode voltar quando quiser.`);}
@@ -165,7 +165,7 @@ root.addEventListener('click',e=>{
  else if(a==='restart')restart()
  else if(a==='sources'){const n=document.querySelector('#sources');n.hidden=!n.hidden;if(!n.hidden)n.scrollIntoView({block:'nearest',behavior:'smooth'});}
 });
-root.addEventListener('change',e=>{if(e.target?.id==='vip-extra'){state.extraChecked=e.target.checked;save();const b=document.querySelector('.product-foot button[data-action=buy]');if(b)b.textContent='Assinar · '+money(products.plano.price+(state.extraChecked?9.90:0))+'/mês';}if(e.target?.id==='privacy-switch'){state.personalized=e.target.checked;save();closeOverlay();renderGame(true);toast(state.personalized?'Personalização ativada.':'Personalização desativada nesta simulação.');}});
+root.addEventListener('change',e=>{if(e.target?.id==='vip-extra'){state.extraChecked=e.target.checked;save();const b=document.querySelector('.product-foot button[data-action=buy]');if(b)b.textContent='Assinar · '+money(products.plano.price+(state.extraChecked?9.90:0))+'/mês';}if(e.target?.id==='privacy-switch'){state.personalized=e.target.checked;save();toast(state.personalized?'Personalização ativada.':'Personalização desativada nesta simulação.');}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(story){story=null;document.querySelector('.story-layer')?.remove();}else if(modal)closeModal();else if(overlay)closeOverlay();}});
 render();
 })();

@@ -15,7 +15,7 @@ test("início simples, introdução e navegação na primeira fase", async ({ pa
   await expect(page.locator(".phone")).toBeVisible();
   await page.locator('[data-action="story"]').first().click();
   await expect(page.locator(".story-layer")).toBeVisible();
-  await page.locator('[data-action="close-story"]').click();
+  await page.locator('button.story-close').click();
   await page.locator('[data-action="comments"][data-post="ad-main-fone"]').first().click();
   await expect(page.locator(".bottom-sheet")).toContainText("Opiniões sobre Atmos One");
   await page.locator('[data-action="close-modal"]').click();
