@@ -64,7 +64,7 @@ A autenticação é compatível com o contrato inspecionado. A nova campanha **a
 
 ## Publicação
 
-O build gera `dist/`. Nenhuma alteração de AWS, Worker, Tunnel ou produção faz parte desta entrega. [Instruções para integração posterior](docs/PUBLICACAO.md).
+O build gera `dist/`. Uma configuração isolada do Cloudflare Workers publica apenas a **demonstração sem cadastro** em `jogo.portrasdaoferta.workers.dev`; não altera o Worker `mcp`, AWS ou Tunnel. [Guia da demonstração](docs/DEMO-CLOUDFLARE.md) e [integração posterior](docs/PUBLICACAO.md).
 
 ## Referência e limites
 
