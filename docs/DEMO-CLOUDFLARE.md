@@ -1,6 +1,6 @@
 # Publicação de teste no Cloudflare Workers (sem cadastro)
 
-**Objetivo:** publicar a campanha visual estática para testar as seis fases
+**Objetivo:** publicar a nova experiência de rede social (quatro fases) e preservar o modo clássico de seis capítulos
 em https://jogo.portrasdaoferta.workers.dev, sem afetar o serviço MCP.
 
 Esta publicação **não é a integração C4 com o backend**: as escolhas do jogo
@@ -28,7 +28,7 @@ https://mcp.portrasdaoferta.workers.dev/mcp.
 5. Deploy. O `wrangler.jsonc` manda servir `dist/` como assets estáticos,
    incluindo fallback de SPA para a navegação do jogo.
 6. Abra `https://jogo.portrasdaoferta.workers.dev` e teste
-   **Jogar sem cadastro** em uma aba anônima.
+   **Começar a história** em uma aba anônima. O modo clássico fica em `/classico.html`.
 7. Confira que `https://mcp.portrasdaoferta.workers.dev/health`
    continua exibindo `{"status":"ok",...}` e que o login em
    `/vincular` não foi alterado.

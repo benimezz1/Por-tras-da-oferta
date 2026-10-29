@@ -1,10 +1,12 @@
 # Por Trás da Oferta
 
-Jogo educativo do Ciclo 4, Colégio Rio Branco. Uma semana de decisões em seis ambientes fictícios de consumo, com R$ 500 de orçamento e R$ 180 de reserva desejada para uma oficina no sábado.
+Jogo educativo do Ciclo 4, Colégio Rio Branco. A **experiência principal** agora é uma simulação imersiva de rede social, com feed, stories, posts de amigos e anúncios adaptados às escolhas do jogador. O jogador começa com R$ 620 fictícios e tenta preservar R$ 400 para uma viagem escolar.
 
-**Demonstração jogável.** Nenhum pagamento real, nenhuma integração silenciosa com o servidor. O progresso fica nesta aba até encerrar a sessão. Este repositório contém exclusivamente o frontend; o backend/MCP permanece em [Por-tras-da-oferta-MCP](https://github.com/benimezz1/Por-tras-da-oferta-MCP).
+- **Jogo atual:** abra a raiz do site (`/`). São quatro fases conectadas: fone de ouvido, tênis, assinatura musical e mochila. Cada fase apresenta uma situação, uma rede social, um anúncio e uma decisão (comprar, salvar no carrinho ou não comprar).
+- **Versão anterior:** abra `/classico.html` para acessar a campanha React original de seis capítulos. O código e seus testes foram preservados.
+- **Privacidade:** marcas, pessoas, preços e compras são fictícios. Nenhum pagamento é realizado. Na nova versão, as escolhas ficam no armazenamento local deste navegador; a demonstração não as envia ao MCP.
 
-![Rede social](docs/screenshots/05-rede-social-desktop.jpg)
+O novo protótipo está em `index.html`; o modo clássico segue em `src/` e `classico.html`. O Vite gera as duas entradas no mesmo build. O backend/MCP é mantido no projeto separado [Por-tras-da-oferta-MCP](https://github.com/benimezz1/Por-tras-da-oferta-MCP).
 
 ## Executar
 
@@ -22,7 +24,7 @@ npm run build
 npm run preview
 ```
 
-## O que está implementado
+## Versão anterior (modo clássico): o que está implementado
 
 1. **Loop / rede social:** feed e carrosséis, curtidas, comentários editáveis antes de publicar, salvos, pesquisa, perfis, seguir pessoas, compartilhamento e direct com respostas roteirizadas. Anúncios abrem a loja dentro da simulação.
 2. **Onda / loja:** busca, dois modelos de fone, preço anterior, histórico, contador reiniciável, disponibilidade, comparação e carrinho com confirmação.
@@ -44,7 +46,7 @@ npx playwright install chromium
 npm run test:e2e     # campanha completa, reload/isolamento, teclado, desktop e mobile
 ```
 
-A CI executa testes, build e Playwright em Chromium com viewports desktop e iPhone 13. Veja o estado da execução no GitHub; testes escritos não equivalem a execução concluída. Evidências e limites de QA: [docs/QA.md](docs/QA.md).
+A CI executa testes, build e Playwright em Chromium com viewports desktop e iPhone 13, tanto para o novo feed quanto para o modo clássico. Veja o estado da execução no GitHub; testes escritos não equivalem a execução concluída. Evidências e limites de QA: [docs/QA.md](docs/QA.md).
 
 ## Estrutura
 
