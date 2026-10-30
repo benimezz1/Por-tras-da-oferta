@@ -88,6 +88,8 @@ test("cada post e cada story das quatro fases usa foto diferente", async ({ page
   await page.locator('[data-action="skip-intro"]').click();
 
   for (let phase = 0; phase < 4; phase++) {
+    // A mudança de capítulo exibe brevemente uma tela de transição.
+    await expect(page.locator(".phone")).toBeVisible({ timeout: 10000 });
     const postSources = await page.locator(".post-media .art-photo").evaluateAll((imgs) =>
       imgs.map((img) => img.getAttribute("src") || ""),
     );
