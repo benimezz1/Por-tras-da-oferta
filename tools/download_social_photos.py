@@ -75,7 +75,13 @@ def main():
     for name, photo_id in sources.items():
         target = OUTPUT / (name.replace("_", "-") + ".jpg")
         if target.exists():
-            print(f"OK cached {target.name}")
+            with Image.open(target) as existing:
+                size = existing.size
+            nbytes = target.stat().st_size
+            manifest.append({"asset": target.name, "pexels_photo_id": photo_id,
+                             "url": f"https://www.pexels.com/photo/{photo_id}/",
+                             "resolution": f"{size[0]}x{size[1]}", "bytes": nbytes})
+            print(f"OK cached {target.name}: {size}, {nbytes // 1024} KiB")
             continue
         try:
             data = download_photo(photo_id)
