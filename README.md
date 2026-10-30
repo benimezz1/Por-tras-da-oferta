@@ -2,7 +2,7 @@
 
 Jogo educativo do Ciclo 4, Colégio Rio Branco. A **experiência principal** agora é uma simulação imersiva de rede social, com feed, stories, posts de amigos e anúncios adaptados às escolhas do jogador. O jogador começa com R$ 620 fictícios e tenta preservar R$ 400 para uma viagem escolar.
 
-- **Fotografias da experiência:** 10 cenas originais criadas por IA, com 10 enquadramentos adicionais, em 20 arquivos WebP locais otimizados. Imagens de amigos, páginas, anúncios e lojas estão em `public/assets/social/`; veja `docs/IMAGENS-JOGO.md`.
+- **Fotografias da experiência:** 36 fotografias distintas de posts, stories, produtos e perfis, selecionadas do Pexels e importadas em JPEG otimizado para `public/assets/social/unique/`. Os 20 WebPs anteriores continuam disponíveis como reserva. Veja `docs/IMAGENS-JOGO.md`.
 - **Jogo atual:** abra a raiz do site (`/`). São quatro fases conectadas: fone de ouvido, tênis, assinatura musical e mochila. Cada fase apresenta uma situação, uma rede social, um anúncio e uma decisão (comprar, salvar no carrinho ou não comprar).
 - **Versão anterior:** abra `/classico.html` para acessar a campanha React original de seis capítulos. O código e seus testes foram preservados.
 - **Privacidade:** marcas, pessoas, preços e compras são fictícios. Nenhum pagamento é realizado. Na nova versão, as escolhas ficam no armazenamento local deste navegador; a demonstração não as envia ao MCP.
@@ -77,6 +77,6 @@ O build gera `dist/`. Uma configuração isolada do Cloudflare Workers publica a
 
 ## Referência e limites
 
-Base: _Relatório Final C3_, capítulos 2–5, especialmente a proposta para C4 nas páginas 15–17. Os exemplos são inventados; não reproduzem dados reais de vendedores. O jogo não diagnostica consumismo, não decide pelo participante e não confunde indício com comprovação de fraude. Os stories são cenas gráficas ilustradas, não vídeos humanos gravados. Loop é uma rede fictícia com padrões familiares do Instagram; não replica toda a plataforma. As conversas são locais e roteirizadas, sem envio a pessoas reais. O cartaz e a implementação do assistente ficam fora deste repositório.
+Base: _Relatório Final C3_, capítulos 2–5, especialmente a proposta para C4 nas páginas 15–17. Os exemplos são inventados; não reproduzem dados reais de vendedores. O jogo não diagnostica consumismo, não decide pelo participante e não confunde indício com comprovação de fraude. Os stories são fotografias ilustrativas estáticas, não vídeos humanos gravados. Loop é uma rede fictícia com padrões familiares do Instagram; não replica toda a plataforma. As conversas são locais e roteirizadas, sem envio a pessoas reais. O cartaz e a implementação do assistente ficam fora deste repositório.
 
-As fontes são empacotadas localmente; não há chamadas a Google Fonts, imagens externas, analytics ou IA durante a demonstração. [Créditos e licenças](docs/ATIVOS.md).
+Depois da importação das fotos, os arquivos principais ficam empacotados no próprio site. Se um JPEG faltar, o navegador tentará a foto de origem e depois um asset WebP local; nenhuma informação do jogador é enviada aos provedores de imagens. [Créditos e licenças](docs/ATIVOS.md).
