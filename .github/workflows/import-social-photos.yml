@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - '.github/workflows/import-social-photos.yml'
+      - 'tools/download_social_photos.py'
+      - 'index.html'
   workflow_dispatch:
 
 permissions:
