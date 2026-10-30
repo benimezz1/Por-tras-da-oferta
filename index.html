@@ -26,6 +26,24 @@
 
 
 .avatar-photo{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}.story-face .avatar-photo{object-position:center 35%}.photo-avatar{padding:0!important;overflow:hidden;background:#f2e8f4}.photo-avatar .avatar-photo{width:100%;height:100%}.preview-photo.realistic-preview{background:#f7f2ee}.preview-photo.realistic-preview:before,.preview-photo.realistic-preview:after{display:none}.preview-photo.realistic-preview img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 38%}.scroll-cue{font-size:11px;padding:9px 14px}.art-photo{object-position:center 42%}.art.is-product-photo .art-photo{object-position:center center}
+/* Fotografia inteira: sem cortar rostos para encaixar na geometria do feed.
+   Uma camada desfocada utiliza a mesma imagem como fundo editorial. */
+.post-media > .art.has-photo { height:auto; aspect-ratio:1 / 1; }
+.art.has-photo::before {
+ content:""; position:absolute; inset:-12%; z-index:0; pointer-events:none;
+ background-image:var(--art-photo-bg); background-size:cover; background-position:center;
+ filter:blur(28px) brightness(.72) saturate(.85); transform:scale(1.02);
+}
+.art.has-photo .art-photo { position:relative; z-index:1; width:100%; height:100%; object-fit:contain; }
+.art.has-photo .art-photo-overlay { z-index:2; }
+.art.has-photo .art-brand-label { z-index:3; color:#fff; text-shadow:0 2px 8px #0009; }
+.story-picture>.art.has-photo { width:100%; height:100%; }
+.story-picture>.art.has-photo .art-photo { object-fit:contain; }
+.product-hero>.art.has-photo { height:100%; }
+.product-hero>.art.has-photo .art-photo { object-fit:contain; }
+.cart-thumb>.art.has-photo { height:100%; width:100%; }
+.cart-thumb>.art.has-photo .art-photo { object-fit:contain; }
+.preview-photo.realistic-preview img { object-fit:cover; }
 </style>
 </head>
 <body>
@@ -95,7 +113,7 @@ function storySourceType(name){return ['agenda.local','loja.noma','dj.andre','mo
 function postSourceType(post){return ['p2','p5','p6','p7','p9','p11'].includes(post.id)?'page':'friend';}
 function renderStoryGroup(list,title,kind='friend'){if(!list.length)return '';return `<div class="story-section ${kind==='page'?'page':''}"><div class="story-section-title">${title}</div><div class="stories">${list.map(s=>{const sid=`s${state.phase}-${s.idx}`;return `<button class="story ${s.source==='page'?'page-story':''} ${state.stories.includes(sid)?'read':''}" data-action="story" data-index="${s.idx}" aria-label="Abrir story de ${s.user}"><span class="story-ring"><span class="story-face">${mediaPhoto(avatarSrc(s.user,s.photo),"avatar-photo",`Imagem ilustrativa de perfil: ${s.user}`)}</span></span><span class="story-name">${s.user}</span></button>`}).join('')}</div></div>`;}
 function sectionDivider(label,kind='friend'){return `<div class="section-divider ${kind==='page'?'page':''}"><span>${label}</span></div>`;}
-const art=(kind,isProduct=false,tag='',photo='')=>{const key=photo||(isProduct?`product_${kind}`:kind);const src=mediaSrc(key);const alt=isProduct?`Imagem ilustrativa de ${tag||kind}`:'Fotografia ilustrativa da publicação fictícia';if(src)return `<div class="art art-${esc(kind)} has-photo ${isProduct?'is-product-photo':''}">${mediaPhoto(key,'art-photo',alt)}${tag?`<span class="art-brand-label">${esc(tag)}</span>`:''}<div class="art-photo-overlay"></div></div>`;return `<div class="art art-${esc(kind)}">${isProduct?productSvg(kind):sceneSvg(kind)}${tag?`<span class="art-brand-label">${esc(tag)}</span>`:''}</div>`;};
+const art=(kind,isProduct=false,tag='',photo='')=>{const key=photo||(isProduct?`product_${kind}`:kind);const src=mediaSrc(key);const alt=isProduct?`Imagem ilustrativa de ${tag||kind}`:'Fotografia ilustrativa da publicação fictícia';if(src)return `<div class="art art-${esc(kind)} has-photo ${isProduct?'is-product-photo':''}" style="--art-photo-bg:url('${src}')">${mediaPhoto(key,'art-photo',alt)}${tag?`<span class="art-brand-label">${esc(tag)}</span>`:''}<div class="art-photo-overlay"></div></div>`;return `<div class="art art-${esc(kind)}">${isProduct?productSvg(kind):sceneSvg(kind)}${tag?`<span class="art-brand-label">${esc(tag)}</span>`:''}</div>`;};
 const root=document.getElementById('app');
 function renderHome(){root.innerHTML=`<main class="home"><div class="home-inner"><section><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA · EXPERIÊNCIA INTERATIVA</div><h1>Seu feed.<br><em>Suas escolhas.</em></h1><p>Entre nos stories, descubra ofertas e tome decisões. O que você vê amanhã depende do que fizer hoje.</p><button class="primary" data-action="start">Começar a história &nbsp;→</button><div class="home-meta"><span>✦</span><span>4 momentos · sem respostas certas · compras fictícias</span></div></section><div class="preview-art"><div class="blob one"></div><div class="blob two"></div><div class="preview-phone"><div class="preview-header">pulso. <span style="font-size:18px">♡ &nbsp;⌑</span></div><div class="preview-storybar"><div class="preview-avatar">🌸</div><div class="preview-avatar" style="background:#bce6cf">🎸</div><div class="preview-avatar" style="background:#d5c3fd">✨</div><div class="preview-avatar" style="background:#f4d8bd">🎟️</div></div><div class="preview-photo realistic-preview">${mediaPhoto("post_p1","art-photo","Amigos aproveitando um encontro no parque")}</div><div class="preview-caption"><b>bia.m</b> Quem já tá pronto pro sábado? 💜<br><span style="color:#aaa">Ver os 18 comentários...</span></div><div class="preview-ad">★ Patrocinado <b>· Uma oferta que parece ter sido feita para você.</b></div></div><div class="preview-badge">Seu algoritmo está observando 👀</div></div></div></main>`;}
 const introSlides=[{emoji:'📱',title:'Sábado está chegando.',text:'Seus amigos estão combinando um encontro. A conversa já começou nos stories.'},{emoji:'🎧',title:'Seu fone parou de funcionar.',text:'Você vai passar um tempo no ônibus. Um fone novo seria útil — mas será que precisa ser aquele do anúncio?'},{emoji:'💸',title:'Uma escolha de cada vez.',text:'Você tem R$ 620 até o fim do mês e quer guardar R$ 400 para a viagem da escola. O que aparecer no feed pode mudar seus planos.'}];
