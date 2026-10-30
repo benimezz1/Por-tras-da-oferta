@@ -74,10 +74,41 @@ test("imagens locais e seções distintas de amigos e páginas no feed", async (
   await expect(page.locator(".scroll-cue")).toBeVisible();
   const firstPhoto = page.locator(".post-media .art-photo").first();
   await firstPhoto.scrollIntoViewIfNeeded();
-  await expect(firstPhoto).toHaveAttribute("src", /assets\/social\/.*\.webp$/);
+  await expect(firstPhoto).toHaveAttribute("src", /assets\/social\/unique\/post-p1\.jpg$/);
   await expect.poll(() => firstPhoto.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBeTruthy();
   await expect(page.locator(".scroll-cue")).toHaveClass(/hidden/);
   await page.locator('[data-action="story"]').first().click();
   await expect(page.locator(".story-layer .art-photo")).toBeVisible();
   await page.locator("button.story-close").click();
+});
+
+test("cada post e cada story das quatro fases usa foto diferente", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('[data-action="start"]').click();
+  await page.locator('[data-action="skip-intro"]').click();
+
+  for (let phase = 0; phase < 4; phase++) {
+    const postSources = await page.locator(".post-media .art-photo").evaluateAll((imgs) =>
+      imgs.map((img) => img.getAttribute("src") || ""),
+    );
+    expect(postSources.length).toBeGreaterThanOrEqual(4);
+    expect(new Set(postSources).size).toBe(postSources.length);
+    expect(postSources.every((src) => /assets\\/social\\/unique\\/.+\\.jpg$/.test(src))).toBeTruthy();
+
+    const storySources: string[] = [];
+    const storyButtons = page.locator('[data-action="story"]');
+    for (let i = 0; i < 3; i++) {
+      await storyButtons.nth(i).click();
+      const photo = page.locator(".story-layer .art-photo");
+      await expect(photo).toBeVisible();
+      const src = await photo.getAttribute("src");
+      expect(src).toMatch(/assets\\/social\\/unique\\/story-.+\\.jpg$/);
+      await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBeTruthy();
+      storySources.push(src!);
+      await page.locator("button.story-close").click();
+    }
+    expect(new Set(storySources).size).toBe(storySources.length);
+
+    await page.locator('[data-action="decision"][data-decision="skip"]').click();
+  }
 });
