@@ -93,7 +93,7 @@ test("cada post e cada story das quatro fases usa foto diferente", async ({ page
     );
     expect(postSources.length).toBeGreaterThanOrEqual(4);
     expect(new Set(postSources).size).toBe(postSources.length);
-    expect(postSources.every((src) => /assets\\/social\\/unique\\/.+\\.jpg$/.test(src))).toBeTruthy();
+    expect(postSources.every((src) => /assets\/social\/unique\/.+\.jpg$/.test(src))).toBeTruthy();
 
     const storySources: string[] = [];
     const storyButtons = page.locator('[data-action="story"]');
@@ -102,7 +102,7 @@ test("cada post e cada story das quatro fases usa foto diferente", async ({ page
       const photo = page.locator(".story-layer .art-photo");
       await expect(photo).toBeVisible();
       const src = await photo.getAttribute("src");
-      expect(src).toMatch(/assets\\/social\\/unique\\/story-.+\\.jpg$/);
+      expect(src).toMatch(/assets\/social\/unique\/story-.+\.jpg$/);
       await expect.poll(() => photo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBeTruthy();
       storySources.push(src!);
       await page.locator("button.story-close").click();
