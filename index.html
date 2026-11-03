@@ -107,6 +107,25 @@
 .algo-factors{padding:0;list-style:none;margin:14px 0}.algo-factors li{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #f2e9f1;padding:9px 3px;font-size:12px}
 .algo-factors li strong{font-variant-numeric:tabular-nums}
 @media(max-width:420px){.algorithm-button{padding:5px 7px}.algorithm-button span{display:none}.feed-recommendation-heading{font-size:10px}}
+
+/* Feed continuo: o objetivo e apresentado antes, mas nao aparece a cada scroll. */
+.critical-panel{padding:23px 19px 35px}.critical-panel h2{font-size:28px;line-height:1.12;letter-spacing:-.045em;margin:10px 0 12px}
+.critical-panel>p{font-size:13px;color:#786d7a;line-height:1.65}.goal-numbers{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:20px 0}
+.goal-numbers>div{border-radius:13px;background:#faf3fa;border:1px solid #f2e4f1;padding:14px;min-width:0}
+.goal-numbers small{display:block;font-size:10px;color:#988297}.goal-numbers strong{font-size:21px;display:block;margin-top:5px;letter-spacing:-.04em}
+.goal-result{background:#fff8f1;border:1px solid #f0e0ca;border-radius:13px;padding:17px;font-size:13px}
+.goal-result.ok{background:#f5faf4;border-color:#d8e9d3}.goal-result strong{display:block;margin-bottom:5px}
+.goal-result p{font-size:12px;margin:0;color:#766c73}.critical-action{width:100%;margin:9px 0 0;font-size:13px}
+.coach-questions{border:1px solid #efe1ed;border-radius:15px;padding:17px;margin:17px 0;font-size:13px;line-height:1.7}
+.coach-questions h3{font-size:15px}.coach-questions ol{padding-left:20px;margin:8px 0}
+.feed-rail-title{font-weight:850;font-size:20px;letter-spacing:-.04em;margin:12px 0 8px}
+.side-action{margin-top:15px;font-size:12px;padding:10px 11px}
+.feed-end-hint{margin:18px 14px;padding:19px;border-radius:16px;background:#faf3f9;border:1px solid #ecdce9;color:#5b495f;font-size:13px}
+.feed-end-hint p{font-size:12px;margin:6px 0 0}.load-more{margin:15px 14px;width:calc(100% - 28px);background:#faf6fa;color:#684768;border:1px solid #e6d9e6;border-radius:13px;padding:14px;font-size:13px;font-weight:800}
+.finish-feed{display:block;margin:15px 14px 12px;width:calc(100% - 28px);border:0;border-radius:14px;background:#2b2230;color:white;padding:17px;font-weight:850;font-size:14px}
+.feed-footer-note{text-align:center;color:#ad9bab;font-size:11px;margin:0 12px 25px}
+.intro-secondary{display:block;margin:16px auto;color:#efdeea}
+@media(max-width:810px){.game .rail{display:none}}
 </style>
 </head>
 <body>
@@ -125,12 +144,66 @@
 </div>
 
 <script src="/recommendation.js"></script>
+<script src="/stream.js"></script>
 <script>
 (()=>{
 "use strict";
-const KEY='nofeed-simulator-v2';
+const KEY='nofeed-simulator-v3';
 
 const Recommender=window.NoFeedRecommender;
+
+const Stream=window.NoFeedStream;
+let loadPending=false;
+const contentPool=()=>phases.flatMap((ph,themeIndex)=>
+ ph.posts.map((p,postIndex)=>({...p,topic:ph.id,author:p.who,phase:0,order:postIndex*4+themeIndex}))
+);
+const storyPool=()=>phases.flatMap((ph,themeIndex)=>
+ ph.stories.map((s,localIndex)=>({...s,idx:themeIndex*3+localIndex,product:ph.id}))
+);
+function appendNext(){
+ const batch=Stream.nextBatch(contentPool(),{
+  shown:state.feedItems,profile:state.algorithm,personalized:state.personalized,
+  phase:state.phase,cart:state.cart,viewed:state.viewed,
+  purchased:state.purchases.map(p=>p.id)
+ },5);
+ if(!batch.length)return false;
+ state.feedItems.push(...batch);
+ state.phase=Math.min(3,Math.floor(state.feedItems.length/5));
+ save();
+ return true;
+}
+function goalPanel(){
+ const available=Math.max(0,Math.round((state.wallet-state.goal)*100)/100);
+ const intact=state.wallet>=state.goal;
+ return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon('arrow')}</button><strong>Sua meta fora do feed</strong></header>
+ <div class="layer-body critical-panel"><span class="eyebrow">LEMBRETE DO INÍCIO</span>
+ <h2>Você queria guardar R$ 400.</h2><p>Antes de abrir a rede, sua missão era preservar esse dinheiro fictício para a viagem da escola. A plataforma não conhece essa prioridade.</p>
+ <div class="goal-numbers"><div><small>Saldo agora</small><strong>${money(state.wallet)}</strong></div><div><small>Meta da viagem</small><strong>${money(state.goal)}</strong></div></div>
+ <div class="goal-result ${intact?'ok':'miss'}"><strong>${intact?'Meta ainda possível':'Sua meta ficou comprometida'}</strong><p>${intact?'Você pode gastar até '+money(available)+' sem diminuir a reserva.':'Faltam '+money(state.goal-state.wallet)+' para a reserva que você pretendia manter.'}</p></div>
+ <p class="small muted">A meta não é uma regra moral: necessidades, prioridades e orçamentos são pessoais. Este jogo mede apenas o resultado de uma decisão fictícia.</p>
+ <button class="secondary full critical-action" data-action="close-overlay">Voltar ao feed</button>
+ <button class="primary full critical-action" data-action="finish">Sair do feed e refletir</button></div>`;
+}
+function coachPanel(){
+ const id=overlay.id||state.viewed.at(-1)||state.feedItems.findLast(x=>x.kind==="ad")?.topic||"fone", p=products[id];
+ const extra=id==='plano'&&state.extraChecked?9.90:0;
+ const cost=p?p.price+extra:0;
+ const themes={fone:'Praticidade e necessidade',tenis:'Popularidade, influência social e escassez',plano:'Assinatura e adicional pré-selecionado',mochila:'Desconto de referência e urgência'};
+ const balanceAfter=state.wallet-cost;
+ const fits=balanceAfter>=state.goal;
+ return `<header class="layer-head"><button class="icon-button" data-action="product" data-product="${esc(id)}" aria-label="Voltar ao anúncio">${icon('arrow')}</button><strong>Ajuda crítica · prévia local</strong></header>
+ <div class="layer-body critical-panel"><span class="eyebrow">PENSE ANTES DO CLIQUE</span>
+ <h2>O anúncio chama sua atenção. E sua meta?</h2>
+ <p>Esta orientação é uma prévia educativa calculada no próprio navegador. <strong>Não é uma resposta do MCP conectado.</strong> A integração futura poderá aprofundar a análise com o assistente.</p>
+ <div class="goal-numbers"><div><small>Preço anunciado</small><strong>${money(cost)}</strong></div><div><small>Saldo após compra</small><strong>${money(balanceAfter)}</strong></div></div>
+ <div class="goal-result ${fits?'ok':'miss'}"><strong>${fits?'A reserva ainda caberia':'A compra impediria preservar sua reserva'}</strong><p>${fits?'Mesmo cabendo no orçamento, vale considerar necessidade, alternativas e prazo.':'Se comprar agora, o saldo ficaria '+money(state.goal-balanceAfter)+' abaixo do objetivo inicial.'}</p></div>
+ <div class="coach-questions"><h3>Três perguntas úteis</h3>
+ <ol><li>Você já queria esse item antes de abrir a rede?</li><li>Que técnica o anúncio usa? <strong>${themes[id]||'Persuasão comercial'}</strong>.</li><li>Esperar um dia mudaria sua decisão ou permitiria comparar preços?</li></ol></div>
+ <p class="small muted">Nenhuma compra é automaticamente errada. O objetivo é recuperar sua autonomia diante de estímulos persuasivos.</p>
+ <button class="secondary full critical-action" data-action="goal">Rever meu objetivo</button>
+ <button class="primary full critical-action" data-action="product" data-product="${esc(id)}">Voltar ao produto</button></div>`;
+}
+
 let feedObserver=null;
 const impressionTimers=new Map();
 function recommendationOptions(){return {profile:state.algorithm,phase:state.phase,personalized:state.personalized};}
@@ -156,8 +229,13 @@ const money=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).
 const icons={heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',comment:'<path d="M20 11.5a8 8 0 0 1-8 8 9.1 9.1 0 0 1-3.5-.7L3 21l1.3-5.2A8.3 8.3 0 0 1 4 11.5a8 8 0 0 1 16 0Z"/>',bookmark:'<path d="M6 3h12v18l-6-4-6 4V3Z"/>',cart:'<circle cx="9" cy="20" r="1"/><circle cx="19" cy="20" r="1"/><path d="M2 3h2l2.5 12h13.6l2-9H5"/>',arrow:'<path d="m15 18-6-6 6-6"/>',send:'<path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/>',home:'<path d="m3 10 9-7 9 7v10H3V10Z"/><path d="M9 20v-7h6v7"/>',search:'<circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 5 5"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',close:'<path d="M5 5 19 19M19 5 5 19"/>',chevron:'<path d="m9 5 7 7-7 7"/>',more:'<circle cx="4" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="20" cy="12" r="1"/>',bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',check:'<path d="m4 12 5 5L20 6"/>',info:'<circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/>',share:'<path d="M12 16V3M7 8l5-5 5 5M5 16v4h14v-4"/>',eye:'<path d="M2 12s3.7-7 10-7 10 7 10 7-3.7 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>'};
 const icon=(n,cls='')=>`<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true">${icons[n]||icons.info}</svg>`;
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const makeInitial=()=>({started:false,phase:0,wallet:620,goal:400,cart:[],purchases:[],decisions:[],viewed:[],liked:[],bookmarks:[],stories:[],reviews:[],signals:{fone:0,tenis:0,plano:0,mochila:0},personalized:true,extraChecked:true,monthly:0,events:[],seenAds:[],algorithm:Recommender.emptyProfile()});
-let state=makeInitial();try{const saved=JSON.parse(localStorage.getItem(KEY)||'null');if(saved&&typeof saved.phase==='number'&&Array.isArray(saved.decisions))state={...makeInitial(),...saved,signals:{...makeInitial().signals,...saved.signals}};}catch(e){}
+const makeInitial=()=>({version:3,started:false,finished:false,phase:0,feedItems:[],helpRequests:0,wallet:620,goal:400,cart:[],purchases:[],decisions:[],viewed:[],liked:[],bookmarks:[],stories:[],reviews:[],signals:{fone:0,tenis:0,plano:0,mochila:0},personalized:true,extraChecked:true,monthly:0,events:[],seenAds:[],algorithm:Recommender.emptyProfile()});
+let state=makeInitial();try{
+ const saved=JSON.parse(localStorage.getItem(KEY)||"null");
+ if(saved?.version===3&&Array.isArray(saved.feedItems)&&Array.isArray(saved.decisions)){
+  state={...makeInitial(),...saved,feedItems:saved.feedItems.slice(0,48)};
+ }
+}catch(e){}
 state.algorithm=Recommender.normalize(state.algorithm);
 let overlay=null,story=null,modal=null,toastTimer=null,introTimer=null,scene=0;
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
@@ -229,14 +307,16 @@ function mediaPhoto(kind,cssClass,alt){
 }
 function storySourceType(name){return ['agenda.local','loja.noma','dj.andre','moda.agora'].includes(name)?'page':'friend';}
 function postSourceType(post){return ['p2','p5','p6','p7','p9','p11'].includes(post.id)?'page':'friend';}
-function renderStories(list) {
-  if (!list.length) return "";
-  const ranked = Recommender.rankStories(list, recommendationOptions());
-  return '<section class="story-rail" aria-label="Stories de amigos e páginas"><div class="story-rail-heading">STORIES <span>Amigos e páginas · ordem sugerida</span></div><div class="stories">' + ranked.map(s => {
-    const sid = `s${state.phase}-${s.idx}`, page = s.source === "page";
-    return `<button class="story ${page ? "page-story" : ""} ${state.stories.includes(sid) ? "read" : ""}" data-action="story" data-index="${s.idx}" aria-label="Abrir story de ${esc(s.user)}"><span class="story-ring"><span class="story-face">${profileAvatar(s.user, s.photo, page)}</span></span><span class="story-name">${esc(s.user)}</span></button>`;
-  }).join("") + "</div></section>";
+
+function renderStories(list){
+ if(!list.length)return '';
+ const ranked=Recommender.rankStories(list,recommendationOptions());
+ return '<section class="story-rail" aria-label="Stories de amigos e páginas"><div class="story-rail-heading">STORIES <span>Amigos, criadores e páginas</span></div><div class="stories">'+ranked.map(s=>{
+  const sid='story-'+s.idx,page=s.source==='page';
+  return '<button class="story '+(page?'page-story':'')+' '+(state.stories.includes(sid)?'read':'')+'" data-action="story" data-index="'+s.idx+'" aria-label="Abrir story de '+esc(s.user)+'"><span class="story-ring"><span class="story-face">'+profileAvatar(s.user,s.photo,page)+'</span></span><span class="story-name">'+esc(s.user)+'</span></button>';
+ }).join('')+'</div></section>';
 }
+
 function sectionDivider(label,kind='friend'){return `<div class="section-divider ${kind==='page'?'page':''}"><span>${label}</span></div>`;}
 const art=(kind,isProduct=false,tag='',photo='')=>{const key=photo||(isProduct?`product_${kind}`:kind);const src=mediaSrc(key);const alt=isProduct?`Imagem ilustrativa de ${tag||kind}`:'Fotografia ilustrativa da publicação fictícia';if(src)return `<div class="art art-${esc(kind)} has-photo ${isProduct?'is-product-photo':''}" style="--art-photo-bg:url('${src}')">${mediaPhoto(key,'art-photo',alt)}${tag?`<span class="art-brand-label">${esc(tag)}</span>`:''}<div class="art-photo-overlay"></div></div>`;return `<div class="art art-${esc(kind)}">${isProduct?productSvg(kind):sceneSvg(kind)}${tag?`<span class="art-brand-label">${esc(tag)}</span>`:''}</div>`;};
 const root=document.getElementById('app');
@@ -261,30 +341,68 @@ exitCancel.addEventListener('click',()=>closeExitConfirm());
 exitAccept.addEventListener('click',()=>{closeExitConfirm(false);restart();});
 exitConfirm.addEventListener('click',e=>{if(e.target===exitConfirm)closeExitConfirm();});
 
-function renderHome(){exitHomeButton.hidden=true;root.innerHTML=`<main class="home"><div class="home-inner"><section><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA · EXPERIÊNCIA INTERATIVA</div><h1>Seu feed.<br><em>Suas escolhas.</em></h1><p>Entre nos stories, descubra ofertas e tome decisões. O que você vê amanhã depende do que fizer hoje.</p><button class="primary" data-action="start">Começar a história &nbsp;→</button><div class="home-meta"><span>✦</span><span>4 momentos · sem respostas certas · compras fictícias</span></div></section><div class="preview-art"><div class="blob one"></div><div class="blob two"></div><div class="preview-phone"><div class="preview-header">pulso. <span style="font-size:18px">♡ &nbsp;⌑</span></div><div class="preview-storybar"><div class="preview-avatar">${mediaPhoto("avatar_bia","avatar-photo","Foto de perfil da Bia")}</div><div class="preview-avatar">${mediaPhoto("avatar_lucca","avatar-photo","Foto de perfil do Lucca")}</div><div class="preview-avatar">${mediaPhoto("avatar_livia","avatar-photo","Foto de perfil da Lívia")}</div><div class="preview-avatar">${mediaPhoto("avatar_gabi","avatar-photo","Foto de perfil da Gabi")}</div></div><div class="preview-photo realistic-preview">${mediaPhoto("post_p1","art-photo","Amigos aproveitando um encontro no parque")}</div><div class="preview-caption"><b>bia.m</b> Quem já tá pronto pro sábado? 💜<br><span style="color:#aaa">Ver os 18 comentários...</span></div><div class="preview-ad">★ Patrocinado <b>· Uma oferta que parece ter sido feita para você.</b></div></div><div class="preview-badge">Seu algoritmo está observando 👀</div></div></div></main>`;}
-const introSlides=[{emoji:'📱',title:'Sábado está chegando.',text:'Seus amigos estão combinando um encontro. A conversa já começou nos stories.'},{emoji:'🎧',title:'Seu fone parou de funcionar.',text:'Você vai passar um tempo no ônibus. Um fone novo seria útil — mas será que precisa ser aquele do anúncio?'},{emoji:'💸',title:'Uma escolha de cada vez.',text:'Você tem R$ 620 até o fim do mês e quer guardar R$ 400 para a viagem da escola. O que aparecer no feed pode mudar seus planos.'}];
-function showIntro(i=0){exitHomeButton.hidden=false;scene=i;clearTimeout(introTimer);const v=introSlides[i];root.innerHTML=`<main class="cinematic"><button class="scene-skip" data-action="skip-intro">Pular introdução</button><div class="scene-box"><div class="scene-icon">${v.emoji}</div><h2>${v.title}</h2><p>${v.text}</p><div class="scene-progress">${introSlides.map((_,j)=>`<i class="${j===i?'current':''}"></i>`).join('')}</div><button class="scene-next" data-action="intro-next">${i===2?'Abrir o feed →':'Continuar →'}</button></div></main>`;if(i<2&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches)introTimer=setTimeout(()=>showIntro(i+1),3000);}
-function asideLeft(phase){return `<aside class="rail"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div><span class="eyebrow" style="margin-top:12px">MOMENTO ${String(state.phase+1).padStart(2,'0')} / 04</span><h2 class="stage-title">${phase.name}<span style="color:#d386ac">.</span></h2><p class="side-footer">Um jogo de dilemas dentro do feed.</p></aside>`;}
-function asideRight(){const pct=Math.max(0,Math.min(100,100*state.wallet/state.goal));return `<aside class="rail right"><div class="rail-note"><span class="eyebrow">SALDO ATUAL</span><div class="reserve-num">${money(state.wallet)}</div><p class="m0" style="font-size:12px;color:#8e8190">Meta de economia: ${money(state.goal)}</p><div class="progress-line"><div style="width:${pct}%"></div></div></div></aside>`;}
-function contextualNote(ph){
- if(state.phase===1){const c=state.decisions[0];if(c==='cart')return 'O fone ficou no seu carrinho. Agora a turma posta novos looks — e as lojas continuam acompanhando seu interesse.';if(c==='buy')return 'Você comprou o fone. O encontro passou, mas o feed já mostra novas tendências e produtos relacionados.';if(c==='skip')return 'Você decidiu esperar antes de comprar o fone. O feed não parou: hoje a turma está comentando sobre tênis.';}
- if(state.phase===2){const c=state.decisions[1];if(c==='buy')return 'Depois da compra do tênis, você abre o celular para estudar com música. Um plano mensal aparece entre as playlists.';if(c==='cart')return 'O tênis está entre os seus itens salvos. Agora aparece outra oferta, desta vez uma cobrança mensal.';if(c==='skip')return 'Você deixou o tênis passar. Entre playlists de estudo, surge um novo anúncio de assinatura.';}
- if(state.phase===3){return state.wallet<state.goal?'Você já gastou parte do valor que queria guardar. Mesmo assim, a viagem se aproxima e as ofertas continuam aparecendo.':'A viagem da escola está chegando. Você ainda tenta preservar sua reserva, enquanto aparecem anúncios com preços riscados e prazos curtos.';}
- return ph.context;
+function renderHome(){exitHomeButton.hidden=true;root.innerHTML=`<main class="home"><div class="home-inner"><section><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA · EXPERIÊNCIA INTERATIVA</div><h1>Seu feed.<br><em>Suas escolhas.</em></h1><p>Uma missão fora da tela. Um feed que parece não ter fim. Seus cliques mudam o que aparece — e suas escolhas mudam o resultado.</p><button class="primary" data-action="start">Começar a história &nbsp;→</button><div class="home-meta"><span>✦</span><span>feed contínuo · sem escolhas obrigatórias · compras fictícias</span></div></section><div class="preview-art"><div class="blob one"></div><div class="blob two"></div><div class="preview-phone"><div class="preview-header">pulso. <span style="font-size:18px">♡ &nbsp;⌑</span></div><div class="preview-storybar"><div class="preview-avatar">${mediaPhoto("avatar_bia","avatar-photo","Foto de perfil da Bia")}</div><div class="preview-avatar">${mediaPhoto("avatar_lucca","avatar-photo","Foto de perfil do Lucca")}</div><div class="preview-avatar">${mediaPhoto("avatar_livia","avatar-photo","Foto de perfil da Lívia")}</div><div class="preview-avatar">${mediaPhoto("avatar_gabi","avatar-photo","Foto de perfil da Gabi")}</div></div><div class="preview-photo realistic-preview">${mediaPhoto("post_p1","art-photo","Amigos aproveitando um encontro no parque")}</div><div class="preview-caption"><b>bia.m</b> Quem já tá pronto pro sábado? 💜<br><span style="color:#aaa">Ver os 18 comentários...</span></div><div class="preview-ad">★ Patrocinado <b>· Uma oferta que parece ter sido feita para você.</b></div></div><div class="preview-badge">Alguns cliques mudam tudo 👀</div></div></div></main>`;}
+
+const introSlides=[{emoji:'🎯',title:'Sua missão: preservar R$ 400.',text:'Você tem R$ 620 fictícios até o fim do mês. Quer guardar R$ 400 para a viagem da escola. Quando entrar na rede, ninguém vai lembrar essa meta por você.'}];
+function showIntro(){
+ exitHomeButton.hidden=false;scene=0;clearTimeout(introTimer);
+ root.innerHTML=`<main class="cinematic"><div class="scene-box">
+ <div class="scene-icon">🎯</div><div class="eyebrow" style="color:#eec7ee">UMA META ANTES DO FEED</div>
+ <h2>Sua missão: <span style="color:#ffc5e2">guardar R$ 400.</span></h2>
+ <p>Você tem R$ 620 fictícios. Quer reservar R$ 400 para a viagem da escola. Daqui a pouco, você estará numa rede de amigos, vídeos e anúncios — e sua meta deixará de aparecer na tela.</p>
+ <button class="scene-next" data-action="intro-next">Entrar no feed →</button>
+ <button class="tertiary intro-secondary" data-action="skip-intro">Já entendi, abrir a rede</button>
+ </div></main>`;
 }
-function stageFeed() {
-  const ph = phases[state.phase];
-  const ranked = Recommender.rankPosts(candidatePosts(), recommendationOptions());
-  const stories = renderStories(ph.stories);
-  const cards = ranked.map(postCard);
-  const currentAd = adCard(ph.id, false);
-  const retarget = adaptiveAd(ph.id);
-  const sequence = `${cards.slice(0, 2).join("")}${currentAd}${cards.slice(2).join("")}${retarget}`;
-  return `<div class="game">${asideLeft(ph)}<main class="phone" aria-label="Simulador de rede social"><header class="phone-head"><span class="phone-logo">pulso<b>.</b></span><div class="phone-actions"><button class="algorithm-button" data-action="algorithm" aria-label="Abrir painel do algoritmo">${icon("info")}<span>Algoritmo</span></button><button class="icon-button" data-action="notifications" aria-label="Notificações">${icon("heart")}</button><button class="icon-button" data-action="cart" aria-label="Abrir carrinho" style="position:relative">${icon("cart")}${state.cart.length ? `<span class="cart-dot">${state.cart.length}</span>` : ""}</button></div></header><div class="phone-content" id="feed-scroll">${stories}<div class="feed-context"><span style="font-size:19px">${ph.emoji}</span><div><strong style="font-size:12px">${ph.day}</strong><p>${contextualNote(ph)}</p></div></div><div class="feed-recommendation-heading"><span>Feed de amigos</span><span>·</span><span>Páginas que você segue</span></div><div class="recommendation-caption">${state.personalized ? "Ordem adaptada aos seus cliques simulados" : "Ordem cronológica · personalização desativada"} <button data-action="algorithm">Como funciona?</button></div>${sequence}${decisionCard()}</div><button class="scroll-cue" data-action="scroll-cue" aria-label="Role para baixo para continuar">Role para continuar ↓</button><footer class="phone-footer"><button class="icon-button" data-action="feedtop" aria-label="Início do feed">${icon("home")}</button><button class="icon-button" data-action="search" aria-label="Explorar">${icon("search")}</button><button class="icon-button" data-action="algorithm" aria-label="Seu algoritmo">${icon("info")}</button><button class="icon-button" data-action="cart" aria-label="Carrinho">${icon("bookmark")}</button><button class="icon-button" data-action="profile" aria-label="Meu perfil">${icon("user")}</button></footer></main>${asideRight()}</div>`;
+
+
+function asideLeft(){
+ return `<aside class="rail"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
+ <span class="eyebrow" style="margin-top:15px">O QUE APARECE PRA VOCÊ</span>
+ <h2 class="stage-title">Só mais um <span style="color:#d386ac">scroll.</span></h2>
+ <p class="description">Amigos, tendências, ofertas e recomendações. A rede se adapta às suas interações sem conhecer sua prioridade fora da tela.</p>
+ </aside>`;
 }
+function asideRight(){
+ return `<aside class="rail right"><div class="rail-note"><span class="eyebrow">SEU FEED</span>
+ <div class="feed-rail-title">Recomendado para você</div>
+ <p class="m0" style="font-size:12px;color:#8e8190">Tudo parece conectado ao que você curte, vê e salva.</p>
+ <button class="secondary side-action" data-action="coach">Pedir ajuda crítica</button>
+ </div><p class="side-footer">Uma atualização, uma tendência, outra recomendação.</p></aside>`;
+}
+
+
+function stageFeed(){
+ const pool=contentPool();
+ const cards=state.feedItems.map(item=>item.kind==='post'?postCard(pool.find(p=>p.id===item.id)):adCard(item.topic,item.retarget)).join('');
+ const done=Stream.isDone(pool,state.feedItems);
+ const next=done?'<div class="feed-end-hint"><strong>Você já percorreu as publicações desta demonstração.</strong><p>Uma rede real poderia continuar oferecendo mais conteúdo. Aqui, você pode revisitar posts, pedir ajuda ou observar as consequências do seu percurso.</p></div>':
+ '<button class="load-more" data-action="load-more">Mais publicações para você ↓</button>';
+ return `<div class="game">${asideLeft()}<main class="phone" aria-label="Simulador de rede social">
+ <header class="phone-head"><span class="phone-logo">pulso<b>.</b></span><div class="phone-actions">
+ <button class="algorithm-button" data-action="algorithm" aria-label="Abrir painel do algoritmo">${icon('info')}<span>Algoritmo</span></button>
+ <button class="icon-button" data-action="notifications" aria-label="Notificações">${icon('heart')}</button>
+ <button class="icon-button" data-action="cart" aria-label="Abrir carrinho" style="position:relative">${icon('cart')}${state.cart.length?`<span class="cart-dot">${state.cart.length}</span>`:''}</button>
+ </div></header>
+ <div class="phone-content" id="feed-scroll">
+ ${renderStories(storyPool())}
+ <div class="feed-context"><span style="font-size:19px">✦</span><div><strong style="font-size:12px">PARA VOCÊ</strong><p>Novidades, amigos e publicações recomendadas.</p></div></div>
+ <div class="recommendation-caption">${state.personalized?'Sugestões de publicações para você':'Publicações em ordem editorial'} <button data-action="algorithm">Como funciona?</button></div>
+ ${cards}${next}
+ <button class="finish-feed" data-action="finish">Sair do feed e ver minhas escolhas →</button>
+ <p class="feed-footer-note">Não há uma compra obrigatória. Você decide quando parar.</p>
+ </div><button class="scroll-cue" data-action="scroll-cue" aria-label="Role para baixo para continuar">Continue rolando ↓</button>
+ <footer class="phone-footer"><button class="icon-button" data-action="feedtop" aria-label="Início do feed">${icon('home')}</button>
+ <button class="icon-button" data-action="search" aria-label="Explorar">${icon('search')}</button>
+ <button class="icon-button" data-action="goal" aria-label="Minha meta">${icon('bookmark')}</button>
+ <button class="icon-button" data-action="algorithm" aria-label="Seu algoritmo">${icon('info')}</button>
+ <button class="icon-button" data-action="profile" aria-label="Meu perfil">${icon('user')}</button>
+ </footer></main>${asideRight()}</div>`;
+}
+
 function postCard(post) {
   const liked = state.liked.includes(post.id), saved = state.bookmarks.includes(post.id), isPage = post.source === "page";
-  return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage ? "page" : ""}">${isPage ? "página" : "amigo"}</span>${post.phase < state.phase ? '<span class="meta-tag">Reapareceu no feed</span>' : ""}</div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Por que estou vendo este post?">${icon("more")}</button></div><button class="post-media" data-action="comments" data-post="${post.id}" aria-label="Ver publicação e comentários">${art(post.art,false,"",post.photo)}</button><div class="post-actions"><button class="icon-button" data-action="like" data-post="${post.id}" aria-label="Curtir publicação" style="color:${liked ? "#eb477e" : "inherit"}">${icon("heart")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved ? "#e84a80" : "inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes + (liked ? 1 : 0)} curtidas</p><p class="post-caption"><strong>${post.who}</strong> ${post.caption}</p><button class="view-comments" data-action="comments" data-post="${post.id}">Ver todos os comentários</button><button class="why-post" data-action="post-more" data-post="${post.id}">ⓘ Por que apareceu?</button></article>`;
+  return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage ? "page" : ""}">${isPage ? "página" : "amigo"}</span>${""}</div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Por que estou vendo este post?">${icon("more")}</button></div><button class="post-media" data-action="comments" data-post="${post.id}" aria-label="Ver publicação e comentários">${art(post.art,false,"",post.photo)}</button><div class="post-actions"><button class="icon-button" data-action="like" data-post="${post.id}" aria-label="Curtir publicação" style="color:${liked ? "#eb477e" : "inherit"}">${icon("heart")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved ? "#e84a80" : "inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes + (liked ? 1 : 0)} curtidas</p><p class="post-caption"><strong>${post.who}</strong> ${post.caption}</p><button class="view-comments" data-action="comments" data-post="${post.id}">Ver todos os comentários</button><button class="why-post" data-action="post-more" data-post="${post.id}">ⓘ Por que apareceu?</button></article>`;
 }
 function adCard(id, retarget=false) {
   const p=products[id], saved=state.cart.includes(id), text=retarget ? (saved ? `Ainda no seu carrinho: ${p.name}. A loja quer que você volte.` : p.late) : p.ad;
@@ -299,26 +417,44 @@ function adaptiveAd(current) {
   return result ? adCard(result.topic, true) : "";
 }
 function decisionCard(){const ph=phases[state.phase],p=products[ph.id],inCart=state.cart.includes(ph.id);return `<section class="decision" id="decision"><p class="question-tag">CHEGOU SUA VEZ</p><h3>${ph.question}</h3><p>${ph.hook}</p><button class="decision-btn main" data-action="decision" data-decision="buy">Comprar ${p.name} · ${money(p.price)}</button><button class="decision-btn" data-action="decision" data-decision="cart">${inCart?'Manter no carrinho e seguir':'Guardar no carrinho e seguir'}</button><button class="decision-btn" data-action="decision" data-decision="skip">Não comprar agora</button><div class="decision-foot">Saldo: ${money(state.wallet)} · Meta de economia: ${money(state.goal)}<br>Suas escolhas alteram os próximos anúncios.</div></section><div class="endnote">Você chegou ao final do feed por hoje. ✦</div>`;}
-function setupFeedAssist(){const scroller=document.querySelector('#feed-scroll'),cue=document.querySelector('.scroll-cue');if(!scroller||!cue)return;const sync=()=>cue.classList.toggle('hidden',scroller.scrollTop>88||scroller.scrollHeight-scroller.clientHeight<120);sync();scroller.addEventListener('scroll',sync,{passive:true});}
-function renderGame(keepScroll=false){if(state.phase>=phases.length){renderEnd();return;}exitHomeButton.hidden=false;const y=keepScroll?document.querySelector('#feed-scroll')?.scrollTop||0:0;root.innerHTML=stageFeed();if(keepScroll){const n=document.querySelector('#feed-scroll');if(n)n.scrollTop=y;}setupFeedAssist();setupFeedExposure();if(overlay)drawOverlay();if(modal)drawModal();if(story)drawStory();}
+
+function setupFeedAssist(){
+ const scroller=document.querySelector('#feed-scroll'),cue=document.querySelector('.scroll-cue');
+ if(!scroller)return;
+ const sync=()=>{
+  const remaining=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop;
+  if(cue)cue.classList.toggle('hidden',scroller.scrollTop>88||remaining<120);
+  if(scroller.scrollTop<120||remaining>190||loadPending||overlay||story||modal||!exitConfirm.hidden)return;
+  if(Stream.isDone(contentPool(),state.feedItems))return;
+  loadPending=true;
+  requestAnimationFrame(()=>{
+   loadPending=false;
+   if(!document.contains(scroller)||overlay||story||modal||!exitConfirm.hidden)return;
+   if(appendNext())renderGame(true);
+  });
+ };
+ sync();scroller.addEventListener('scroll',sync,{passive:true});
+}
+
+function renderGame(keepScroll=false){if(state.finished){renderEnd();return;}exitHomeButton.hidden=false;if(!state.feedItems.length)appendNext();const y=keepScroll?document.querySelector('#feed-scroll')?.scrollTop||0:0;root.innerHTML=stageFeed();if(keepScroll){const n=document.querySelector('#feed-scroll');if(n)n.scrollTop=y;}setupFeedAssist();setupFeedExposure();if(overlay)drawOverlay();if(modal)drawModal();if(story)drawStory();}
 function algorithmPanel() {
   const s = Recommender.summary(state.algorithm,state.phase);
   const bars=Recommender.topics.map(topic => {
     const value=s.affinities[topic], width=Math.max(3,Math.min(100,Math.round((value+2)/14*100)));
     return `<div class="algo-topic"><div><strong>${Recommender.labels[topic]}</strong><span>${value.toFixed(1)} pts</span></div><div class="algo-track"><span style="width:${width}%"></span></div></div>`;
   }).join("");
-  return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon("arrow")}</button><strong>Por trás do algoritmo</strong></header><div class="layer-body algorithm-panel"><span class="eyebrow">SIMULAÇÃO EXPLICÁVEL</span><h2>O que seu feed aprendeu?</h2><p>Este modelo de recomendação usa somente as interações fictícias desta partida. Ele <b>não</b> acessa contas reais, localização, microfone ou histórico externo.</p><div class="algo-summary"><span><strong>${s.events}</strong> sinais registrados</span><span><strong>${state.personalized ? "Ativa" : "Desligada"}</strong> personalização</span></div><h3>Interesses inferidos pelo jogo</h3>${bars}<p class="small muted">Pontuações ilustrativas. Curtidas, stories, avaliações, visitas à loja, itens salvos e tempo de leitura podem alterar a ordem. A influência de um sinal diminui nas fases seguintes.</p><div class="algo-steps"><strong>Como o sistema decide?</strong><ol><li>Seleciona posts atuais e alguns anteriores.</li><li>Calcula um score com interesse, autor, popularidade e atualidade.</li><li>Evita repetição excessiva e mistura fontes.</li><li>Escolhe anúncios fictícios considerando interesse, carrinho e limite de exposição.</li></ol></div><label class="option-row"><input id="privacy-switch" type="checkbox" ${state.personalized ? "checked" : ""}/><span><strong>Ativar recomendações personalizadas</strong><br><small class="muted">Desligado: mostra posts em ordem cronológica, desativa anúncios repetidos e deixa de registrar novos sinais.</small></span></label><button class="secondary full algorithm-clear" data-action="clear-algorithm">Apagar histórico de recomendações</button><p class="small muted">Isso apaga apenas os sinais do algoritmo, não suas compras fictícias, decisões ou itens do carrinho. Produtos ainda salvos no carrinho podem influenciar recomendações futuras se você reativar a personalização.</p></div>`;
+  return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon("arrow")}</button><strong>Por trás do algoritmo</strong></header><div class="layer-body algorithm-panel"><span class="eyebrow">SIMULAÇÃO EXPLICÁVEL</span><h2>O que seu feed aprendeu?</h2><p>Este modelo de recomendação usa somente as interações fictícias desta partida. Ele <b>não</b> acessa contas reais, localização, microfone ou histórico externo.</p><div class="algo-summary"><span><strong>${s.events}</strong> sinais registrados</span><span><strong>${state.personalized ? "Ativa" : "Desligada"}</strong> personalização</span></div><h3>Interesses inferidos pelo jogo</h3>${bars}<p class="small muted">Pontuações ilustrativas. Curtidas, stories, avaliações, visitas à loja, itens salvos e tempo de leitura podem alterar a ordem. A influência de um sinal diminui com as próximas rodadas internas do feed.</p><div class="algo-steps"><strong>Como o sistema decide?</strong><ol><li>Seleciona conteúdos de vários assuntos em um único catálogo misturado.</li><li>Calcula pontuações com base em interesses, autores, popularidade e diversidade.</li><li>Intercala conteúdo orgânico com anúncios e limita repetições.</li><li>Aprende com as interações para escolher os próximos conteúdos, sem consultar a meta financeira do jogador.</li></ol></div><label class="option-row"><input id="privacy-switch" type="checkbox" ${state.personalized ? "checked" : ""}/><span><strong>Ativar recomendações personalizadas</strong><br><small class="muted">Desligado: a próxima seleção segue uma ordem editorial não personalizada, desativa retargeting e deixa de registrar sinais novos.</small></span></label><button class="secondary full algorithm-clear" data-action="clear-algorithm">Apagar histórico de recomendações</button><p class="small muted">Isso apaga apenas os sinais do algoritmo, não suas compras fictícias, decisões ou itens do carrinho. Produtos ainda salvos no carrinho podem influenciar recomendações futuras se você reativar a personalização.</p></div>`;
 }
 function whySheet(v) {
   const id = v.id, isAd = v.kind === "ad", meta = isAd ? null : postInfo(id), topic = isAd ? id : meta?.topic;
   if (!topic || !Recommender.topics.includes(topic)) return `<div class="sheet-scroll"><p>Conteúdo não encontrado.</p></div>`;
   const opts=recommendationOptions();
   const details=isAd
-    ? Recommender.scoreAd(topic,{...opts,cart:state.cart})
-    : Recommender.scorePost(meta,opts);
-  const names={ atualidade:"Conteúdo recente",popularidade:"Popularidade simulada",proximidade:"Origem do post",interesse:"Afinidade por tema",criador:"Interações com o autor",novidade:"Exploração de conteúdo",repeticao:"Exposição repetida",campanha:"Prioridade comercial fictícia",carrinho:"Item salvo no carrinho" };
+    ? Stream.scoreAd({id:(v.retarget?'ad-ret-':'ad-main-')+topic,topic,kind:v.retarget?'retarget':'ad'},{...opts,shown:state.feedItems,viewed:state.viewed,cart:state.cart,purchased:state.purchases.map(p=>p.id)})
+    : Stream.scorePost(meta,{...opts,shown:state.feedItems});
+  const names={ comercial:'Prioridade comercial fictícia',afinidade:'Interesse no anúncio',lembranca:'Visita anterior à loja',exploracao:'Exploração de conteúdo',diversidade:'Diversidade de temas', atualidade:"Conteúdo recente",popularidade:"Popularidade simulada",proximidade:"Origem do post",interesse:"Afinidade por tema",criador:"Interações com o autor",novidade:"Exploração de conteúdo",repeticao:"Exposição repetida",campanha:"Prioridade comercial fictícia",carrinho:"Item salvo no carrinho" };
   const factors=Object.entries(details.parts).filter(([,value])=>Math.abs(value)>0.001).map(([key,value])=>`<li><span>${names[key]||key}</span><strong>${value>=0?"+":""}${value.toFixed(2)}</strong></li>`).join("");
-  return `<div class="sheet-bar"></div><header class="sheet-head"><strong>Por que apareceu?</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon("close")}</button></header><div class="sheet-scroll algorithm-explanation"><p>${isAd ? "Este é um anúncio pago dentro do jogo. O anúncio principal faz parte da narrativa; anúncios repetidos concorrem por uma posição no feed." : "Esta publicação foi selecionada entre posts atuais e anteriores e recebeu uma pontuação de relevância simulada."}</p><div class="algo-score"><span>Score ilustrativo</span><strong>${details.score.toFixed(2)}</strong></div><ul class="algo-factors">${factors}</ul><p class="small muted">${state.personalized ? "A pontuação usa apenas sinais registrados durante esta partida, sem aprendizado de máquina real." : "A personalização está desligada. Interações anteriores não afetam a ordenação nem os anúncios repetidos."}</p><button class="secondary" style="width:100%;margin-top:12px" data-action="less-topic" data-topic="${topic}" data-item="${esc(id)}">Mostrar menos: ${Recommender.labels[topic]}</button></div>`;
+  return `<div class="sheet-bar"></div><header class="sheet-head"><strong>Por que apareceu?</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon("close")}</button></header><div class="sheet-scroll algorithm-explanation"><p>${isAd ? "Este é um anúncio pago dentro do jogo. Anúncios de vários temas competem por espaço no mesmo feed; alguns podem reaparecer conforme seu interesse." : "Esta publicação foi selecionada entre conteúdos de vários temas e recebeu uma pontuação de relevância simulada."}</p><div class="algo-score"><span>Score ilustrativo</span><strong>${details.score.toFixed(2)}</strong></div><ul class="algo-factors">${factors}</ul><p class="small muted">${state.personalized ? "A pontuação usa apenas sinais registrados durante esta partida, sem aprendizado de máquina real." : "A personalização está desligada. Interações anteriores não afetam as próximas recomendações."}</p><button class="secondary" style="width:100%;margin-top:12px" data-action="less-topic" data-topic="${topic}" data-item="${esc(id)}">Mostrar menos: ${Recommender.labels[topic]}</button></div>`;
 }
 function setupFeedExposure() {
   if (feedObserver) feedObserver.disconnect();
@@ -350,10 +486,12 @@ function setupFeedExposure() {
 }
 function drawOverlay(){const phone=document.querySelector('.phone');if(!phone)return;document.querySelector('.layer')?.remove();const wrap=document.createElement('div');wrap.className='layer';const id=overlay.id;if(overlay.type==='product'){
  const p=products[id];const choice=id==='plano'?`<label class="option-row"><input id="vip-extra" type="checkbox" ${state.extraChecked?'checked':''}/><span><strong>Adicionar recursos VIP (+ ${money(9.90)}/mês)</strong><br><small class="muted">Adicional opcional. A loja deixou essa opção marcada.</small></span></label>`:'';
- wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon('arrow')}</button><strong>site · ${p.brand}</strong><span style="margin-left:auto" class="small muted">🔒 compra simulada</span></header><div class="layer-body"><div class="product-hero">${art(p.kind,true,p.brand)}</div><section class="product-info"><p class="eyebrow">${p.label}</p><h2>${p.name}</h2><p class="product-desc">${p.desc}</p><div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:14px 0">${p.old?`<span class="old-price">${money(p.old)}</span>`:''}<span class="new-price">${money(p.price)}</span><span class="deal-bubble">${id==='plano'?'por mês':'Preço da campanha*'}</span></div><div class="product-specs">${p.specs.map(s=>`<div class="spec">${s}</div>`).join('')}</div><button class="reviews-shortcut" data-action="comments" data-post="ad-main-${id}"><div><strong>★ Avaliações e comentários</strong><div class="review-note">Opiniões positivas e negativas da simulação</div></div>${icon('chevron')}</button>${choice}<p class="warning-note">* Produto, comentários, marcas, alegações comerciais e preços fictícios. Anúncios não são ofertas reais.</p></section></div><div class="product-foot"><button class="secondary" data-action="add-cart" data-product="${id}">${state.cart.includes(id)?'✓ Salvo no carrinho':'Salvar no carrinho'}</button><button class="primary" data-action="buy" data-product="${id}">${id==='plano'?`Assinar · ${money(p.price+(state.extraChecked?9.90:0))}/mês`:'Comprar agora'}</button></div>`;
+ wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon('arrow')}</button><strong>site · ${p.brand}</strong><span style="margin-left:auto" class="small muted">🔒 compra simulada</span></header><div class="layer-body"><div class="product-hero">${art(p.kind,true,p.brand)}</div><section class="product-info"><p class="eyebrow">${p.label}</p><h2>${p.name}</h2><p class="product-desc">${p.desc}</p><div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:14px 0">${p.old?`<span class="old-price">${money(p.old)}</span>`:''}<span class="new-price">${money(p.price)}</span><span class="deal-bubble">${id==='plano'?'por mês':'Preço da campanha*'}</span></div><div class="product-specs">${p.specs.map(s=>`<div class="spec">${s}</div>`).join('')}</div><button class="reviews-shortcut" data-action="comments" data-post="ad-main-${id}"><div><strong>★ Avaliações e comentários</strong><div class="review-note">Opiniões positivas e negativas da simulação</div></div>${icon('chevron')}</button>${choice}<button class="secondary critical-action" data-action="coach" data-product="${id}">✦ Preciso mesmo disso? Pedir ajuda</button>
+ <button class="tertiary critical-action" data-action="pass" data-product="${id}">Vou pensar mais antes de comprar</button>
+ <p class="warning-note">* Produto, comentários, marcas, alegações comerciais e preços fictícios. Anúncios não são ofertas reais.</p></section></div><div class="product-foot"><button class="secondary" data-action="add-cart" data-product="${id}">${state.cart.includes(id)?'✓ Salvo no carrinho':'Salvar no carrinho'}</button><button class="primary" data-action="buy" data-product="${id}">${id==='plano'?`Assinar · ${money(p.price+(state.extraChecked?9.90:0))}/mês`:'Comprar agora'}</button></div>`;
  }else if(overlay.type==='cart'){wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon('arrow')}</button><strong>Seu carrinho</strong><span style="margin-left:auto" class="pill">${state.cart.length} item(ns)</span></header><div class="layer-body" style="padding:14px 18px">${state.cart.length?state.cart.map(id=>{const p=products[id];return `<div class="cart-item"><div class="cart-thumb">${art(p.kind,true)}</div><div class="cart-item-text"><strong>${p.name}</strong><p>${money(p.price)}${id==='plano'?'/mês':''}</p><button class="text-link" data-action="remove-cart" data-product="${id}">Remover</button></div><button class="tiny-button" data-action="product" data-product="${id}">Ver</button></div>`}).join(''):`<div class="empty"><div style="font-size:44px">🛒</div><p>Seu carrinho está vazio.</p><p class="small">Salvar algo não significa que você precisa comprar.</p></div>`}<p class="small muted" style="margin-top:20px">As lojas da simulação podem usar itens salvos para oferecer novos anúncios personalizados.</p></div>`;
- }else if(overlay.type==='profile'){wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon('arrow')}</button><strong>Meu perfil</strong></header><div class="layer-body" style="padding:22px"><div style="text-align:center;padding:8px 0 22px"><div class="avatar" style="margin:auto;width:74px;height:74px;font-size:35px">🙂</div><h3 style="margin:12px 0 4px">você</h3><p class="small muted">Perfil fictício da simulação</p></div><div class="end-box" style="padding:15px;margin:0"><strong style="font-size:13px">Seu saldo</strong><div style="font-size:24px;font-weight:850;margin:8px 0">${money(state.wallet)}</div><p class="small muted">Objetivo reservado: ${money(state.goal)}</p></div><label class="option-row"><input id="privacy-switch" type="checkbox" ${state.personalized?'checked':''}/><span><strong>Recomendações personalizadas</strong><br><small class="muted">Se desligar, posts voltam à ordem cronológica e anúncios deixam de ser repetidos com base nos sinais da partida.</small></span></label><p class="small muted">Desligar anúncios personalizados não elimina todos os anúncios.</p></div>`;
- }else if(overlay.type==='algorithm'){wrap.innerHTML=algorithmPanel();}else if(overlay.type==='notifications'){wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay">${icon('arrow')}</button><strong>Notificações</strong></header><div class="layer-body" style="padding:20px"><h3 style="font-size:19px">Novidades no seu feed</h3>${state.cart.length?state.cart.map(id=>`<button class="reviews-shortcut" data-action="product" data-product="${id}"><span>🛍️ ${products[id].name} continua no seu carrinho</span>${icon('chevron')}</button>`).join(''):'<p class="small muted">Nenhuma novidade por aqui.</p>'}<p class="small muted">As notificações são fictícias.</p></div>`;
+ }else if(overlay.type==='profile'){wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon('arrow')}</button><strong>Meu perfil</strong></header><div class="layer-body" style="padding:22px"><div style="text-align:center;padding:8px 0 22px"><div class="avatar" style="margin:auto;width:74px;height:74px;font-size:35px">🙂</div><h3 style="margin:12px 0 4px">você</h3><p class="small muted">Perfil fictício da simulação</p></div><div class="end-box" style="padding:15px;margin:0"><strong style="font-size:13px">Seu saldo</strong><div style="font-size:24px;font-weight:850;margin:8px 0">${money(state.wallet)}</div><p class="small muted">Objetivo reservado: ${money(state.goal)}</p></div><label class="option-row"><input id="privacy-switch" type="checkbox" ${state.personalized?'checked':''}/><span><strong>Recomendações personalizadas</strong><br><small class="muted">Se desligar, posts voltam à ordem cronológica e anúncios deixam de ser repetidos com base nos sinais da partida.</small></span></label><p class="small muted">Desligar a personalização não elimina publicidade, mas muda a próxima seleção de conteúdos.</p><button class="reviews-shortcut" data-action="goal"><strong>Relembrar meu objetivo fora da rede</strong>${icon("chevron")}</button></div>`;
+ }else if(overlay.type==='algorithm'){wrap.innerHTML=algorithmPanel();}else if(overlay.type==='goal'){wrap.innerHTML=goalPanel();}else if(overlay.type==='coach'){wrap.innerHTML=coachPanel();}else if(overlay.type==='notifications'){wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay">${icon('arrow')}</button><strong>Notificações</strong></header><div class="layer-body" style="padding:20px"><h3 style="font-size:19px">Novidades no seu feed</h3>${state.cart.length?state.cart.map(id=>`<button class="reviews-shortcut" data-action="product" data-product="${id}"><span>🛍️ ${products[id].name} continua no seu carrinho</span>${icon('chevron')}</button>`).join(''):'<p class="small muted">Nenhuma novidade por aqui.</p>'}<p class="small muted">As notificações são fictícias.</p></div>`;
  }
  phone.appendChild(wrap);
 }
@@ -361,11 +499,11 @@ function drawModal(){const phone=document.querySelector('.phone');if(!phone)retu
  let comments=[];let title='Comentários';if(v.post.startsWith('ad-main-')||v.post.startsWith('ad-ret-')){let id=v.post.replace(/^ad-(main|ret)-/,'');comments=products[id].reviews;title=`Opiniões sobre ${products[id].name}`;}else{for(const ph of phases){const post=ph.posts.find(x=>x.id===v.post);if(post){comments=post.comments.map((c,i)=>[c[0],c[1],`${i+1} h`]);break;}}}
  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${title}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header><div class="sheet-scroll">${comments.map((c,i)=>`<div class="comment"><span class="avatar">${['🧑','👩','🧒','🙂'][i%4]}</span><div><strong>${esc(c[0])}</strong><p>${esc(c[1])}</p><small>${c[2]||'há pouco'}</small></div></div>`).join('')}<p class="small muted" style="margin-top:12px">Comentários criados para a simulação. Eles não comprovam qualidade, estoque ou popularidade.</p></div>`;
  }else if(v.type==='why'){content=whySheet(v);}else if(v.type==='more'){content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Sobre o conteúdo</strong><button class="icon-button" data-action="close-modal">${icon('close')}</button></header><div class="sheet-scroll"><p class="small">Você pode ver anúncios, publicações de amigos e parcerias comerciais. O selo “Patrocinado” identifica anúncios pagos.</p><button class="secondary" data-action="close-modal" style="width:100%">Voltar à publicação</button></div>`;
- }else if(v.type==='search'){content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Explorar</strong><button class="icon-button" data-action="close-modal">${icon('close')}</button></header><div class="sheet-scroll"><p class="small muted">A aba Explorar está limitada neste capítulo, como acontece em uma demonstração de rede social. Você pode visitar os stories, ler os comentários e entrar nas lojas.</p></div>`;
+ }else if(v.type==='search'){content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Explorar</strong><button class="icon-button" data-action="close-modal">${icon('close')}</button></header><div class="sheet-scroll"><p class="small muted">A aba Explorar é simplificada nesta demonstração. Você pode navegar pelas publicações, stories e lojas. Você pode visitar os stories, ler os comentários e entrar nas lojas.</p></div>`;
  }
  const box=document.createElement('div');box.className='layer-backdrop';box.innerHTML=`<section class="bottom-sheet" role="dialog" aria-modal="true">${content}</section>`;phone.appendChild(box);
 }
-function drawStory(){const phone=document.querySelector('.phone');if(!phone)return;document.querySelector('.story-layer')?.remove();const ph=phases[state.phase],s=ph.stories[story.index],el=document.createElement('div');el.className='story-layer';el.innerHTML=`<div class="story-top"><span class="avatar photo-avatar">${profileAvatar(s.user,s.photo,s.source==='page')}</span><span class="story-user">${s.user} · 12 h</span><span class="story-type">${s.source==='page'?'página':'amigo'}</span><button class="story-close" data-action="close-story" aria-label="Fechar story">${icon('close')}</button></div><div class="story-picture" data-action="close-story">${art(s.art,false,'',s.photo)}</div><div class="story-caption" data-action="close-story">${s.text}</div><div style="position:absolute;bottom:26px;left:30px;right:30px;font-size:12px;color:#e6d5eb;text-align:center">Toque para voltar ao feed</div>`;phone.appendChild(el);
+function drawStory(){const phone=document.querySelector('.phone');if(!phone)return;document.querySelector('.story-layer')?.remove();const s=storyPool()[story.index],el=document.createElement('div');el.className='story-layer';el.innerHTML=`<div class="story-top"><span class="avatar photo-avatar">${profileAvatar(s.user,s.photo,s.source==='page')}</span><span class="story-user">${s.user} · 12 h</span><span class="story-type">${s.source==='page'?'página':'amigo'}</span><button class="story-close" data-action="close-story" aria-label="Fechar story">${icon('close')}</button></div><div class="story-picture" data-action="close-story">${art(s.art,false,'',s.photo)}</div><div class="story-caption" data-action="close-story">${s.text}</div><div style="position:absolute;bottom:26px;left:30px;right:30px;font-size:12px;color:#e6d5eb;text-align:center">Toque para voltar ao feed</div>`;phone.appendChild(el);
 }
 function toast(msg){const phone=document.querySelector('.phone');if(!phone)return;clearTimeout(toastTimer);phone.querySelector('.toast')?.remove();const t=document.createElement('div');t.className='toast';t.textContent=msg;phone.appendChild(t);toastTimer=setTimeout(()=>t.remove(),2700);}
 function openProduct(id){if(!products[id])return;if(!state.viewed.includes(id)){state.viewed.push(id);pushEvent('view',`Visitou a loja de ${products[id].name}`);}signal(id,2);trackModel('product',id,id);save();overlay={type:'product',id};modal=null;drawOverlay();}
@@ -373,54 +511,136 @@ function closeOverlay(){const refresh=overlay?.type==='profile';overlay=null;doc
 function openComments(post){if(post.startsWith('ad-')){const id=post.replace(/^ad-(main|ret)-/,'');if(!state.reviews.includes(id)){state.reviews.push(id);pushEvent('comments',`Leu avaliações de ${products[id].name}`);signal(id,1);save();}trackModel('comments',id,post);}else{const info=postInfo(post);if(info)trackModel('comments',info.topic,post,info.who);}modal={type:'comments',post};drawModal();}
 function closeModal(){modal=null;document.querySelector('.layer-backdrop')?.remove();}
 function addToCart(id){if(!state.cart.includes(id)){state.cart.push(id);signal(id,3);pushEvent('cart',`Salvou ${products[id].name} no carrinho`);trackModel('cart',id,id);}save();renderGame(true);toast(`${products[id].name} salvo no carrinho. Você pode voltar quando quiser.`);}
-function buy(id,throughDecision=false){const p=products[id];if(!p)return;const extra=id==='plano'&&state.extraChecked?9.90:0;const cost=p.price+extra;if(state.wallet<cost){toast('Seu saldo fictício não é suficiente para esta compra.');return false;}if(state.purchases.some(x=>x.id===id)){toast('Você já comprou esse produto neste jogo.');return false;}state.wallet=Math.round((state.wallet-cost)*100)/100;state.purchases.push({id,cost,phase:state.phase,extra,at:Date.now()});if(id==='plano')state.monthly=cost;state.cart=state.cart.filter(x=>x!==id);signal(id,2);trackModel('buy',id,id);pushEvent('buy',`Comprou ${p.name}${extra?' com adicional VIP':''} por ${money(cost)}`);save();if(throughDecision){advance('buy');}else if(phases[state.phase]?.id===id){closeOverlay();advance('buy');}else{closeOverlay();renderGame(true);toast('Compra simulada concluída. O restante do feed continua.');}return true;}
-function doDecision(type){const id=phases[state.phase].id;if(type==='buy'){if(id==='plano'){openProduct(id);toast('Confira os detalhes e os adicionais antes de assinar.');return;}buy(id,true);return;}if(type==='cart'){if(!state.cart.includes(id)){state.cart.push(id);signal(id,3);pushEvent('cart',`Salvou ${products[id].name} no carrinho`);trackModel('cart',id,id);}}if(type==='skip'){pushEvent('skip',`Decidiu não comprar ${products[id].name} naquele momento`);trackModel('skip',id,id);}advance(type);}
-function advance(type){state.decisions[state.phase]=type;state.phase++;overlay=null;modal=null;story=null;save();if(state.phase>=phases.length){renderEnd();return;}const ph=phases[state.phase],dynamic=state.cart.length?`Você tem ${state.cart.length} item(ns) no carrinho. Isso pode mudar os anúncios.`:'Os anúncios podem mudar conforme o que você visitou.';root.innerHTML=`<main class="transition"><div class="transition-box"><div class="scene-icon">${ph.emoji}</div><div class="eyebrow" style="color:#dfb0d8">UM NOVO MOMENTO</div><h2>${ph.name}.</h2><p>${dynamic}</p><div class="scene-progress"><i class="current"></i><i></i><i></i></div><button class="scene-next" data-action="open-next">Voltar ao feed →</button></div></main>`;clearTimeout(introTimer);introTimer=setTimeout(()=>renderGame(),1600);}
-function renderEnd(){exitHomeButton.hidden=false;const purchases=state.purchases.map(p=>products[p.id].name);const goalOk=state.wallet>=state.goal;const decisionCopy={buy:'Comprou',cart:'Guardou no carrinho',skip:'Preferiu não comprar'};const lines=phases.map((ph,i)=>{const choice=state.decisions[i]||'skip',p=products[ph.id];return `<div class="event-row"><span>${ph.emoji}</span><div><strong>${p.name}</strong><p>${decisionCopy[choice]} naquele momento${state.purchases.some(x=>x.id===ph.id&&x.phase!==i)?' · adquirido mais tarde':''}</p></div><strong style="font-size:11px;color:#88798b">${choice==='buy'?money((state.purchases.find(x=>x.id===ph.id)||{cost:p.price}).cost):'—'}</strong></div>`;}).join('');
- const insightList=[];
- if(state.stories.length)insightList.push(['FOMO e pertencimento','Stories de amigos criam contexto social: a vontade de acompanhar o grupo pode influenciar o que parece necessário.']);
- if(state.reviews.length)insightList.push(['Prova social','Você consultou comentários. Avaliações ajudam, mas sua seleção e destaque também podem direcionar o julgamento.']);
- if(state.viewed.length||state.cart.length)insightList.push(['Personalização e retargeting','A visita às lojas e os itens salvos alimentaram novos anúncios. Atenção não é o mesmo que intenção de compra.']);
- if(state.decisions[1])insightList.push(['Influenciadores e escassez','O tênis apareceu com parceria comercial e alegações de estoque limitado. Popularidade e urgência não comprovam necessidade.']);
- if(state.decisions[3])insightList.push(['Preço de referência e urgência','Um preço anterior riscado e a frase “só hoje” podem aumentar a sensação de oportunidade, mesmo sem comparação independente.']);
- if(state.purchases.some(x=>x.id==='plano'))insightList.push(['Arquitetura de escolha','A assinatura tinha um adicional pré-selecionado. Vale conferir complementos e cobranças recorrentes antes de confirmar.']);
- if(!insightList.length)insightList.push(['Atenção e escolha','Você passou por anúncios em diferentes contextos. A publicidade tenta conquistar atenção, mas a resposta depende da pessoa e da situação.']);
- root.innerHTML=`<main class="end"><div class="end-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div><div class="eyebrow" style="margin-top:23px">FIM DA SIMULAÇÃO</div><h1>Você saiu do feed.<br><span style="color:#b57bbb">E levou o quê?</span></h1><p class="end-lead">Não existe um “perfil de consumista” aqui. O interessante é observar como anúncios, amigos e escolhas de interface participaram das suas decisões.</p><div class="status-chip">${goalOk?'✓ Objetivo de economia preservado':'↗ Objetivo de economia não atingido neste cenário'}</div><div class="end-grid"><div class="end-stat"><label>Saldo fictício final</label><strong>${money(state.wallet)}</strong><span class="small muted">Você começou com ${money(620)}</span></div><div class="end-stat"><label>Queria guardar</label><strong>${money(state.goal)}</strong><span class="small muted">${goalOk?`Reserva ainda possível`:`Faltam ${money(state.goal-state.wallet)}`}</span></div><div class="end-stat"><label>Compras realizadas</label><strong>${state.purchases.length}</strong><span class="small muted">${state.purchases.length?money(620-state.wallet)+' gastos':'Nenhuma compra concluída'}</span></div><div class="end-stat"><label>Compromisso mensal</label><strong>${money(state.monthly)}</strong><span class="small muted">${state.monthly?'Plano de renovação automática':'Nenhuma assinatura contratada'}</span></div></div><div class="end-box"><h3>Suas decisões</h3>${lines}${state.cart.length?`<p class="small muted" style="margin-top:12px">Ainda no carrinho: ${state.cart.map(id=>products[id].name).join(', ')}.</p>`:''}</div><div class="end-box"><h3>O que aconteceu por trás das ofertas?</h3>${insightList.map(([h,p])=>`<div class="insight"><strong>${h}</strong><p>${p}</p></div>`).join('')}</div><div class="end-box"><h3>Para refletir</h3><p style="font-size:14px;color:#6f6271;line-height:1.75;margin-bottom:0">Uma compra pode ser necessária, útil ou desejada — e isso não é automaticamente um problema. A questão da pesquisa é como determinadas estratégias podem <strong>estimular decisões menos refletidas</strong> dependendo do orçamento, do contexto, das emoções e da autonomia de cada pessoa.</p></div><div class="end-buttons"><button class="primary" data-action="restart">Jogar novamente ↗</button><button class="secondary" data-action="sources">Ver a base do relatório</button></div><div id="sources" hidden class="end-box tiny-sources"><strong>Base teórica do relatório do projeto</strong><p>Bauman (2008), <em>Vida para consumo</em> · Iyer et al. (2020), <em>Impulse buying: a meta-analytic review</em> · Setyani et al. (2019), anúncios personalizados · Huang et al. (2025), prova social · Shamim, Azam e Islam (2024), influenciadores · Feng et al. (2024), escassez · OECD (2022), <em>Dark commercial patterns</em>.</p><p>Conceitos extraídos do documento do projeto “O poder do marketing digital: estratégias psicológicas e consumismo”, introdução e problema de partida. O jogo representa situações fictícias; não é um experimento científico nem mede causalidade ou personalidade.</p></div><p class="end-disclaimer">Este é um protótipo educativo com marcas, pessoas, preços, stories e anúncios fictícios. Ele não realiza transações. A simulação não diagnostica hábitos nem trata todas as compras como consumismo.</p></div></main>`;}
+function buy(id){
+ const p=products[id];if(!p)return false;
+ const extra=id==='plano'&&state.extraChecked?9.90:0,cost=p.price+extra;
+ if(state.wallet<cost){toast('Seu saldo fictício não cobre a compra.');return false;}
+ if(state.purchases.some(x=>x.id===id)){toast('Você já adquiriu esse item fictício.');return false;}
+ state.wallet=Math.round((state.wallet-cost)*100)/100;
+ state.purchases.push({id,cost,phase:state.phase,extra,at:Date.now()});
+ if(id==='plano')state.monthly=cost;
+ state.cart=state.cart.filter(x=>x!==id);
+ signal(id,2);trackModel('buy',id,id);
+ pushEvent('buy',`Comprou ${p.name}${extra?' com adicional VIP':''} por ${money(cost)}`);
+ save();closeOverlay();renderGame(true);
+ toast('Compra fictícia registrada. Seu saldo mudou, mas o feed continua.');
+ return true;
+}
+
+
+function renderEnd(){
+ exitHomeButton.hidden=false;
+ const good=state.wallet>=state.goal,delta=state.wallet-state.goal;
+ const ads=state.feedItems.filter(x=>x.kind==='ad').length;
+ const actions=state.algorithm.events.length;
+ const purchases=state.purchases.map(p=>`<div class="event-row"><span>🛍️</span><div><strong>${products[p.id].name}</strong><p>${p.id==='plano'?'Assinatura fictícia · renovação mensal':'Compra realizada no feed'}</p></div><strong>${money(p.cost)}</strong></div>`).join('');
+ const spending=620-state.wallet;
+ const signals=[];
+ if(state.stories.length)signals.push(['Pertencimento e FOMO','Os stories colocaram amigos e tendências no mesmo ambiente das ofertas.']);
+ if(state.liked.length||state.bookmarks.length)signals.push(['Treinando o feed','Ao curtir ou salvar, você deu sinais que ajudaram a plataforma fictícia a ordenar os conteúdos seguintes.']);
+ if(state.viewed.length||state.cart.length)signals.push(['Interesse e retargeting','Abrir anúncios e salvar produtos pode fazer anúncios relacionados reaparecerem.']);
+ if(state.purchases.length)signals.push(['Atenção, desejo e orçamento','O valor final da sua reserva foi determinado pelas compras que você escolheu fazer, não por uma obrigação do jogo.']);
+ if(state.helpRequests)signals.push(['Reconquistar contexto','Você procurou ajuda crítica para comparar uma oferta com seu objetivo financeiro.']);
+ if(!signals.length)signals.push(['Escolher também é ignorar','O feed apresentou estímulos, mas você não precisou interagir com todos.']);
+ root.innerHTML=`<main class="end"><div class="end-inner">
+ <div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
+ <div class="eyebrow" style="margin-top:23px">DE VOLTA AO SEU OBJETIVO</div>
+ <h1>Você lembra <br><span style="color:#b57bbb">da sua meta?</span></h1>
+ <p class="end-lead">Lá no começo você queria separar <strong>R$ 400</strong> para a viagem. Depois vieram amigos, publicações, anúncios e outras possibilidades. Como você saiu desse feed?</p>
+ <div class="status-chip">${good?'✓ Você preservou a reserva de R$ 400':'↗ A reserva de R$ 400 não foi preservada neste percurso'}</div>
+ <div class="end-grid">
+ <div class="end-stat"><label>Você começou com</label><strong>${money(620)}</strong><span class="small muted">Orçamento fictício inicial</span></div>
+ <div class="end-stat"><label>Saldo ao sair do feed</label><strong>${money(state.wallet)}</strong><span class="small muted">${good?`Restaram ${money(delta)} acima da meta`:`Faltaram ${money(-delta)} para a meta`}</span></div>
+ <div class="end-stat"><label>Gasto em compras</label><strong>${money(spending)}</strong><span class="small muted">${state.purchases.length} compra(s) fictícia(s)</span></div>
+ <div class="end-stat"><label>Conteúdos oferecidos</label><strong>${state.feedItems.length}</strong><span class="small muted">${ads} anúncio(s) patrocinado(s) · ${actions} sinais registrados</span></div>
+ </div>
+ <div class="end-box"><h3>O que você fez no feed</h3>
+ ${purchases||'<p class="small muted">Você não realizou compras fictícias nesta sessão.</p>'}
+ ${state.cart.length?`<p class="small muted" style="margin-top:12px">Ficaram no carrinho: ${state.cart.map(id=>products[id].name).join(', ')}. Salvar não significa comprar.</p>`:''}
+ ${state.monthly?`<p class="small muted">Existe uma assinatura fictícia de ${money(state.monthly)}/mês.</p>`:''}
+ </div>
+ <div class="end-box"><h3>O que a rede fez no caminho?</h3>
+ ${signals.map(([heading,explanation])=>`<div class="insight"><strong>${heading}</strong><p>${explanation}</p></div>`).join('')}
+ <div class="insight"><strong>Conflito de objetivos</strong><p>Você entrou pensando na viagem. O algoritmo da simulação selecionou conteúdo para aumentar interesse e exposição comercial, sem considerar quanto você precisava guardar.</p></div>
+ </div>
+ <div class="end-box"><h3>A ajuda do assistente crítico</h3><p style="font-size:13px;color:#6f6271;line-height:1.75">A demonstração oferece orientações locais sobre preço, orçamento e técnicas persuasivas. O MCP poderá ampliar essa análise quando a integração for implementada, mas este site ainda não envia escolhas ao MCP.</p></div>
+ <div class="end-box"><h3>Uma última pergunta</h3><p style="font-size:14px;color:#6f6271;line-height:1.75">Você teria feito as mesmas escolhas se tivesse visto sua meta financeira a cada anúncio? Não existe um perfil de consumista calculado aqui, nem todas as compras são ruins: o objetivo é observar como a estrutura do ambiente pode competir com decisões refletidas.</p></div>
+ <div class="end-buttons"><button class="primary" data-action="restart">Jogar novamente ↗</button><button class="secondary" data-action="sources">Base conceitual</button></div>
+ <div id="sources" hidden class="end-box tiny-sources"><strong>Referências do projeto</strong><p>Bauman (2008), <em>Vida para consumo</em> · Iyer et al. (2020), revisão de compra impulsiva · Setyani et al. (2019), personalização · Huang et al. (2025), prova social · OECD (2022), padrões comerciais obscuros.</p><p>Marcas e valores são fictícios. O ranking imita princípios gerais conhecidos, sem reproduzir modelos proprietários.</p></div>
+ <p class="end-disclaimer">Prototipação educativa: nenhuma compra real, coleta externa de perfil ou diagnóstico individual. O resultado depende de escolhas fictícias.</p>
+ </div></main>`;
+}
+
 function restart(){clearTimeout(introTimer);state=makeInitial();save();overlay=null;modal=null;story=null;renderHome();}
-function render(){if(!state.started){renderHome();return;}if(state.phase>=phases.length){renderEnd();return;}renderGame();}
+function render(){if(!state.started){renderHome();return;}if(state.finished){renderEnd();return;}renderGame();}
+
 root.addEventListener('click',e=>{
- const el=e.target.closest('[data-action]');if(!el){if(e.target.classList.contains('layer-backdrop'))closeModal();else if(e.target.classList.contains('story-layer')){story=null;document.querySelector('.story-layer')?.remove();}return;}
+ const el=e.target.closest('[data-action]');
+ if(!el){
+  if(e.target.classList.contains('layer-backdrop'))closeModal();
+  else if(e.target.classList.contains('story-layer')){story=null;document.querySelector('.story-layer')?.remove();}
+  return;
+ }
  const a=el.dataset.action,id=el.dataset.product,post=el.dataset.post;
- if(a==='start'){state.started=true;save();showIntro(0)}
- else if(a==='skip-intro'||a==='open-next'){clearTimeout(introTimer);renderGame()}
- else if(a==='intro-next'){clearTimeout(introTimer);if(scene<2)showIntro(scene+1);else renderGame()}
- else if(a==='story'){const index=Number(el.dataset.index),sid=`s${state.phase}-${index}`,storyRef=phases[state.phase].stories[index];if(!state.stories.includes(sid)){state.stories.push(sid);signal(storyRef.product,1);pushEvent('story',`Viu o story de ${storyRef.user}`);}trackModel('story',storyRef.product,sid,storyRef.user);story={index};drawStory();}
+ if(a==='start'){state.started=true;save();showIntro();}
+ else if(a==='skip-intro'||a==='intro-next'||a==='open-next'){clearTimeout(introTimer);renderGame();}
+ else if(a==='load-more'){if(appendNext())renderGame(true);}
+ else if(a==='finish'){state.finished=true;save();overlay=null;story=null;modal=null;renderEnd();}
+ else if(a==='story'){
+  const index=Number(el.dataset.index),storyRef=storyPool()[index],sid='story-'+index;
+  if(!storyRef)return;
+  if(!state.stories.includes(sid)){state.stories.push(sid);signal(storyRef.product,1);pushEvent('story',`Viu o story de ${storyRef.user}`);}
+  trackModel('story',storyRef.product,sid,storyRef.user);story={index};drawStory();
+ }
  else if(a==='close-story'){story=null;document.querySelector('.story-layer')?.remove();}
- else if(a==='like'){const info=postInfo(post),index=state.liked.indexOf(post);if(index<0){state.liked.push(post);if(state.phase===1)signal('tenis',1);if(state.phase===2)signal('plano',1);if(info)trackModel('like',info.topic,post,info.who);}else{state.liked.splice(index,1);if(info)trackModel('unlike',info.topic,post,info.who);}save();renderGame(true);}
- else if(a==='bookmark'){const info=postInfo(post),idx=state.bookmarks.indexOf(post);if(idx<0){state.bookmarks.push(post);if(info)trackModel('bookmark',info.topic,post,info.who);}else{state.bookmarks.splice(idx,1);if(info)trackModel('unbookmark',info.topic,post,info.who);}save();renderGame(true);}
- else if(a==='like-ad'){signal(id,1);trackModel('adLike',id,'ad-main-'+id);save();toast('Seu interesse mudou as recomendações fictícias.');}
+ else if(a==='like'){
+  const info=postInfo(post),index=state.liked.indexOf(post);
+  if(index<0){state.liked.push(post);if(info)trackModel('like',info.topic,post,info.who);}
+  else{state.liked.splice(index,1);if(info)trackModel('unlike',info.topic,post,info.who);}
+  save();renderGame(true);
+ }
+ else if(a==='bookmark'){
+  const info=postInfo(post),index=state.bookmarks.indexOf(post);
+  if(index<0){state.bookmarks.push(post);if(info)trackModel('bookmark',info.topic,post,info.who);}
+  else{state.bookmarks.splice(index,1);if(info)trackModel('unbookmark',info.topic,post,info.who);}
+  save();renderGame(true);
+ }
+ else if(a==='like-ad'){signal(id,1);trackModel('adLike',id,'ad-main-'+id);save();toast('Seu interesse pode alterar os próximos anúncios.');}
  else if(a==='comments')openComments(post)
  else if(a==='product')openProduct(id)
+ else if(a==='coach'){state.helpRequests++;save();overlay={type:'coach',id:id||undefined};modal=null;drawOverlay();}
+ else if(a==='goal'){overlay={type:'goal'};modal=null;drawOverlay();}
+ else if(a==='pass'){trackModel('skip',id,id);pushEvent('skip',`Decidiu esperar antes de comprar ${products[id]?.name||'o produto'}`);closeOverlay();renderGame(true);toast('Você voltou ao feed sem comprar.');}
  else if(a==='close-modal')closeModal()
- else if(a==='post-more'||a==='ad-more'){modal={type:'why',kind:a==='ad-more'?'ad':'post',id:a==='ad-more'?id:post};drawModal();}
+ else if(a==='post-more'||a==='ad-more'){
+  modal={type:'why',kind:a==='ad-more'?'ad':'post',id:a==='ad-more'?id:post,
+   retarget:a==='ad-more'&&!!el.closest('[data-rec-id="ad-ret-'+id+'"]')};
+  drawModal();
+ }
  else if(a==='close-overlay')closeOverlay()
  else if(a==='cart'){overlay={type:'cart'};drawOverlay();}
  else if(a==='profile'){overlay={type:'profile'};drawOverlay();}
  else if(a==='algorithm'){overlay={type:'algorithm'};drawOverlay();}
  else if(a==='clear-algorithm'){state.algorithm=Recommender.emptyProfile();save();renderGame(true);toast('Histórico de recomendações apagado.');}
- else if(a==='less-topic'){const topic=el.dataset.topic;if(Recommender.topics.includes(topic)){trackModel('less',topic,el.dataset.item||topic);closeModal();renderGame(true);toast('Você verá menos conteúdos desse tema nas próximas recomendações.');}}
+ else if(a==='less-topic'){
+  const topic=el.dataset.topic;
+  if(Recommender.topics.includes(topic)){
+   trackModel('less',topic,el.dataset.item||topic);closeModal();renderGame(true);
+   toast('O algoritmo mostrará menos desse tema no próximo conteúdo.');
+  }
+ }
  else if(a==='notifications'){overlay={type:'notifications'};drawOverlay();}
  else if(a==='search'){modal={type:'search'};drawModal();}
  else if(a==='share')toast('Compartilhamento indisponível nesta demonstração.')
- else if(a==='feedtop'){document.querySelector('#feed-scroll')?.scrollTo({top:0,behavior:'smooth'});}
- else if(a==='scroll-cue'){document.querySelector('#feed-scroll')?.scrollBy({top:340,behavior:'smooth'});}
- else if(a==='add-cart'){addToCart(id);}
+ else if(a==='feedtop')document.querySelector('#feed-scroll')?.scrollTo({top:0,behavior:'smooth'});
+ else if(a==='scroll-cue')document.querySelector('#feed-scroll')?.scrollBy({top:340,behavior:'smooth'});
+ else if(a==='add-cart')addToCart(id)
  else if(a==='remove-cart'){state.cart=state.cart.filter(x=>x!==id);trackModel('removeCart',id,id);save();renderGame(true);overlay={type:'cart'};drawOverlay();}
  else if(a==='buy')buy(id)
- else if(a==='decision')doDecision(el.dataset.decision)
  else if(a==='restart')restart()
- else if(a==='sources'){const n=document.querySelector('#sources');n.hidden=!n.hidden;if(!n.hidden)n.scrollIntoView({block:'nearest',behavior:'smooth'});}
+ else if(a==='sources'){const node=document.querySelector('#sources');if(node){node.hidden=!node.hidden;if(!node.hidden)node.scrollIntoView({block:'nearest',behavior:'smooth'});}}
 });
+
 root.addEventListener('change',e=>{if(e.target?.id==='vip-extra'){state.extraChecked=e.target.checked;save();const b=document.querySelector('.product-foot button[data-action=buy]');if(b)b.textContent='Assinar · '+money(products.plano.price+(state.extraChecked?9.90:0))+'/mês';}if(e.target?.id==='privacy-switch'){state.personalized=e.target.checked;save();renderGame(true);toast(state.personalized?'Recomendações personalizadas ativadas.':'Ordem cronológica e coleta de sinais desativadas.');}});
 window.addEventListener('keydown',e=>{
  if(!exitConfirm.hidden){
