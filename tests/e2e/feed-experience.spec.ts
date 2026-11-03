@@ -160,7 +160,7 @@ test("as fotografias dos posts e stories são distintas", async ({ page }) => {
   const storyPhotos = [];
   for (const index of [0, 2, 4, 7]) {
     await page.locator('[data-action="story"]').nth(index).click();
-    storyPhotos.push(await page.locator(".story-layer img.art-photo").getAttribute("src"));
+    storyPhotos.push(await page.locator(".story-layer img.story-photo").getAttribute("src"));
     await page.locator("button.story-close").click();
   }
   expect(new Set(storyPhotos).size).toBe(4);
@@ -179,13 +179,17 @@ test("stories avançam no mesmo visualizador com toque, teclado e barra de progr
   const expectedCount=storyCounts[firstAuthor]||1;
   await expect(layer.locator(".story-progress-segment")).toHaveCount(expectedCount);
   const first=await layer.locator(".story-user").textContent();
+  const firstIndex=await layer.getAttribute("data-story-index");
   await layer.locator('[data-action="story-next"]').click();
-  await expect(layer).toBeVisible();
+  await expect(layer).not.toHaveAttribute("data-story-index",firstIndex);
   const second=await layer.locator(".story-user").textContent();
   expect(second).not.toEqual(first);
+  const secondIndex=await layer.getAttribute("data-story-index");
   await layer.locator('[data-action="story-prev"]').click();
+  await expect(layer).toHaveAttribute("data-story-index",firstIndex);
   expect(await layer.locator(".story-user").textContent()).toEqual(first);
   await page.keyboard.press("ArrowRight");
+  await expect(layer).toHaveAttribute("data-story-index",secondIndex);
   expect(await layer.locator(".story-user").textContent()).toEqual(second);
   await page.keyboard.press("Escape");
   await expect(layer).toHaveCount(0);
@@ -220,10 +224,11 @@ test("deslizar o story para o lado troca de publicação sem sair do visualizado
   await page.locator('[data-action="story"]').first().click();
   const layer=page.locator(".story-layer");
   const name=await layer.locator(".story-user").textContent();
+  const index=await layer.getAttribute("data-story-index");
   const next=layer.locator(".story-tap-zone.next");
   await next.dispatchEvent("pointerdown",{pointerId:1,clientX:310,clientY:270});
   await next.dispatchEvent("pointerup",{pointerId:1,clientX:160,clientY:273});
-  await expect(layer).toBeVisible();
+  await expect(layer).not.toHaveAttribute("data-story-index",index);
   expect(await layer.locator(".story-user").textContent()).not.toEqual(name);
   await layer.locator("button.story-close").click();
   await expect(layer).toHaveCount(0);
@@ -265,7 +270,11 @@ test("cada autor reúne seus stories, muda de perfil e reinicia as barras", asyn
   const usernames=[];
   for(let i=0;i<3;i++){
     usernames.push(await layer.locator(".story-user strong").textContent());
-    if(i<2)await layer.locator('[data-action="story-next"]').click();
+    if(i<2){
+      const before=await layer.getAttribute("data-story-index");
+      await layer.locator('[data-action="story-next"]').click();
+      await expect(layer).not.toHaveAttribute("data-story-index",before);
+    }
   }
   expect(usernames).toEqual(["lucca","lucca","lucca"]);
   await layer.locator('[data-action="story-next"]').click();
