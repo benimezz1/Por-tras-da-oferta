@@ -46,6 +46,42 @@ test("as quatro decisões avançam até a reflexão final", async ({ page }) => 
   await expect(page.locator(".home")).toBeVisible();
 });
 
+
+test("retorno ao início funciona na introdução e sobre um story", async ({ page }) => {
+  await page.goto("/");
+  const homeButton = page.locator("#exit-home-trigger");
+  const dialog = page.getByRole("dialog", { name: "Voltar ao início?" });
+  await expect(homeButton).toBeHidden();
+
+  await page.locator('[data-action="start"]').click();
+  await expect(homeButton).toBeVisible();
+  await homeButton.click();
+  await expect(dialog).toBeVisible();
+  await page.getByRole("button", { name: "Continuar jogando" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator(".cinematic")).toBeVisible();
+
+  await page.locator('[data-action="skip-intro"]').click();
+  await expect(page.locator(".phone")).toBeVisible();
+  await page.locator('[data-action="story"]').first().click();
+  await expect(page.locator(".story-layer")).toBeVisible();
+
+  await homeButton.click();
+  await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(page.locator(".story-layer")).toBeVisible();
+
+  await homeButton.click();
+  await page.getByRole("button", { name: "Voltar ao início", exact: true }).click();
+  await expect(page.locator(".home")).toBeVisible();
+  await expect(homeButton).toBeHidden();
+
+  await page.locator('[data-action="start"]').click();
+  await page.locator('[data-action="skip-intro"]').click();
+  await expect(page.locator(".story.read")).toHaveCount(0);
+});
+
 test("personalização pode ser desligada no perfil", async ({ page }) => {
   await page.goto("/");
   await page.locator('[data-action="start"]').click();
