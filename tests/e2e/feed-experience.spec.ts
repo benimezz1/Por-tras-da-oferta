@@ -114,3 +114,31 @@ test("cada post e cada story das quatro fases usa foto diferente", async ({ page
     await page.locator('[data-action="decision"][data-decision="skip"]').click();
   }
 });
+
+
+test("avatares dos stories ficam contidos nos anéis circulares", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('[data-action="start"]').click();
+  await page.locator('[data-action="skip-intro"]').click();
+  for (const button of await page.locator(".stories .story").all()) {
+    const ring = button.locator(".story-ring");
+    const face = button.locator(".story-face");
+    const image = face.locator("img.avatar-photo");
+    const name = button.locator(".story-name");
+    await expect(image).toBeVisible();
+    await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBeTruthy();
+    const sizes = await button.evaluate((el) => {
+      const get = (selector: string) => el.querySelector(selector)!.getBoundingClientRect();
+      const ring = get(".story-ring");
+      const face = get(".story-face");
+      const image = get("img.avatar-photo");
+      const name = get(".story-name");
+      return { ring, face, image, name };
+    });
+    expect(sizes.image.left).toBeGreaterThanOrEqual(sizes.face.left - 1);
+    expect(sizes.image.right).toBeLessThanOrEqual(sizes.face.right + 1);
+    expect(sizes.image.bottom).toBeLessThanOrEqual(sizes.face.bottom + 1);
+    expect(sizes.face.bottom).toBeLessThanOrEqual(sizes.name.top);
+    expect(sizes.ring.bottom).toBeLessThanOrEqual(sizes.name.top);
+  }
+});
