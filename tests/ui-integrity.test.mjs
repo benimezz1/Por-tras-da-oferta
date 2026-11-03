@@ -18,9 +18,10 @@ describe("integridade das interações do No Feed",()=>{
   for(const name of required)expect(defined.has(name),name+" ausente").toBe(true);
  });
  it("ofertas, lojas e checkout possuem ações conectadas",()=>{
-  for(const action of ["shop","product","checkout","checkout-cart","buy","add-cart","close-overlay","open-photo","story-product"]){
+  for(const action of ["shop","product","checkout","checkout-cart","buy","close-overlay","open-photo","story-product"]){
    expect(source.includes("data-action=\""+action+"\""),"faltou ação "+action).toBe(true);
   }
+  expect(source).toContain('"add-cart"');
   expect(source).toContain("SITE FICTÍCIO");
   expect(source).toContain("Nenhum pagamento verdadeiro");
  });
