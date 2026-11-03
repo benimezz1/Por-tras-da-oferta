@@ -82,3 +82,12 @@ O objetivo é que a reflexão aconteça **depois** da experiência, sem apresent
 - Um evento de story é registrado uma vez por publicação vista, sem atribuir todos os eventos a um único autor.
 
 Este ajuste é principalmente de experiência e clareza de autoria; as fotos e os produtos fictícios existentes foram preservados.
+
+## Curtidas e comentários no feed
+
+- O usuário curte a publicação ou anúncio com **dois cliques/toques diretamente na fotografia**, inclusive em telas touch; um toque simples não abre comentários nem a loja.
+- Curtidas são idempotentes pelo gesto duplo: repetir dois toques mantém a publicação curtida, em vez de desfazer a curtida. Para descurtir, utiliza-se o próprio botão de coração.
+- O coração fica **com o interior totalmente preenchido** na cor rosa da interface e mantém o estado ao navegar ou recarregar a partida, inclusive em anúncios.
+- A fotografia exibe uma breve animação de coração ao receber dois toques. A animação não obstrui os cliques ou a rolagem.
+- Os comentários de publicações e anúncios são acessados **somente pelo ícone de balão de comentário**, não tocando a fotografia.
+- A página do produto patrocinado continua acessível pelo botão "Conhecer o produto" e pelo ícone de visualização, mas não por um toque na imagem.

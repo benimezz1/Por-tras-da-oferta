@@ -326,3 +326,78 @@ test("ao entrar em um story, o avatar e o nome pertencem ao autor selecionado", 
     await layer.locator('[data-action="close-story"]').click();
   }
 });
+
+
+test("foto do feed: clique simples não abre comentários e duplo clique curte com coração preenchido", async ({ page }) => {
+  await enter(page);
+  const card=page.locator('.post[data-rec-id^="p"]').first();
+  const id=await card.getAttribute("data-rec-id");
+  const photo=card.locator(".feed-photo");
+  const heart=card.locator('[data-action="like"]');
+  const icon=heart.locator("svg");
+  const initial=await card.locator(".likecount").textContent();
+  await photo.click();
+  await expect(page.locator(".bottom-sheet")).toHaveCount(0);
+  await expect(heart).toHaveAttribute("aria-pressed","false");
+  await photo.dblclick();
+  await expect(heart).toHaveAttribute("aria-pressed","true");
+  await expect(heart).toHaveClass(/is-liked/);
+  await expect(icon).toHaveClass(/heart-filled/);
+  await expect(icon).toHaveCSS("fill","rgb(236, 71, 126)");
+  expect(await card.locator(".likecount").textContent()).not.toEqual(initial);
+  await photo.dblclick();
+  await expect(heart).toHaveAttribute("aria-pressed","true");
+  expect(await page.evaluate((id)=>JSON.parse(localStorage.getItem("nofeed-simulator-v3")).liked.filter(x=>x===id).length,id)).toBe(1);
+  await heart.click();
+  await expect(heart).toHaveAttribute("aria-pressed","false");
+  await expect(icon).not.toHaveClass(/heart-filled/);
+  await expect(card.locator(".likecount")).toHaveText(initial);
+  await expect(page.locator(".bottom-sheet")).toHaveCount(0);
+  await card.locator('[data-action="comments"]').click();
+  await expect(page.locator(".bottom-sheet")).toBeVisible();
+});
+
+test("anúncios também podem ser curtidos com duplo clique, sem abrir loja ou comentários", async ({ page }) => {
+  await enter(page);
+  const ad=page.locator(".ad-post").first();
+  const adId=await ad.getAttribute("data-rec-id");
+  const photo=ad.locator(".feed-photo");
+  const heart=ad.locator('[data-action="like-ad"]');
+  await photo.click();
+  await expect(page.locator(".layer")).toHaveCount(0);
+  await expect(page.locator(".bottom-sheet")).toHaveCount(0);
+  await photo.dblclick();
+  await expect(heart).toHaveAttribute("aria-pressed","true");
+  await expect(heart.locator("svg")).toHaveCSS("fill","rgb(236, 71, 126)");
+  expect(await page.evaluate((id)=>JSON.parse(localStorage.getItem("nofeed-simulator-v3")).likedAds.includes(id),adId)).toBe(true);
+  await page.reload();
+  const again=page.locator('.ad-post[data-rec-id="'+adId+'"]');
+  await expect(again.locator('[data-action="like-ad"]')).toHaveAttribute("aria-pressed","true");
+  await again.locator('[data-action="like-ad"]').click();
+  await expect(again.locator('[data-action="like-ad"]')).toHaveAttribute("aria-pressed","false");
+  await again.locator('[data-action="product"]').first().click();
+  await expect(page.locator(".product-info")).toBeVisible();
+});
+
+test("toque duplo na foto em celular curte, enquanto arrastar não curte", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name!=="mobile","Gestos de toque disponíveis no projeto mobile.");
+  await enter(page);
+  const card=page.locator('.post[data-rec-id^="p"]').first();
+  const photo=card.locator(".feed-photo");
+  const heart=card.locator('[data-action="like"]');
+  await expect(photo).toHaveCSS("touch-action","manipulation");
+  await photo.evaluate(el=>{
+    const opts={bubbles:true,pointerType:"touch",pointerId:42,clientX:120,clientY:150};
+    el.dispatchEvent(new PointerEvent("pointerdown",opts));
+    el.dispatchEvent(new PointerEvent("pointerup",{...opts,clientY:205}));
+  });
+  await expect(heart).toHaveAttribute("aria-pressed","false");
+  const box=await photo.boundingBox();
+  expect(box).toBeTruthy();
+  const x=box.x+box.width/2,y=box.y+Math.min(box.height/2,160);
+  await page.touchscreen.tap(x,y);
+  await page.touchscreen.tap(x,y);
+  await expect(heart).toHaveAttribute("aria-pressed","true");
+  await expect(heart.locator("svg")).toHaveClass(/heart-filled/);
+  await expect(page.locator(".bottom-sheet")).toHaveCount(0);
+});
