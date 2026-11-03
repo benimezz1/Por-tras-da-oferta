@@ -62,13 +62,16 @@ test("personalização pode ser desligada no perfil", async ({ page }) => {
   await expect(page.getByText(/Ainda no seu carrinho: Atmos One/)).toHaveCount(0);
 });
 
-test("imagens locais e seções distintas de amigos e páginas no feed", async ({ page }) => {
+test("stories em uma fileira e posts de amigos e páginas no feed", async ({ page }) => {
   await page.goto("/");
   await page.locator('[data-action="start"]').click();
   await page.locator('[data-action="skip-intro"]').click();
-  await expect(page.locator(".story-section")).toHaveCount(2);
-  await expect(page.getByText("Stories de amigos")).toBeVisible();
-  await expect(page.getByText("Stories de páginas")).toBeVisible();
+  await expect(page.locator(".story-rail")).toHaveCount(1);
+  await expect(page.locator(".stories")).toHaveCount(1);
+  await expect(page.getByText("Amigos e páginas")).toBeVisible();
+  await expect(page.locator(".stories .story")).toHaveCount(3);
+  await expect(page.locator(".stories .story.page-story .page-logo")).toHaveCount(1);
+  await expect(page.locator(".stories .story:not(.page-story) .avatar-photo")).toHaveCount(2);
   await expect(page.getByText("Feed de amigos")).toBeVisible();
   await expect(page.getByText("Páginas que você segue")).toBeVisible();
   await expect(page.locator(".scroll-cue")).toBeVisible();
@@ -116,55 +119,62 @@ test("cada post e cada story das quatro fases usa foto diferente", async ({ page
 });
 
 
-test("fotos e nomes dos stories ficam contidos nos quatro momentos", async ({ page }) => {
+test("stories alinhados com fotos de pessoas e logos de paginas nos quatro momentos", async ({ page }) => {
   await page.goto("/");
   await page.locator('[data-action="start"]').click();
   await page.locator('[data-action="skip-intro"]').click();
 
+  const pagesByPhase = ["agenda.local", "moda.agora", "dj.andre", "loja.noma"];
   for (let phase = 0; phase < 4; phase++) {
     await expect(page.locator(".phone")).toBeVisible({ timeout: 10000 });
     await expect(page.locator(".rail .eyebrow").first()).toContainText(
-      `MOMENTO ${String(phase + 1).padStart(2, "0")} / 04`,
+      "MOMENTO " + String(phase + 1).padStart(2, "0") + " / 04",
     );
+    await expect(page.locator(".story-rail")).toHaveCount(1);
+    const stories = page.locator(".story-rail .story");
+    await expect(stories).toHaveCount(3);
+    await expect(stories.locator(".page-logo")).toHaveCount(1);
+    await expect(stories.locator("img.avatar-photo")).toHaveCount(2);
+    const names = await stories.locator(".story-name").allTextContents();
+    expect(names).toContain(pagesByPhase[phase]);
 
-    const storyButtons = page.locator(".stories .story");
-    await expect(storyButtons).toHaveCount(3);
-    for (const button of await storyButtons.all()) {
-      const face = button.locator(".story-face");
-      const photo = face.locator("img.avatar-photo");
-      const name = button.locator(".story-name");
-      await expect(photo).toBeVisible();
-      await expect(name).toBeVisible();
-      const geometry = await button.evaluate((el) => {
-        const rect = (selector: string) => el.querySelector(selector)!.getBoundingClientRect();
-        const ring = rect(".story-ring");
-        const face = rect(".story-face");
-        const image = rect("img.avatar-photo");
-        const label = rect(".story-name");
+    const alignment = await stories.evaluateAll((els) =>
+      els.map((el) => {
+        const q = (selector: string) => el.querySelector(selector)!.getBoundingClientRect();
+        const ring = q(".story-ring");
+        const face = q(".story-face");
+        const image = q(".page-logo, .avatar-photo");
+        const name = q(".story-name");
+        const isPage = el.classList.contains("page-story");
         return {
+          x: ring.left,
+          y: ring.top,
           ringWidth: ring.width,
           ringHeight: ring.height,
           imageInsideFace: image.left >= face.left - 1 &&
             image.right <= face.right + 1 &&
             image.top >= face.top - 1 &&
             image.bottom <= face.bottom + 1,
-          nameClear: label.top >= ring.bottom &&
-            label.top >= image.bottom,
-          roundFrame: getComputedStyle(el.querySelector(".story-face")!).borderRadius,
-          fixedPhoto: getComputedStyle(el.querySelector("img.avatar-photo")!).position,
-          label: el.querySelector(".story-name")!.textContent?.trim(),
+          labelBelow: name.top >= ring.bottom && name.top >= image.bottom,
+          typeCorrect: isPage ?
+            !!el.querySelector(".page-logo svg") && !el.querySelector(".avatar-photo") :
+            !!el.querySelector("img.avatar-photo") && !el.querySelector(".page-logo"),
+          frameRound: getComputedStyle(el.querySelector(".story-face")!).borderRadius,
         };
-      });
-      expect(geometry.ringWidth).toBe(60);
-      expect(geometry.ringHeight).toBe(60);
-      expect(geometry.imageInsideFace).toBe(true);
-      expect(geometry.nameClear).toBe(true);
-      expect(geometry.roundFrame).toBe("50%");
-      expect(geometry.fixedPhoto).toBe("absolute");
-      expect(geometry.label?.length).toBeGreaterThan(0);
-    }
-    if (phase < 3) {
-      await page.locator('[data-action="decision"][data-decision="skip"]').click();
-    }
+      }),
+    );
+    expect(alignment.every((item) => item.ringWidth === 60 && item.ringHeight === 60)).toBe(true);
+    expect(alignment.every((item) => item.imageInsideFace && item.labelBelow && item.typeCorrect)).toBe(true);
+    expect(alignment.every((item) => item.frameRound === "50%")).toBe(true);
+    expect(alignment[0].x).toBeLessThan(alignment[1].x);
+    expect(alignment[1].x).toBeLessThan(alignment[2].x);
+    expect(Math.max(...alignment.map((item) => item.y)) - Math.min(...alignment.map((item) => item.y))).toBeLessThan(2);
+
+    const brandStory = stories.filter({ has: page.locator(".page-logo") });
+    await brandStory.click();
+    await expect(page.locator(".story-layer .page-logo svg")).toBeVisible();
+    await page.locator("button.story-close").click();
+
+    if (phase < 3) await page.locator('[data-action="decision"][data-decision="skip"]').click();
   }
 });
