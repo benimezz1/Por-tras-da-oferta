@@ -126,6 +126,41 @@
 .feed-footer-note{text-align:center;color:#ad9bab;font-size:11px;margin:0 12px 25px}
 .intro-secondary{display:block;margin:16px auto;color:#efdeea}
 @media(max-width:810px){.game .rail{display:none}}
+
+/* Story sequencial: indicadores, toque lateral, pausa, swipe e teclas. */
+.story-progress-row{position:absolute;z-index:5;top:9px;left:12px;right:12px;display:flex;gap:3px;height:3px;pointer-events:none}
+.story-progress-segment{min-width:0;flex:1;background:rgba(255,255,255,.34);overflow:hidden;border-radius:10px}
+.story-progress-fill{display:block;height:100%;width:0;background:#fff;border-radius:inherit}
+.story-progress-fill.completed{width:100%}
+.story-progress-fill.current{animation:story-playback var(--story-duration,5.5s) linear forwards}
+.story-layer.is-paused .story-progress-fill.current{animation-play-state:paused}
+@keyframes story-playback{from{width:0}to{width:100%}}
+.story-layer .story-top{top:18px;z-index:5;height:57px;padding-top:6px;gap:9px}
+.story-layer .story-user{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.story-layer .story-type{white-space:nowrap}
+.story-layer .story-pause{border:0;border-radius:50%;width:31px;height:31px;flex:none;background:#ffffff1f;color:#fff;font-weight:900;display:grid;place-items:center}
+.story-layer .story-pause:hover,.story-layer .story-close:hover{background:#ffffff44}
+.story-layer .story-picture{pointer-events:none}
+.story-layer .story-tap-zone{position:absolute;top:75px;bottom:0;border:0;background:transparent;z-index:2;cursor:pointer;padding:0;outline-offset:-5px}
+.story-layer .story-tap-zone.previous{left:0;width:35%}
+.story-layer .story-tap-zone.next{right:0;width:65%}
+.story-layer .story-tap-zone:focus-visible{outline:2px solid #fff9;outline-offset:-3px}
+.story-layer .story-caption{pointer-events:none;z-index:3}
+.story-layer .story-guidance{position:absolute;z-index:3;bottom:22px;left:12px;right:12px;text-align:center;color:#ebdfefff;font-size:11px;pointer-events:none;text-shadow:0 1px 6px #0009}
+.story-layer.is-paused .story-guidance::before{content:"⏸ Story pausado · "}
+.story-layer{touch-action:pan-y}
+@media(prefers-reduced-motion:reduce){.story-progress-fill.current{animation:none;width:100%}}
+/* O algoritmo e explicado somente na tela de conclusao. */
+.algorithm-final-reveal{display:block;margin:18px 0 8px;width:100%;text-align:left;line-height:1.45}
+.algorithm-final[hidden]{display:none!important}
+.algorithm-final{scroll-margin-top:22px}
+.algorithm-final h3{margin-bottom:10px}
+.algorithm-final .algorithm-panel{padding:8px 0 0}
+.algorithm-final .algo-summary{margin:14px 0 18px}
+.algorithm-final .algo-summary>span{background:#fcf8fc}
+.algorithm-final .algo-topic{margin:14px 0}
+.algorithm-final .algo-steps{margin-top:16px}
+.algorithm-final .algo-disclaimer{color:#857688;font-size:12px;line-height:1.6;margin:16px 0 4px}
 </style>
 </head>
 <body>
@@ -238,6 +273,9 @@ let state=makeInitial();try{
 }catch(e){}
 state.algorithm=Recommender.normalize(state.algorithm);
 let overlay=null,story=null,modal=null,toastTimer=null,introTimer=null,scene=0;
+const STORY_DURATION=5500;
+let storyTimer=null,storyStartedAt=0,storyPointer=null,storyIgnoreClick=false;
+const storyPauseReasons=new Set();
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
 const signal=(id,num=1)=>{if(Object.prototype.hasOwnProperty.call(state.signals,id))state.signals[id]+=num;};
 const pushEvent=(type,message)=>{state.events.push({phase:state.phase,type,message});save()};
@@ -328,11 +366,13 @@ let exitReturnFocus=null;
 function openExitConfirm(){
  exitReturnFocus=document.activeElement;
  clearTimeout(introTimer);
+ if(story)pauseStory('confirm');
  exitConfirm.hidden=false;
  exitCancel.focus();
 }
 function closeExitConfirm(restoreFocus=true){
  exitConfirm.hidden=true;
+ if(story)resumeStory('confirm');
  if(restoreFocus&&exitReturnFocus?.isConnected)exitReturnFocus.focus();
  exitReturnFocus=null;
 }
@@ -363,15 +403,7 @@ function asideLeft(){
  <p class="description">Amigos, tendências, ofertas e recomendações. A rede se adapta às suas interações sem conhecer sua prioridade fora da tela.</p>
  </aside>`;
 }
-function asideRight(){
- return `<aside class="rail right"><div class="rail-note"><span class="eyebrow">SEU FEED</span>
- <div class="feed-rail-title">Recomendado para você</div>
- <p class="m0" style="font-size:12px;color:#8e8190">Tudo parece conectado ao que você curte, vê e salva.</p>
- <button class="secondary side-action" data-action="coach">Pedir ajuda crítica</button>
- </div><p class="side-footer">Uma atualização, uma tendência, outra recomendação.</p></aside>`;
-}
-
-
+function asideRight(){return '';}
 function stageFeed(){
  const pool=contentPool();
  const cards=state.feedItems.map(item=>item.kind==='post'?postCard(pool.find(p=>p.id===item.id)):adCard(item.topic,item.retarget)).join('');
@@ -380,14 +412,14 @@ function stageFeed(){
  '<button class="load-more" data-action="load-more">Mais publicações para você ↓</button>';
  return `<div class="game">${asideLeft()}<main class="phone" aria-label="Simulador de rede social">
  <header class="phone-head"><span class="phone-logo">pulso<b>.</b></span><div class="phone-actions">
- <button class="algorithm-button" data-action="algorithm" aria-label="Abrir painel do algoritmo">${icon('info')}<span>Algoritmo</span></button>
+ 
  <button class="icon-button" data-action="notifications" aria-label="Notificações">${icon('heart')}</button>
  <button class="icon-button" data-action="cart" aria-label="Abrir carrinho" style="position:relative">${icon('cart')}${state.cart.length?`<span class="cart-dot">${state.cart.length}</span>`:''}</button>
  </div></header>
  <div class="phone-content" id="feed-scroll">
  ${renderStories(storyPool())}
  <div class="feed-context"><span style="font-size:19px">✦</span><div><strong style="font-size:12px">PARA VOCÊ</strong><p>Novidades, amigos e publicações recomendadas.</p></div></div>
- <div class="recommendation-caption">${state.personalized?'Sugestões de publicações para você':'Publicações em ordem editorial'} <button data-action="algorithm">Como funciona?</button></div>
+ <div class="recommendation-caption">${state.personalized?'Sugestões de publicações para você':'Publicações em ordem editorial'}</div>
  ${cards}${next}
  <button class="finish-feed" data-action="finish">Sair do feed e ver minhas escolhas →</button>
  <p class="feed-footer-note">Não há uma compra obrigatória. Você decide quando parar.</p>
@@ -395,19 +427,19 @@ function stageFeed(){
  <footer class="phone-footer"><button class="icon-button" data-action="feedtop" aria-label="Início do feed">${icon('home')}</button>
  <button class="icon-button" data-action="search" aria-label="Explorar">${icon('search')}</button>
  <button class="icon-button" data-action="goal" aria-label="Minha meta">${icon('bookmark')}</button>
- <button class="icon-button" data-action="algorithm" aria-label="Seu algoritmo">${icon('info')}</button>
+ <button class="icon-button" data-action="cart" aria-label="Carrinho">${icon('cart')}</button>
  <button class="icon-button" data-action="profile" aria-label="Meu perfil">${icon('user')}</button>
  </footer></main>${asideRight()}</div>`;
 }
 
 function postCard(post) {
   const liked = state.liked.includes(post.id), saved = state.bookmarks.includes(post.id), isPage = post.source === "page";
-  return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage ? "page" : ""}">${isPage ? "página" : "amigo"}</span>${""}</div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Por que estou vendo este post?">${icon("more")}</button></div><button class="post-media" data-action="comments" data-post="${post.id}" aria-label="Ver publicação e comentários">${art(post.art,false,"",post.photo)}</button><div class="post-actions"><button class="icon-button" data-action="like" data-post="${post.id}" aria-label="Curtir publicação" style="color:${liked ? "#eb477e" : "inherit"}">${icon("heart")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved ? "#e84a80" : "inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes + (liked ? 1 : 0)} curtidas</p><p class="post-caption"><strong>${post.who}</strong> ${post.caption}</p><button class="view-comments" data-action="comments" data-post="${post.id}">Ver todos os comentários</button><button class="why-post" data-action="post-more" data-post="${post.id}">ⓘ Por que apareceu?</button></article>`;
+  return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage ? "page" : ""}">${isPage ? "página" : "amigo"}</span>${""}</div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><button class="post-media" data-action="comments" data-post="${post.id}" aria-label="Ver publicação e comentários">${art(post.art,false,"",post.photo)}</button><div class="post-actions"><button class="icon-button" data-action="like" data-post="${post.id}" aria-label="Curtir publicação" style="color:${liked ? "#eb477e" : "inherit"}">${icon("heart")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved ? "#e84a80" : "inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes + (liked ? 1 : 0)} curtidas</p><p class="post-caption"><strong>${post.who}</strong> ${post.caption}</p><button class="view-comments" data-action="comments" data-post="${post.id}">Ver todos os comentários</button></article>`;
 }
 function adCard(id, retarget=false) {
   const p=products[id], saved=state.cart.includes(id), text=retarget ? (saved ? `Ainda no seu carrinho: ${p.name}. A loja quer que você volte.` : p.late) : p.ad;
   const adId = retarget ? `ad-ret-${id}` : `ad-main-${id}`;
-  return `<article class="post ad-post" data-rec-id="${adId}" data-rec-topic="${id}"><div class="post-top"><span class="avatar brand-av">${p.brand.split(" ")[0].slice(0,4)}</span><div class="user-info"><div class="username">${p.brand.toLowerCase().replaceAll(" ",".")}</div><div class="post-sub"><span class="sponsored-label">Patrocinado · ${retarget ? "Recomendado para você" : "Anúncio da campanha fictícia"}</span></div></div><button class="icon-button" data-action="ad-more" data-product="${id}" aria-label="Por que este anúncio?">${icon("more")}</button></div><button class="post-media" data-action="product" data-product="${id}" aria-label="Conhecer ${p.name}">${art(p.kind,true,p.brand)}<span class="photo-tag">${retarget ? "Você já demonstrou interesse" : "OFERTA EXCLUSIVA*"}</span></button><div class="post-actions"><button class="icon-button" data-action="like-ad" data-product="${id}" aria-label="Curtir anúncio">${icon("heart")}</button><button class="icon-button" data-action="comments" data-post="${adId}" aria-label="Ver avaliações">${icon("comment")}</button><button class="icon-button push" data-action="product" data-product="${id}" aria-label="Ver produto">${icon("eye")}</button></div><p class="post-caption"><strong>${p.brand.toLowerCase().replaceAll(" ",".")}</strong> ${text}</p><div class="price-bar"><div><span>${p.old ? `<s>${money(p.old)}</s> · ` : ""}Valor anunciado</span><br><strong>${money(p.price)}${id === "plano" ? '<small style="font-size:11px">/mês</small>' : ""}</strong></div><span>${retarget ? "Para você" : "Patrocinado"}</span></div><button class="ad-cta" data-action="product" data-product="${id}">Conhecer o produto ${icon("chevron")}</button><button class="why-post" data-action="ad-more" data-product="${id}">ⓘ Por que este anúncio?</button></article>`;
+  return `<article class="post ad-post" data-rec-id="${adId}" data-rec-topic="${id}"><div class="post-top"><span class="avatar brand-av">${p.brand.split(" ")[0].slice(0,4)}</span><div class="user-info"><div class="username">${p.brand.toLowerCase().replaceAll(" ",".")}</div><div class="post-sub"><span class="sponsored-label">Patrocinado · ${retarget ? "Recomendado para você" : "Anúncio da campanha fictícia"}</span></div></div><button class="icon-button" data-action="ad-more" data-product="${id}" aria-label="Opções do anúncio">${icon("more")}</button></div><button class="post-media" data-action="product" data-product="${id}" aria-label="Conhecer ${p.name}">${art(p.kind,true,p.brand)}<span class="photo-tag">${retarget ? "Você já demonstrou interesse" : "OFERTA EXCLUSIVA*"}</span></button><div class="post-actions"><button class="icon-button" data-action="like-ad" data-product="${id}" aria-label="Curtir anúncio">${icon("heart")}</button><button class="icon-button" data-action="comments" data-post="${adId}" aria-label="Ver avaliações">${icon("comment")}</button><button class="icon-button push" data-action="product" data-product="${id}" aria-label="Ver produto">${icon("eye")}</button></div><p class="post-caption"><strong>${p.brand.toLowerCase().replaceAll(" ",".")}</strong> ${text}</p><div class="price-bar"><div><span>${p.old ? `<s>${money(p.old)}</s> · ` : ""}Valor anunciado</span><br><strong>${money(p.price)}${id === "plano" ? '<small style="font-size:11px">/mês</small>' : ""}</strong></div><span>${retarget ? "Para você" : "Patrocinado"}</span></div><button class="ad-cta" data-action="product" data-product="${id}">Conhecer o produto ${icon("chevron")}</button></article>`;
 }
 function adaptiveAd(current) {
   const result = Recommender.pickRetarget({
@@ -437,24 +469,37 @@ function setupFeedAssist(){
 }
 
 function renderGame(keepScroll=false){if(state.finished){renderEnd();return;}exitHomeButton.hidden=false;if(!state.feedItems.length)appendNext();const y=keepScroll?document.querySelector('#feed-scroll')?.scrollTop||0:0;root.innerHTML=stageFeed();if(keepScroll){const n=document.querySelector('#feed-scroll');if(n)n.scrollTop=y;}setupFeedAssist();setupFeedExposure();if(overlay)drawOverlay();if(modal)drawModal();if(story)drawStory();}
-function algorithmPanel() {
-  const s = Recommender.summary(state.algorithm,state.phase);
-  const bars=Recommender.topics.map(topic => {
-    const value=s.affinities[topic], width=Math.max(3,Math.min(100,Math.round((value+2)/14*100)));
-    return `<div class="algo-topic"><div><strong>${Recommender.labels[topic]}</strong><span>${value.toFixed(1)} pts</span></div><div class="algo-track"><span style="width:${width}%"></span></div></div>`;
-  }).join("");
-  return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon("arrow")}</button><strong>Por trás do algoritmo</strong></header><div class="layer-body algorithm-panel"><span class="eyebrow">SIMULAÇÃO EXPLICÁVEL</span><h2>O que seu feed aprendeu?</h2><p>Este modelo de recomendação usa somente as interações fictícias desta partida. Ele <b>não</b> acessa contas reais, localização, microfone ou histórico externo.</p><div class="algo-summary"><span><strong>${s.events}</strong> sinais registrados</span><span><strong>${state.personalized ? "Ativa" : "Desligada"}</strong> personalização</span></div><h3>Interesses inferidos pelo jogo</h3>${bars}<p class="small muted">Pontuações ilustrativas. Curtidas, stories, avaliações, visitas à loja, itens salvos e tempo de leitura podem alterar a ordem. A influência de um sinal diminui com as próximas rodadas internas do feed.</p><div class="algo-steps"><strong>Como o sistema decide?</strong><ol><li>Seleciona conteúdos de vários assuntos em um único catálogo misturado.</li><li>Calcula pontuações com base em interesses, autores, popularidade e diversidade.</li><li>Intercala conteúdo orgânico com anúncios e limita repetições.</li><li>Aprende com as interações para escolher os próximos conteúdos, sem consultar a meta financeira do jogador.</li></ol></div><label class="option-row"><input id="privacy-switch" type="checkbox" ${state.personalized ? "checked" : ""}/><span><strong>Ativar recomendações personalizadas</strong><br><small class="muted">Desligado: a próxima seleção segue uma ordem editorial não personalizada, desativa retargeting e deixa de registrar sinais novos.</small></span></label><button class="secondary full algorithm-clear" data-action="clear-algorithm">Apagar histórico de recomendações</button><p class="small muted">Isso apaga apenas os sinais do algoritmo, não suas compras fictícias, decisões ou itens do carrinho. Produtos ainda salvos no carrinho podem influenciar recomendações futuras se você reativar a personalização.</p></div>`;
-}
-function whySheet(v) {
-  const id = v.id, isAd = v.kind === "ad", meta = isAd ? null : postInfo(id), topic = isAd ? id : meta?.topic;
-  if (!topic || !Recommender.topics.includes(topic)) return `<div class="sheet-scroll"><p>Conteúdo não encontrado.</p></div>`;
-  const opts=recommendationOptions();
-  const details=isAd
-    ? Stream.scoreAd({id:(v.retarget?'ad-ret-':'ad-main-')+topic,topic,kind:v.retarget?'retarget':'ad'},{...opts,shown:state.feedItems,viewed:state.viewed,cart:state.cart,purchased:state.purchases.map(p=>p.id)})
-    : Stream.scorePost(meta,{...opts,shown:state.feedItems});
-  const names={ comercial:'Prioridade comercial fictícia',afinidade:'Interesse no anúncio',lembranca:'Visita anterior à loja',exploracao:'Exploração de conteúdo',diversidade:'Diversidade de temas', atualidade:"Conteúdo recente",popularidade:"Popularidade simulada",proximidade:"Origem do post",interesse:"Afinidade por tema",criador:"Interações com o autor",novidade:"Exploração de conteúdo",repeticao:"Exposição repetida",campanha:"Prioridade comercial fictícia",carrinho:"Item salvo no carrinho" };
-  const factors=Object.entries(details.parts).filter(([,value])=>Math.abs(value)>0.001).map(([key,value])=>`<li><span>${names[key]||key}</span><strong>${value>=0?"+":""}${value.toFixed(2)}</strong></li>`).join("");
-  return `<div class="sheet-bar"></div><header class="sheet-head"><strong>Por que apareceu?</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon("close")}</button></header><div class="sheet-scroll algorithm-explanation"><p>${isAd ? "Este é um anúncio pago dentro do jogo. Anúncios de vários temas competem por espaço no mesmo feed; alguns podem reaparecer conforme seu interesse." : "Esta publicação foi selecionada entre conteúdos de vários temas e recebeu uma pontuação de relevância simulada."}</p><div class="algo-score"><span>Score ilustrativo</span><strong>${details.score.toFixed(2)}</strong></div><ul class="algo-factors">${factors}</ul><p class="small muted">${state.personalized ? "A pontuação usa apenas sinais registrados durante esta partida, sem aprendizado de máquina real." : "A personalização está desligada. Interações anteriores não afetam as próximas recomendações."}</p><button class="secondary" style="width:100%;margin-top:12px" data-action="less-topic" data-topic="${topic}" data-item="${esc(id)}">Mostrar menos: ${Recommender.labels[topic]}</button></div>`;
+function algorithmResults(){
+ const summary=Recommender.summary(state.algorithm,state.phase);
+ const ads=state.feedItems.filter(item=>item.kind==="ad");
+ const posts=state.feedItems.filter(item=>item.kind==="post");
+ const repeats=ads.filter(item=>item.retarget).length;
+ const entries=Recommender.topics.map(topic=>{
+  const points=summary.affinities[topic];
+  const percent=Math.min(100,Math.max(4,Math.round((points+8)/20*100)));
+  const tendency=points>1?"Sinal de interesse":points<-1?"Menos interesse":"Poucos sinais";
+  return `<div class="algo-topic"><div><strong>${Recommender.labels[topic]}</strong><span>${tendency} · ${points.toFixed(1)} pts</span></div><div class="algo-track"><span style="width:${percent}%"></span></div></div>`;
+ }).join("");
+ return `<section class="end-box algorithm-final" id="algorithm-final-panel" hidden>
+  <h3>O que aconteceu por trás do seu feed?</h3>
+  <div class="algorithm-panel">
+   <p>O jogo registrou apenas suas interações fictícias e usou esses sinais para escolher quais conteúdos mostrar a seguir. <strong>A rede não recebeu sua meta de poupar R$ 400.</strong></p>
+   <div class="algo-summary"><span><strong>${summary.events}</strong> sinais de interação</span><span><strong>${posts.length}</strong> posts apresentados</span><span><strong>${ads.length}</strong> anúncios fictícios</span></div>
+   <h3>Interesses que a simulação inferiu</h3>
+   ${entries}
+   <p class="small muted">Pontuações ilustrativas, não percentuais de consumo. Um tema mais pontuado pode aparecer mais vezes porque você o curtiu, visualizou, salvou ou pesquisou.</p>
+   <div class="algo-steps"><strong>Como a recomendação se formou</strong>
+    <ol>
+     <li>O sistema escolheu conteúdos de amigos, páginas e marcas entre vários assuntos.</li>
+     <li>Seus likes, stories vistos, comentários, visitas e produtos salvos alteraram os pesos dos temas.</li>
+     <li>A ordem dos próximos posts considerou afinidade, popularidade fictícia e variedade; os anteriores permaneceram onde já estavam.</li>
+     <li>Os anúncios concorreram por espaço com as publicações; ${repeats} anúncio(s) reapareceram por interesse anterior.</li>
+     <li>A escolha de guardar R$ 400 não entrou no ranking — é justamente o conflito de interesses que o jogo quer mostrar.</li>
+    </ol>
+   </div>
+   <p class="algo-disclaimer">Este é um modelo educativo e explicável criado para o projeto, não uma reprodução dos sistemas proprietários do Instagram nem um diagnóstico de comportamento. Os dados ficam neste navegador.</p>
+  </div>
+ </section>`;
 }
 function setupFeedExposure() {
   if (feedObserver) feedObserver.disconnect();
@@ -491,19 +536,154 @@ function drawOverlay(){const phone=document.querySelector('.phone');if(!phone)re
  <p class="warning-note">* Produto, comentários, marcas, alegações comerciais e preços fictícios. Anúncios não são ofertas reais.</p></section></div><div class="product-foot"><button class="secondary" data-action="add-cart" data-product="${id}">${state.cart.includes(id)?'✓ Salvo no carrinho':'Salvar no carrinho'}</button><button class="primary" data-action="buy" data-product="${id}">${id==='plano'?`Assinar · ${money(p.price+(state.extraChecked?9.90:0))}/mês`:'Comprar agora'}</button></div>`;
  }else if(overlay.type==='cart'){wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon('arrow')}</button><strong>Seu carrinho</strong><span style="margin-left:auto" class="pill">${state.cart.length} item(ns)</span></header><div class="layer-body" style="padding:14px 18px">${state.cart.length?state.cart.map(id=>{const p=products[id];return `<div class="cart-item"><div class="cart-thumb">${art(p.kind,true)}</div><div class="cart-item-text"><strong>${p.name}</strong><p>${money(p.price)}${id==='plano'?'/mês':''}</p><button class="text-link" data-action="remove-cart" data-product="${id}">Remover</button></div><button class="tiny-button" data-action="product" data-product="${id}">Ver</button></div>`}).join(''):`<div class="empty"><div style="font-size:44px">🛒</div><p>Seu carrinho está vazio.</p><p class="small">Salvar algo não significa que você precisa comprar.</p></div>`}<p class="small muted" style="margin-top:20px">As lojas da simulação podem usar itens salvos para oferecer novos anúncios personalizados.</p></div>`;
  }else if(overlay.type==='profile'){wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon('arrow')}</button><strong>Meu perfil</strong></header><div class="layer-body" style="padding:22px"><div style="text-align:center;padding:8px 0 22px"><div class="avatar" style="margin:auto;width:74px;height:74px;font-size:35px">🙂</div><h3 style="margin:12px 0 4px">você</h3><p class="small muted">Perfil fictício da simulação</p></div><div class="end-box" style="padding:15px;margin:0"><strong style="font-size:13px">Seu saldo</strong><div style="font-size:24px;font-weight:850;margin:8px 0">${money(state.wallet)}</div><p class="small muted">Objetivo reservado: ${money(state.goal)}</p></div><label class="option-row"><input id="privacy-switch" type="checkbox" ${state.personalized?'checked':''}/><span><strong>Recomendações personalizadas</strong><br><small class="muted">Se desligar, posts voltam à ordem cronológica e anúncios deixam de ser repetidos com base nos sinais da partida.</small></span></label><p class="small muted">Desligar a personalização não elimina publicidade, mas muda a próxima seleção de conteúdos.</p><button class="reviews-shortcut" data-action="goal"><strong>Relembrar meu objetivo fora da rede</strong>${icon("chevron")}</button></div>`;
- }else if(overlay.type==='algorithm'){wrap.innerHTML=algorithmPanel();}else if(overlay.type==='goal'){wrap.innerHTML=goalPanel();}else if(overlay.type==='coach'){wrap.innerHTML=coachPanel();}else if(overlay.type==='notifications'){wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay">${icon('arrow')}</button><strong>Notificações</strong></header><div class="layer-body" style="padding:20px"><h3 style="font-size:19px">Novidades no seu feed</h3>${state.cart.length?state.cart.map(id=>`<button class="reviews-shortcut" data-action="product" data-product="${id}"><span>🛍️ ${products[id].name} continua no seu carrinho</span>${icon('chevron')}</button>`).join(''):'<p class="small muted">Nenhuma novidade por aqui.</p>'}<p class="small muted">As notificações são fictícias.</p></div>`;
+ }else if(overlay.type==='goal'){wrap.innerHTML=goalPanel();}else if(overlay.type==='coach'){wrap.innerHTML=coachPanel();}else if(overlay.type==='notifications'){wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay">${icon('arrow')}</button><strong>Notificações</strong></header><div class="layer-body" style="padding:20px"><h3 style="font-size:19px">Novidades no seu feed</h3>${state.cart.length?state.cart.map(id=>`<button class="reviews-shortcut" data-action="product" data-product="${id}"><span>🛍️ ${products[id].name} continua no seu carrinho</span>${icon('chevron')}</button>`).join(''):'<p class="small muted">Nenhuma novidade por aqui.</p>'}<p class="small muted">As notificações são fictícias.</p></div>`;
  }
  phone.appendChild(wrap);
 }
 function drawModal(){const phone=document.querySelector('.phone');if(!phone)return;document.querySelector('.layer-backdrop')?.remove();const v=modal;let content='';if(v.type==='comments'){
  let comments=[];let title='Comentários';if(v.post.startsWith('ad-main-')||v.post.startsWith('ad-ret-')){let id=v.post.replace(/^ad-(main|ret)-/,'');comments=products[id].reviews;title=`Opiniões sobre ${products[id].name}`;}else{for(const ph of phases){const post=ph.posts.find(x=>x.id===v.post);if(post){comments=post.comments.map((c,i)=>[c[0],c[1],`${i+1} h`]);break;}}}
  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${title}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header><div class="sheet-scroll">${comments.map((c,i)=>`<div class="comment"><span class="avatar">${['🧑','👩','🧒','🙂'][i%4]}</span><div><strong>${esc(c[0])}</strong><p>${esc(c[1])}</p><small>${c[2]||'há pouco'}</small></div></div>`).join('')}<p class="small muted" style="margin-top:12px">Comentários criados para a simulação. Eles não comprovam qualidade, estoque ou popularidade.</p></div>`;
- }else if(v.type==='why'){content=whySheet(v);}else if(v.type==='more'){content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Sobre o conteúdo</strong><button class="icon-button" data-action="close-modal">${icon('close')}</button></header><div class="sheet-scroll"><p class="small">Você pode ver anúncios, publicações de amigos e parcerias comerciais. O selo “Patrocinado” identifica anúncios pagos.</p><button class="secondary" data-action="close-modal" style="width:100%">Voltar à publicação</button></div>`;
+ }else if(v.type==='more'){content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Sobre o conteúdo</strong><button class="icon-button" data-action="close-modal">${icon('close')}</button></header><div class="sheet-scroll"><p class="small">Você pode ver anúncios, publicações de amigos e parcerias comerciais. O selo “Patrocinado” identifica anúncios pagos.</p><button class="secondary" data-action="close-modal" style="width:100%">Voltar à publicação</button></div>`;
  }else if(v.type==='search'){content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Explorar</strong><button class="icon-button" data-action="close-modal">${icon('close')}</button></header><div class="sheet-scroll"><p class="small muted">A aba Explorar é simplificada nesta demonstração. Você pode navegar pelas publicações, stories e lojas. Você pode visitar os stories, ler os comentários e entrar nas lojas.</p></div>`;
  }
  const box=document.createElement('div');box.className='layer-backdrop';box.innerHTML=`<section class="bottom-sheet" role="dialog" aria-modal="true">${content}</section>`;phone.appendChild(box);
 }
-function drawStory(){const phone=document.querySelector('.phone');if(!phone)return;document.querySelector('.story-layer')?.remove();const s=storyPool()[story.index],el=document.createElement('div');el.className='story-layer';el.innerHTML=`<div class="story-top"><span class="avatar photo-avatar">${profileAvatar(s.user,s.photo,s.source==='page')}</span><span class="story-user">${s.user} · 12 h</span><span class="story-type">${s.source==='page'?'página':'amigo'}</span><button class="story-close" data-action="close-story" aria-label="Fechar story">${icon('close')}</button></div><div class="story-picture" data-action="close-story">${art(s.art,false,'',s.photo)}</div><div class="story-caption" data-action="close-story">${s.text}</div><div style="position:absolute;bottom:26px;left:30px;right:30px;font-size:12px;color:#e6d5eb;text-align:center">Toque para voltar ao feed</div>`;phone.appendChild(el);
+function storyOrder(){
+ return Recommender.rankStories(storyPool(),recommendationOptions()).map(s=>s.idx);
+}
+function visitStory(){
+ if(!story)return;
+ const index=story.order[story.position],s=storyPool()[index];
+ if(!s){stopStory();return;}
+ const key="story-"+index;
+ if(!state.stories.includes(key)){
+  state.stories.push(key);
+  signal(s.product,1);
+  pushEvent("story",`Viu o story de ${s.user}`);
+ }
+ trackModel("story",s.product,key,s.user);
+ document.querySelector(`.story[data-index="${index}"]`)?.classList.add("read");
+}
+function startStory(index){
+ const order=storyOrder(),position=order.indexOf(index);
+ if(position<0)return;
+ stopStory();
+ story={order,position,remaining:STORY_DURATION};
+ showStoryPosition(position);
+}
+function showStoryPosition(position){
+ if(!story)return;
+ if(position>=story.order.length){stopStory();return;}
+ story.position=Math.max(0,position);
+ story.remaining=STORY_DURATION;
+ clearTimeout(storyTimer);
+ storyTimer=null;
+ storyPauseReasons.clear();
+ if(document.hidden)storyPauseReasons.add("hidden");
+ if(!exitConfirm.hidden)storyPauseReasons.add("confirm");
+ visitStory();
+ if(story)drawStory();
+}
+function advanceStory(direction=1){
+ if(!story)return;
+ showStoryPosition(story.position+direction);
+}
+function stopStory(){
+ clearTimeout(storyTimer);
+ storyTimer=null;
+ story=null;
+ storyPointer=null;
+ storyPauseReasons.clear();
+ document.querySelector(".story-layer")?.remove();
+}
+function startStoryPlayback(){
+ if(!story||storyPauseReasons.size||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+ clearTimeout(storyTimer);
+ storyStartedAt=performance.now();
+ storyTimer=setTimeout(()=>{storyTimer=null;advanceStory(1);},Math.max(25,story.remaining));
+}
+function pauseStory(reason){
+ if(!story||storyPauseReasons.has(reason))return;
+ if(storyPauseReasons.size===0&&storyTimer!==null){
+  story.remaining=Math.max(0,story.remaining-(performance.now()-storyStartedAt));
+  clearTimeout(storyTimer);
+  storyTimer=null;
+ }
+ storyPauseReasons.add(reason);
+ document.querySelector(".story-layer")?.classList.add("is-paused");
+}
+function resumeStory(reason){
+ if(!story||!storyPauseReasons.has(reason))return;
+ storyPauseReasons.delete(reason);
+ if(storyPauseReasons.size===0){
+  document.querySelector(".story-layer")?.classList.remove("is-paused");
+  startStoryPlayback();
+ }
+}
+function toggleStoryPause(){
+ if(!story)return;
+ if(storyPauseReasons.has("manual"))resumeStory("manual");
+ else pauseStory("manual");
+ const button=document.querySelector(".story-pause");
+ if(button){
+  const paused=storyPauseReasons.has("manual");
+  button.textContent=paused?"▶":"Ⅱ";
+  button.setAttribute("aria-label",paused?"Retomar stories":"Pausar stories");
+  button.setAttribute("aria-pressed",String(paused));
+ }
+}
+function drawStory(){
+ const phone=document.querySelector(".phone");
+ if(!phone||!story)return;
+ document.querySelector(".story-layer")?.remove();
+ const index=story.order[story.position],s=storyPool()[index];
+ if(!s){stopStory();return;}
+ const paused=storyPauseReasons.size>0;
+ const progress=story.order.map((_,i)=>{
+  const cls=i<story.position?"completed":i===story.position?"current":"pending";
+  return `<span class="story-progress-segment"><span class="story-progress-fill ${cls}"></span></span>`;
+ }).join("");
+ const el=document.createElement("section");
+ el.className="story-layer"+(paused?" is-paused":"");
+ el.setAttribute("role","dialog");
+ el.setAttribute("aria-label",`Stories de ${s.user}`);
+ el.innerHTML=`<div class="story-progress-row" aria-hidden="true" style="--story-duration:${STORY_DURATION}ms">${progress}</div>
+  <div class="story-top"><span class="avatar photo-avatar">${profileAvatar(s.user,s.photo,s.source==="page")}</span>
+  <span class="story-user">${esc(s.user)} · 12 h</span>
+  <span class="story-type">${s.source==="page"?"página":"amigo"}</span>
+  <button type="button" class="story-pause" data-action="story-pause" aria-label="Pausar stories" aria-pressed="false">Ⅱ</button>
+  <button type="button" class="story-close" data-action="close-story" aria-label="Fechar stories">${icon("close")}</button></div>
+  <div class="story-picture">${art(s.art,false,"",s.photo)}</div>
+  <button type="button" class="story-tap-zone previous" data-action="story-prev" aria-label="Story anterior"></button>
+  <button type="button" class="story-tap-zone next" data-action="story-next" aria-label="Próximo story"></button>
+  <div class="story-caption" aria-live="polite">${s.text}</div>
+  <div class="story-guidance">Toque nas laterais para navegar · Segure para pausar</div>`;
+ phone.appendChild(el);
+ startStoryPlayback();
+}
+function storyPointerDown(e){
+ const zone=e.target.closest(".story-tap-zone");
+ if(!story||!zone)return;
+ storyIgnoreClick=false;
+ storyPointer={id:e.pointerId,x:e.clientX,y:e.clientY,time:performance.now()};
+ pauseStory("hold");
+}
+function storyPointerUp(e){
+ if(!storyPointer||storyPointer.id!==e.pointerId)return;
+ const previous=storyPointer;
+ storyPointer=null;
+ resumeStory("hold");
+ const dx=e.clientX-previous.x,dy=e.clientY-previous.y;
+ if(Math.abs(dx)>55 && Math.abs(dx)>Math.abs(dy)*1.3){
+  storyIgnoreClick=true;
+  advanceStory(dx<0?1:-1);
+ }else if(performance.now()-previous.time>430){
+  storyIgnoreClick=true;
+ }
+}
+function storyPointerCancel(){
+ storyPointer=null;
+ resumeStory("hold");
 }
 function toast(msg){const phone=document.querySelector('.phone');if(!phone)return;clearTimeout(toastTimer);phone.querySelector('.toast')?.remove();const t=document.createElement('div');t.className='toast';t.textContent=msg;phone.appendChild(t);toastTimer=setTimeout(()=>t.remove(),2700);}
 function openProduct(id){if(!products[id])return;if(!state.viewed.includes(id)){state.viewed.push(id);pushEvent('view',`Visitou a loja de ${products[id].name}`);}signal(id,2);trackModel('product',id,id);save();overlay={type:'product',id};modal=null;drawOverlay();}
@@ -565,34 +745,37 @@ function renderEnd(){
  </div>
  <div class="end-box"><h3>A ajuda do assistente crítico</h3><p style="font-size:13px;color:#6f6271;line-height:1.75">A demonstração oferece orientações locais sobre preço, orçamento e técnicas persuasivas. O MCP poderá ampliar essa análise quando a integração for implementada, mas este site ainda não envia escolhas ao MCP.</p></div>
  <div class="end-box"><h3>Uma última pergunta</h3><p style="font-size:14px;color:#6f6271;line-height:1.75">Você teria feito as mesmas escolhas se tivesse visto sua meta financeira a cada anúncio? Não existe um perfil de consumista calculado aqui, nem todas as compras são ruins: o objetivo é observar como a estrutura do ambiente pode competir com decisões refletidas.</p></div>
+ <button class="secondary algorithm-final-reveal" data-action="algorithm-final" aria-expanded="false" aria-controls="algorithm-final-panel">ⓘ Entender como o algoritmo influenciou meu feed</button>
+ ${algorithmResults()}
  <div class="end-buttons"><button class="primary" data-action="restart">Jogar novamente ↗</button><button class="secondary" data-action="sources">Base conceitual</button></div>
  <div id="sources" hidden class="end-box tiny-sources"><strong>Referências do projeto</strong><p>Bauman (2008), <em>Vida para consumo</em> · Iyer et al. (2020), revisão de compra impulsiva · Setyani et al. (2019), personalização · Huang et al. (2025), prova social · OECD (2022), padrões comerciais obscuros.</p><p>Marcas e valores são fictícios. O ranking imita princípios gerais conhecidos, sem reproduzir modelos proprietários.</p></div>
  <p class="end-disclaimer">Prototipação educativa: nenhuma compra real, coleta externa de perfil ou diagnóstico individual. O resultado depende de escolhas fictícias.</p>
  </div></main>`;
 }
 
-function restart(){clearTimeout(introTimer);state=makeInitial();save();overlay=null;modal=null;story=null;renderHome();}
+function restart(){clearTimeout(introTimer);stopStory();state=makeInitial();save();overlay=null;modal=null;renderHome();}
 function render(){if(!state.started){renderHome();return;}if(state.finished){renderEnd();return;}renderGame();}
 
 root.addEventListener('click',e=>{
  const el=e.target.closest('[data-action]');
  if(!el){
   if(e.target.classList.contains('layer-backdrop'))closeModal();
-  else if(e.target.classList.contains('story-layer')){story=null;document.querySelector('.story-layer')?.remove();}
   return;
  }
  const a=el.dataset.action,id=el.dataset.product,post=el.dataset.post;
+ if(storyIgnoreClick&&(a==='story-next'||a==='story-prev')){
+  storyIgnoreClick=false;
+  return;
+ }
  if(a==='start'){state.started=true;save();showIntro();}
  else if(a==='skip-intro'||a==='intro-next'||a==='open-next'){clearTimeout(introTimer);renderGame();}
  else if(a==='load-more'){if(appendNext())renderGame(true);}
- else if(a==='finish'){state.finished=true;save();overlay=null;story=null;modal=null;renderEnd();}
- else if(a==='story'){
-  const index=Number(el.dataset.index),storyRef=storyPool()[index],sid='story-'+index;
-  if(!storyRef)return;
-  if(!state.stories.includes(sid)){state.stories.push(sid);signal(storyRef.product,1);pushEvent('story',`Viu o story de ${storyRef.user}`);}
-  trackModel('story',storyRef.product,sid,storyRef.user);story={index};drawStory();
- }
- else if(a==='close-story'){story=null;document.querySelector('.story-layer')?.remove();}
+ else if(a==='finish'){stopStory();state.finished=true;save();overlay=null;modal=null;renderEnd();}
+ else if(a==='story'){startStory(Number(el.dataset.index));}
+ else if(a==='story-next'){advanceStory(1);}
+ else if(a==='story-prev'){advanceStory(-1);}
+ else if(a==='story-pause'){toggleStoryPause();}
+ else if(a==='close-story'){stopStory();}
  else if(a==='like'){
   const info=postInfo(post),index=state.liked.indexOf(post);
   if(index<0){state.liked.push(post);if(info)trackModel('like',info.topic,post,info.who);}
@@ -612,23 +795,10 @@ root.addEventListener('click',e=>{
  else if(a==='goal'){overlay={type:'goal'};modal=null;drawOverlay();}
  else if(a==='pass'){trackModel('skip',id,id);pushEvent('skip',`Decidiu esperar antes de comprar ${products[id]?.name||'o produto'}`);closeOverlay();renderGame(true);toast('Você voltou ao feed sem comprar.');}
  else if(a==='close-modal')closeModal()
- else if(a==='post-more'||a==='ad-more'){
-  modal={type:'why',kind:a==='ad-more'?'ad':'post',id:a==='ad-more'?id:post,
-   retarget:a==='ad-more'&&!!el.closest('[data-rec-id="ad-ret-'+id+'"]')};
-  drawModal();
- }
+ else if(a==='post-more'||a==='ad-more'){modal={type:'more'};drawModal();}
  else if(a==='close-overlay')closeOverlay()
  else if(a==='cart'){overlay={type:'cart'};drawOverlay();}
  else if(a==='profile'){overlay={type:'profile'};drawOverlay();}
- else if(a==='algorithm'){overlay={type:'algorithm'};drawOverlay();}
- else if(a==='clear-algorithm'){state.algorithm=Recommender.emptyProfile();save();renderGame(true);toast('Histórico de recomendações apagado.');}
- else if(a==='less-topic'){
-  const topic=el.dataset.topic;
-  if(Recommender.topics.includes(topic)){
-   trackModel('less',topic,el.dataset.item||topic);closeModal();renderGame(true);
-   toast('O algoritmo mostrará menos desse tema no próximo conteúdo.');
-  }
- }
  else if(a==='notifications'){overlay={type:'notifications'};drawOverlay();}
  else if(a==='search'){modal={type:'search'};drawModal();}
  else if(a==='share')toast('Compartilhamento indisponível nesta demonstração.')
@@ -637,6 +807,15 @@ root.addEventListener('click',e=>{
  else if(a==='add-cart')addToCart(id)
  else if(a==='remove-cart'){state.cart=state.cart.filter(x=>x!==id);trackModel('removeCart',id,id);save();renderGame(true);overlay={type:'cart'};drawOverlay();}
  else if(a==='buy')buy(id)
+ else if(a==='algorithm-final'){
+  const panel=document.getElementById('algorithm-final-panel');
+  if(panel){
+   panel.hidden=!panel.hidden;
+   el.setAttribute('aria-expanded',String(!panel.hidden));
+   el.textContent=panel.hidden?'ⓘ Entender como o algoritmo influenciou meu feed':'Ocultar explicação do algoritmo';
+   if(!panel.hidden)panel.scrollIntoView({block:'start',behavior:'smooth'});
+  }
+ }
  else if(a==='restart')restart()
  else if(a==='sources'){const node=document.querySelector('#sources');if(node){node.hidden=!node.hidden;if(!node.hidden)node.scrollIntoView({block:'nearest',behavior:'smooth'});}}
 });
@@ -651,7 +830,21 @@ window.addEventListener('keydown',e=>{
   }
   return;
  }
- if(e.key==='Escape'){if(story){story=null;document.querySelector('.story-layer')?.remove();}else if(modal)closeModal();else if(overlay)closeOverlay();}
+ if(story){
+  if(e.key==='Escape'){e.preventDefault();stopStory();return;}
+  if(e.key==='ArrowRight'){e.preventDefault();advanceStory(1);return;}
+  if(e.key==='ArrowLeft'){e.preventDefault();advanceStory(-1);return;}
+  if(e.key===' '&&e.target.tagName!=='BUTTON'){e.preventDefault();toggleStoryPause();return;}
+ }
+ if(e.key==='Escape'){if(modal)closeModal();else if(overlay)closeOverlay();}
+});
+root.addEventListener('pointerdown',storyPointerDown);
+root.addEventListener('pointerup',storyPointerUp);
+root.addEventListener('pointercancel',storyPointerCancel);
+document.addEventListener('visibilitychange',()=>{
+ if(!story)return;
+ if(document.hidden)pauseStory('hidden');
+ else resumeStory('hidden');
 });
 render();
 })();

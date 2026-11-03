@@ -16,8 +16,8 @@ O conflito pedagógico é intencional: a pessoa quer economizar, mas a plataform
 5. **Publicidade:** anúncios concorrem com posts orgânicos e podem reaparecer após interesse ou visita. Produtos comprados são excluídos da nova seleção promocional.
 6. **Escolha livre:** não existe um botão obrigatório de compra ou decisão. O jogador pode sair a qualquer momento para ver o resultado.
 7. **Meta opcional:** o jogador consegue recuperar a reserva na área “Minha meta”, mas o valor não é exibido constantemente no feed.
-8. **Ajuda crítica:** a prévia local explica técnicas persuasivas e calcula se o preço de uma oferta cabe no orçamento desejado.
-9. **Revelação final:** apresenta o objetivo inicial, o saldo, o valor gasto, os sinais registrados e como a lógica de recomendações se relacionou com as escolhas.
+8. **Ajuda crítica contextual:** o botão de ajuda permanece apenas na visita ao produto; o painel lateral de ajuda foi removido para não interromper a imersão.
+9. **Revelação final:** apresenta o objetivo inicial, o saldo, o valor gasto, os sinais registrados e o botão **Entender como o algoritmo influenciou meu feed**. A explicação aprofundada fica oculta durante a partida e só pode ser aberta ao terminar.
 
 ## Arquitetura
 
@@ -51,3 +51,24 @@ Os pesos da simulação foram inventados para o jogo; as fontes acima suportam a
 ## Verificação
 
 Executar npm test, npm run build e npm run test:e2e. Testes de navegador devem cobrir a meta inicial, ausência de fases visuais, mistura de temas, carregamento, compras, painéis de ajuda, controle de personalização, fotografia por post/story e retorno ao início.
+
+## Stories rápidos e contínuos
+
+O visualizador agora abre um story e segue uma sequência estável baseada na ordem recomendada da barra de stories. Cada story tem **5,5 segundos** de reprodução automática (exceto quando o navegador solicita redução de movimento), com barras de progresso segmentadas no topo.
+
+- Toque no lado direito / seta para a direita: próximo story.
+- Toque no lado esquerdo / seta para a esquerda: anterior.
+- Deslize horizontal: avança ou retorna sem sair do visualizador.
+- Pressione e segure: pausa até soltar.
+- Ícone de pausa/retomada: controle manual.
+- Fechar / tecla Esc: retorna ao feed, preservando a rolagem.
+- Ao acabar o último story, o visualizador fecha naturalmente.
+- Quando o usuário abandona a aba ou abre a confirmação para voltar à página inicial, a contagem pausa automaticamente.
+
+A cada story visto, o sistema registra o interesse fictício daquele conteúdo. A primeira abertura não reordena as demais telas dentro do mesmo visualizador: a sequência é congelada até fechar, evitando saltos ao aprender novas preferências.
+
+## Divulgação do algoritmo só na conclusão
+
+Os atalhos do algoritmo foram removidos do cabeçalho, menu inferior e cartões do feed, assim como o botão lateral **Pedir ajuda crítica**. O menu de três pontos das publicações continua funcional, mas sem exibir pontuações ou informações internas do sistema durante a navegação. Na conclusão, o botão de relatório expande o resumo do algoritmo com a distribuição de sinais, tópicos inferidos e explicação dos anúncios. O controle básico de personalização permanece nas configurações de perfil, como em uma rede social convencional.
+
+O objetivo é que a reflexão aconteça **depois** da experiência, sem apresentar a crítica em todos os estímulos.

@@ -31,7 +31,9 @@ test("uma única linha do tempo mistura produtos e recorda a meta só quando sol
   const topics = await page.locator("[data-rec-topic]").evaluateAll(els => [...new Set(els.map(el => el.getAttribute("data-rec-topic")))]);
   expect(topics.length).toBeGreaterThanOrEqual(3);
   await expect(page.locator(".post.ad-post")).toHaveCount(1);
-  await expect(page.locator(".rail-note")).not.toContainText("Meta de economia");
+  await expect(page.locator('.rail.right')).toHaveCount(0);
+  await expect(page.locator('[data-action="algorithm"]')).toHaveCount(0);
+  await expect(page.locator('.algorithm-final')).toHaveCount(0);
   await page.locator('.phone-footer [data-action="goal"]').click();
   await expect(page.locator(".critical-panel")).toContainText("guardar R$ 400");
   await expect(page.locator(".critical-panel")).toContainText("R$ 620");
@@ -105,19 +107,30 @@ test("o jogador pode sair sem comprar e manter a reserva", async ({ page }) => {
   await expect(page.locator(".home")).toBeVisible();
 });
 
-test("o algoritmo é explicável e pode ser desligado", async ({ page }) => {
+test("o algoritmo só é explicado na conclusão, e as configurações continuam no perfil", async ({ page }) => {
   await enter(page);
+  await expect(page.locator('[data-action="algorithm"]')).toHaveCount(0);
+  await expect(page.locator('[data-action="algorithm-final"]')).toHaveCount(0);
+  await expect(page.locator(".why-post")).toHaveCount(0);
   await page.locator('[data-action="like"]').first().click();
-  await page.locator('.phone-head [data-action="algorithm"]').click();
-  await expect(page.locator(".algorithm-panel")).toBeVisible();
-  await expect(page.locator(".algorithm-panel")).toContainText("Interesses inferidos");
-  await page.locator(".algorithm-panel #privacy-switch").uncheck();
-  await expect(page.locator(".algorithm-panel")).toContainText("Desligada");
+  await page.locator('.phone-footer [data-action="profile"]').click();
+  await page.locator('.layer #privacy-switch').uncheck();
   await page.locator('[data-action="close-overlay"]').click();
   await expect(page.locator(".recommendation-caption")).toContainText("ordem editorial");
-  await page.locator('[data-rec-id^="p"] [data-action="post-more"]').first().click();
-  await expect(page.locator(".algorithm-explanation")).toContainText("A personalização está desligada");
+  await page.locator(".finish-feed").click();
+  const button=page.locator('[data-action="algorithm-final"]');
+  const report=page.locator("#algorithm-final-panel");
+  await expect(button).toBeVisible();
+  await expect(report).toBeHidden();
+  await button.click();
+  await expect(report).toBeVisible();
+  await expect(report).toContainText("Interesses que a simulação inferiu");
+  await expect(report).toContainText("não recebeu sua meta de poupar R$ 400");
+  await expect(button).toHaveAttribute("aria-expanded","true");
+  await button.click();
+  await expect(report).toBeHidden();
 });
+
 
 test("o botão de retorno funciona por cima dos stories", async ({ page }) => {
   await enter(page);
@@ -149,15 +162,76 @@ test("as fotografias dos posts e stories são distintas", async ({ page }) => {
   expect(new Set(storyPhotos).size).toBe(4);
 });
 
-test("apagar sinais não apaga compras ou itens no carrinho", async ({ page }) => {
+
+test("stories avançam no mesmo visualizador com toque, teclado e barra de progresso", async ({ page }) => {
+  await enter(page);
+  await page.locator('[data-action="story"]').first().click();
+  const layer=page.locator(".story-layer");
+  await expect(layer).toBeVisible();
+  await expect(layer.locator(".story-progress-segment")).toHaveCount(12);
+  const first=await layer.locator(".story-user").textContent();
+  await layer.locator('[data-action="story-next"]').click();
+  await expect(layer).toBeVisible();
+  const second=await layer.locator(".story-user").textContent();
+  expect(second).not.toEqual(first);
+  await layer.locator('[data-action="story-prev"]').click();
+  expect(await layer.locator(".story-user").textContent()).toEqual(first);
+  await page.keyboard.press("ArrowRight");
+  expect(await layer.locator(".story-user").textContent()).toEqual(second);
+  await page.keyboard.press("Escape");
+  await expect(layer).toHaveCount(0);
+  await expect(page.locator(".phone")).toBeVisible();
+});
+
+test("stories passam automaticamente e podem ser pausados", async ({ page }) => {
+  await page.clock.install();
+  await enter(page);
+  await page.locator('[data-action="story"]').first().click();
+  const layer=page.locator(".story-layer");
+  const first=await layer.locator(".story-user").textContent();
+  await page.clock.fastForward(5700);
+  await expect(layer).toBeVisible();
+  const second=await layer.locator(".story-user").textContent();
+  expect(second).not.toEqual(first);
+  await layer.locator('[data-action="story-pause"]').click();
+  await expect(layer).toHaveClass(/is-paused/);
+  await page.clock.fastForward(8000);
+  expect(await layer.locator(".story-user").textContent()).toEqual(second);
+  await layer.locator('[data-action="story-pause"]').click();
+  await expect(layer).not.toHaveClass(/is-paused/);
+  await page.clock.fastForward(5700);
+  expect(await layer.locator(".story-user").textContent()).not.toEqual(second);
+});
+
+test("deslizar o story para o lado troca de publicação sem sair do visualizador", async ({ page }) => {
+  await enter(page);
+  await page.locator('[data-action="story"]').first().click();
+  const layer=page.locator(".story-layer");
+  const name=await layer.locator(".story-user").textContent();
+  const next=layer.locator(".story-tap-zone.next");
+  await next.dispatchEvent("pointerdown",{pointerId:1,clientX:310,clientY:270});
+  await next.dispatchEvent("pointerup",{pointerId:1,clientX:160,clientY:273});
+  await expect(layer).toBeVisible();
+  expect(await layer.locator(".story-user").textContent()).not.toEqual(name);
+  await layer.locator("button.story-close").click();
+  await expect(layer).toHaveCount(0);
+});
+
+test("o último story encerra a sequência sem reabrir o feed", async ({ page }) => {
+  await enter(page);
+  await page.locator('[data-action="story"]').last().click();
+  await expect(page.locator(".story-layer")).toBeVisible();
+  await page.locator(".story-layer [data-action='story-next']").click();
+  await expect(page.locator(".story-layer")).toHaveCount(0);
+  await expect(page.locator(".phone")).toBeVisible();
+});
+
+test("o carrinho permanece acessível sem botão de algoritmo no feed", async ({ page }) => {
   await enter(page);
   await page.locator('.ad-post [data-action="product"]').first().click();
   await page.locator('[data-action="add-cart"]').click();
   await page.locator('[data-action="close-overlay"]').click();
-  await page.locator('.phone-head [data-action="algorithm"]').click();
-  await page.locator('[data-action="clear-algorithm"]').click();
-  await expect(page.locator(".algo-summary")).toContainText("0");
-  await page.locator('[data-action="close-overlay"]').click();
+  await expect(page.locator('[data-action="algorithm"]')).toHaveCount(0);
   await page.locator('.phone-head [data-action="cart"]').click();
   await expect(page.locator(".cart-item")).toHaveCount(1);
 });
