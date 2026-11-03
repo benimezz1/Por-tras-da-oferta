@@ -214,3 +214,38 @@ test("stories alinhados com fotos de pessoas e logos de paginas nos quatro momen
     if (phase < 3) await page.locator('[data-action="decision"][data-decision="skip"]').click();
   }
 });
+
+
+test("painel do algoritmo explica os sinais e controla a personalização", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('[data-action="start"]').click();
+  await page.locator('[data-action="skip-intro"]').click();
+  await page.locator('[data-action="like"][data-post="p1"]').click();
+  await page.locator('[data-action="algorithm"]').first().click();
+  await expect(page.locator(".algorithm-panel")).toBeVisible();
+  await expect(page.locator(".algorithm-panel")).toContainText("Interesses inferidos pelo jogo");
+  await expect(page.locator(".algorithm-panel")).toContainText("Fones e áudio");
+  await page.locator(".algorithm-panel #privacy-switch").uncheck();
+  await expect(page.locator(".algorithm-panel")).toContainText("Desligada");
+  await page.locator('[data-action="close-overlay"]').click();
+  await expect(page.locator(".recommendation-caption")).toContainText("Ordem cronológica");
+  await page.locator('[data-action="post-more"][data-post="p1"]').first().click();
+  await expect(page.locator(".algorithm-explanation")).toContainText("A personalização está desligada");
+  await page.locator('[data-action="close-modal"]').click();
+});
+
+test("interesse no carrinho leva a anúncio de retargeting explicável", async ({ page }) => {
+  await page.goto("/");
+  await page.locator('[data-action="start"]').click();
+  await page.locator('[data-action="skip-intro"]').click();
+  await page.locator('[data-action="decision"][data-decision="cart"]').click();
+  await expect(page.locator(".phone")).toBeVisible({ timeout: 8000 });
+  await expect(page.locator('[data-rec-id="ad-ret-fone"]')).toHaveCount(1);
+  await page.locator('[data-rec-id="ad-ret-fone"] [data-action="ad-more"]').first().click();
+  await expect(page.locator(".algorithm-explanation")).toContainText("anúncio pago");
+  await page.locator('[data-action="less-topic"][data-topic="fone"]').click();
+  await page.locator('[data-action="algorithm"]').first().click();
+  await expect(page.locator(".algorithm-panel")).toContainText("sinais registrados");
+  await page.locator('[data-action="clear-algorithm"]').click();
+  await expect(page.locator(".algo-summary")).toContainText("0"); 
+});
