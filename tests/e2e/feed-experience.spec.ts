@@ -116,29 +116,55 @@ test("cada post e cada story das quatro fases usa foto diferente", async ({ page
 });
 
 
-test("avatares dos stories ficam contidos nos anéis circulares", async ({ page }) => {
+test("fotos e nomes dos stories ficam contidos nos quatro momentos", async ({ page }) => {
   await page.goto("/");
   await page.locator('[data-action="start"]').click();
   await page.locator('[data-action="skip-intro"]').click();
-  for (const button of await page.locator(".stories .story").all()) {
-    const ring = button.locator(".story-ring");
-    const face = button.locator(".story-face");
-    const image = face.locator("img.avatar-photo");
-    const name = button.locator(".story-name");
-    await expect(image).toBeVisible();
-    await expect.poll(() => image.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBeTruthy();
-    const sizes = await button.evaluate((el) => {
-      const get = (selector: string) => el.querySelector(selector)!.getBoundingClientRect();
-      const ring = get(".story-ring");
-      const face = get(".story-face");
-      const image = get("img.avatar-photo");
-      const name = get(".story-name");
-      return { ring, face, image, name };
-    });
-    expect(sizes.image.left).toBeGreaterThanOrEqual(sizes.face.left - 1);
-    expect(sizes.image.right).toBeLessThanOrEqual(sizes.face.right + 1);
-    expect(sizes.image.bottom).toBeLessThanOrEqual(sizes.face.bottom + 1);
-    expect(sizes.face.bottom).toBeLessThanOrEqual(sizes.name.top);
-    expect(sizes.ring.bottom).toBeLessThanOrEqual(sizes.name.top);
+
+  for (let phase = 0; phase < 4; phase++) {
+    await expect(page.locator(".phone")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".rail .eyebrow").first()).toContainText(
+      `MOMENTO ${String(phase + 1).padStart(2, "0")} / 04`,
+    );
+
+    const storyButtons = page.locator(".stories .story");
+    await expect(storyButtons).toHaveCount(3);
+    for (const button of await storyButtons.all()) {
+      const face = button.locator(".story-face");
+      const photo = face.locator("img.avatar-photo");
+      const name = button.locator(".story-name");
+      await expect(photo).toBeVisible();
+      await expect(name).toBeVisible();
+      const geometry = await button.evaluate((el) => {
+        const rect = (selector: string) => el.querySelector(selector)!.getBoundingClientRect();
+        const ring = rect(".story-ring");
+        const face = rect(".story-face");
+        const image = rect("img.avatar-photo");
+        const label = rect(".story-name");
+        return {
+          ringWidth: ring.width,
+          ringHeight: ring.height,
+          imageInsideFace: image.left >= face.left - 1 &&
+            image.right <= face.right + 1 &&
+            image.top >= face.top - 1 &&
+            image.bottom <= face.bottom + 1,
+          nameClear: label.top >= ring.bottom &&
+            label.top >= image.bottom,
+          roundFrame: getComputedStyle(el.querySelector(".story-face")!).borderRadius,
+          fixedPhoto: getComputedStyle(el.querySelector("img.avatar-photo")!).position,
+          label: el.querySelector(".story-name")!.textContent?.trim(),
+        };
+      });
+      expect(geometry.ringWidth).toBe(60);
+      expect(geometry.ringHeight).toBe(60);
+      expect(geometry.imageInsideFace).toBe(true);
+      expect(geometry.nameClear).toBe(true);
+      expect(geometry.roundFrame).toBe("50%");
+      expect(geometry.fixedPhoto).toBe("absolute");
+      expect(geometry.label?.length).toBeGreaterThan(0);
+    }
+    if (phase < 3) {
+      await page.locator('[data-action="decision"][data-decision="skip"]').click();
+    }
   }
 });
