@@ -1017,6 +1017,36 @@ function openShop(){
  closeModal();
  overlay={type:"shop"};drawOverlay();
 }
+
+function closeOverlay(){
+ const refresh=overlay?.type==="profile";
+ overlay=null;
+ document.querySelector(".layer")?.remove();
+ if(refresh)renderGame(true);
+}
+function openComments(post){
+ if(typeof post!=="string")return;
+ if(post.startsWith("ad-")){
+  const id=post.replace(/^ad-(main|ret)-/,"");
+  if(!products[id])return;
+  if(!state.reviews.includes(id)){
+   state.reviews.push(id);
+   pushEvent("comments",`Leu avaliações de ${products[id].name}`);
+   signal(id,1);save();
+  }
+  trackModel("comments",id,post);
+ }else{
+  const info=postInfo(post);
+  if(info)trackModel("comments",info.topic,post,info.who);
+ }
+ modal={type:"comments",post};
+ drawModal();
+}
+function closeModal(){
+ modal=null;
+ document.querySelector(".layer-backdrop")?.remove();
+}
+
 function openProduct(id){
  if(!products[id])return;
  clearTimeout(storeOpenTimer);storeOpenTimer=null;
