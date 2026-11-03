@@ -1044,6 +1044,53 @@ function backFromShop(){
  closeOverlay();
 }
 
+
+function addToCart(id){
+ if(!products[id])return;
+ if(state.purchases.some(x=>x.id===id)){toast("Produto já comprado nesta partida.");return;}
+ if(!state.cart.includes(id)){
+  state.cart.push(id);signal(id,3);
+  pushEvent("cart",`Adicionou ${products[id].name} à sacola fictícia`);
+  trackModel("cart",id,id);
+ }
+ save();
+ if(overlay?.type==="product"&&overlay.id===id)drawOverlay();
+ else{overlay={type:"cart"};drawOverlay();}
+ toast(`${products[id].name} está na sua sacola.`);
+}
+function buy(items){
+ const ids=[...new Set(Array.isArray(items)?items:[items])].filter(id=>products[id]&&!state.purchases.some(x=>x.id===id));
+ if(!ids.length){toast("Nenhum produto disponível.");return false;}
+ const total=cartTotal(ids);
+ if(total>state.wallet){toast("Saldo fictício insuficiente.");return false;}
+ state.wallet=Math.round((state.wallet-total)*100)/100;
+ for(const id of ids){
+  const extra=id==="plano"&&state.extraChecked?9.90:0;
+  const cost=cartLinePrice(id);
+  state.purchases.push({id,cost,phase:state.phase,extra,at:Date.now()});
+  if(id==="plano")state.monthly=cost;
+  state.cart=state.cart.filter(x=>x!==id);
+  signal(id,2);trackModel("buy",id,id);
+  pushEvent("buy",`Comprou ${products[id].name} por ${money(cost)} (fictício)`);
+ }
+ state.lastOrder={items:ids,total,at:Date.now()};
+ save();overlay={type:"receipt"};modal=null;renderGame(true);
+ return true;
+}
+function scheduleShopFromPhoto(element){
+ const id=element.dataset.product;
+ if(!products[id]||performance.now()<suppressPhotoOpenUntil)return;
+ clearTimeout(storeOpenTimer);
+ storeOpenTimer=setTimeout(()=>{
+  storeOpenTimer=null;
+  if(performance.now()>=suppressPhotoOpenUntil)openProduct(id);
+ },370);
+}
+function cancelPhotoShopClick(){
+ clearTimeout(storeOpenTimer);storeOpenTimer=null;
+ suppressPhotoOpenUntil=performance.now()+550;
+}
+
 function renderEnd(){
  exitHomeButton.hidden=false;
  const good=state.wallet>=state.goal,delta=state.wallet-state.goal;
