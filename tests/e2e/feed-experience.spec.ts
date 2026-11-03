@@ -47,7 +47,7 @@ test("stories, comentários, produtos e ajuda não exigem decisão entre capítu
   await page.locator('[data-action="close-modal"]').click();
   await page.locator('.ad-post [data-action="product"]').first().click();
   await expect(page.locator(".product-info")).toBeVisible();
-  await page.locator('[data-action="coach"]').click();
+  await page.locator('.layer [data-action="coach"]').click();
   await expect(page.locator(".critical-panel")).toContainText("O anúncio chama sua atenção");
   await expect(page.locator(".critical-panel")).toContainText("Não é uma resposta do MCP conectado");
   await page.locator('.critical-panel [data-action="product"]').click();
@@ -70,17 +70,25 @@ test("continuação progressiva mantém a variedade sem telas de momento", async
   await expect(page.locator(".end")).toContainText("R$ 400");
 });
 
-test("duas compras podem comprometer a reserva sem encerrar o feed", async ({ page }) => {
+
+test("compras livres podem comprometer o objetivo sem encerrar o feed", async ({ page }) => {
   await enter(page);
-  const firstAd = page.locator(".ad-post").first();
-  await firstAd.locator('[data-action="product"]').first().click();
-  await page.locator('[data-action="buy"]').click();
-  await expect(page.locator(".phone")).toBeVisible();
-  await page.locator(".load-more").click();
-  const nextAd = page.locator(".ad-post").last();
-  await nextAd.locator('[data-action="product"]').first().click();
-  await page.locator('[data-action="buy"]').click();
-  await expect(page.locator(".phone")).toBeVisible();
+  await loadAll(page);
+  const options = await page.locator('.ad-post[data-rec-id^="ad-main-"]').evaluateAll(els =>
+    [...new Set(els.map(el => el.getAttribute("data-rec-topic")))].filter(Boolean)
+  );
+  expect(options.length).toBeGreaterThanOrEqual(2);
+  const price = { tenis: 279.90, fone: 219.90, mochila: 159.90, plano: 39.80 };
+  options.sort((a, b) => price[b] - price[a]);
+  let failedGoal = false;
+  for (const id of options) {
+    await page.locator('.ad-post[data-rec-topic="' + id + '"] [data-action="product"]').first().click();
+    await page.locator('[data-action="buy"]').click();
+    await expect(page.locator(".phone")).toBeVisible();
+    const remaining = await page.evaluate(() => JSON.parse(localStorage.getItem("nofeed-simulator-v3")).wallet);
+    if (remaining < 400) { failedGoal = true; break; }
+  }
+  expect(failedGoal).toBe(true);
   await page.locator('.phone-footer [data-action="goal"]').click();
   await expect(page.locator(".goal-result")).toContainText("comprometida");
   await page.locator('.critical-panel [data-action="finish"]').click();
