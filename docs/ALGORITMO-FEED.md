@@ -1,52 +1,75 @@
-# Motor de recomendações do No Feed (demonstração C4)
+# Motor de recomendação do No Feed — Ciclo 4
 
-## Objetivo
+## Finalidade e arquitetura
 
-Simular uma lógica **multissinal, transparente e local** de seleção de posts e anúncios para tornar visível, durante a apresentação do jogo, o ciclo *interagir → inferir interesse → classificar conteúdo → recomendar → receber novos sinais*. **Não reproduz nem tem acesso ao algoritmo proprietário do Instagram, TikTok ou outras plataformas.**
+O novo feed possui **8 categorias, 24 posts orgânicos, 20 stories e 8 lojas fictícias**. A rede intercala conteúdos de amigos, páginas, criadores, anúncios e vitrines, sem interromper a experiência com capítulos visíveis. O jogador começa com R$ 620 e pretende guardar R$ 400; **o motor de recomendação não lê saldo nem meta**. O conflito entre publicidade e prioridade individual é a crítica central.
 
-## Processo de decisão
+É um sistema heurístico, local, determinístico e explicável. Não é uma rede neural, uma predição psicológica real nem uma cópia do algoritmo do Instagram ou TikTok.
 
-1. **Candidatos.** O sistema busca as publicações do momento atual e de um momento anterior. Os três posts do momento atual permanecem disponíveis; até dois anteriores podem reaparecer. Os três stories atuais são classificados separadamente.
-2. **Sinais.** Curtir, salvar, ler comentários, abrir stories, visitar lojas, salvar no carrinho e comprar enviam sinais positivos; descurtir, retirar do carrinho, decidir não comprar e selecionar *Mostrar menos* enviam sinais negativos. Uma leitura visível por 1,35 s pode registrar um sinal fraco, com limitação para uma vez por conteúdo e momento.
-3. **Decaimento temporal.** O peso de cada sinal diminui para 72% do valor a cada novo momento da história. É um tempo **fictício, por fase**, não um monitoramento contínuo do relógio.
-4. **Pontuação de posts.** Combinam-se atualidade, popularidade simulada, proximidade (amigo/página), interesse no assunto, afinidade com o autor e uma pequena oportunidade determinística de descoberta. Exposição anterior subtrai pontuação. A classificação reduz repetições consecutivas do mesmo autor e assunto.
-5. **Anúncios.** O anúncio principal é **obrigatório pela narrativa pedagógica**, e tem selo de patrocinado. Apenas anúncios repetidos concorrem entre temas anteriores com base em interesse inferido, itens no carrinho e uma prioridade comercial fictícia. O mesmo anúncio repetido não aparece após duas impressões qualificadas; produtos já comprados não voltam na seleção de retargeting.
-6. **Explicação.** A opção *Por que apareceu?* apresenta os fatores e os pesos em pontos fictícios. O painel *Algoritmo* exibe interesses inferidos, quantidade de sinais e controles.
-7. **Controle.** Desativar personalização coloca o feed em ordem cronológica, bloqueia retargeting e interrompe o registro de novos sinais de recomendação. *Apagar histórico de recomendações* zera apenas eventos e impressões do algoritmo, sem apagar escolhas, compras ou carrinho fictícios. Itens ainda no carrinho continuam disponíveis e poderão influenciar recomendações após a reativação.
+Arquivos: public/recommendation.js (perfil e pontuação), public/stream.js (seleção do próximo lote), public/expansion.js (quatro categorias adicionais) e index.html (feed, lojas, decisões e conclusão).
 
-## Pesos exemplificativos
+## 1. Como a rede aprende
 
-| Ação | Peso no tema |
-| --- | ---: |
-| Curtida em post | +2,5 |
-| Salvar publicação | +3,1 |
-| Abrir story | +1,2 |
-| Visitar produto | +2,8 |
-| Adicionar ao carrinho | +4,1 |
-| Decidir não comprar | −3,2 |
-| Pedir menos desse tema | −4,5 |
-| Leitura de conteúdo visível (1,35 s) | +0,55 |
+O aplicativo registra somente sinais fictícios durante a sessão, quando a personalização está ligada:
+
+| Sinal | Peso |
+| :--- | ---: |
 | Impressão visível | +0,08 |
+| Permanência visível de 1,35 s | +0,55 |
+| Story visto | +1,35 |
+| Curtir / descurtir | +2,60 / −2,60 |
+| Salvar / remover post salvo | +3,15 / −3,15 |
+| Abrir comentários | +1,40 |
+| Pesquisa de produto | +3,25 |
+| Visitar a loja | +3,00 |
+| Curtir anúncio | +1,55 |
+| Colocar / remover da sacola | +4,60 / −4,60 |
+| Comprar ficticiamente | +2,40 |
+| Desistir da compra | −3,50 |
+| Mostrar menos do tema | −5,10 |
 
-A fórmula ilustrativa do post é: `score = atualidade + popularidade + proximidade + interesse + criador + novidade − repetição`. Uma penalidade de diversidade é aplicada ao ordenar conteúdos semelhantes em sequência. Os anúncios possuem uma fórmula independente que soma prioridade comercial, interesse e carrinho e subtrai repetição. Os valores são **decisões de design para o jogo**, não valores públicos de sistemas reais nem probabilidades de compra.
+A cada seis conteúdos acrescentados, o contador de época interna avança. O peso de um sinal antigo é multiplicado por 0,82 elevado à idade em épocas. Os coeficientes são decisões de design, não medidas observadas de plataformas reais. O histórico normalizado tem limites de 450 eventos e 420 chaves de impressão. Os sinais não são transmitidos a um serviço externo.
 
-## Privacidade e limitações
+## 2. Grafo de interesses relacionados
 
-- O histórico existe apenas no estado da demonstração salvo no `localStorage` deste navegador. Não é transmitido para serviços externos pelo motor de recomendação.
-- O jogo não lê localização, contas reais, microfone, contatos, dados sensíveis ou informações de fora da sessão.
-- Não há machine learning treinado em usuários reais nem predição de consumismo. A pontuação é uma heurística explicável com alguns elementos de ranking típicos de sistemas de recomendação.
-- Os anúncios, seus lances, o preço, a popularidade, o engajamento e os personagens são fictícios.
-- O botão de retorno ao início descarta o progresso quando a saída é confirmada. Uma nova partida zera também o perfil do algoritmo.
+Além da afinidade direta, o modelo transfere uma fração limitada dos sinais para assuntos relacionados: áudio → bateria portátil, mochila → garrafa, música → luminária, moda → evento e outras relações. Cada vínculo possui peso explícito e **somente 38%** do interesse de origem é multiplicado por esse peso na transferência. Curtir fones não cria uma curtida falsa em baterias; apenas faz a categoria vizinha disputar mais espaço.
 
-## Referências conceituais
+As afinidades diretas têm limites de −11 a +17 e a afinidade por criador possui um limite separado. Essa limitação reduz efeitos exagerados de uma única interação.
 
-- Meta AI, *Instagram Feed Ranking System Card*: etapas de seleção de candidatos, classificação, diversidade e sinais de interação. https://ai.meta.com/tools/system-cards/instagram-feed-ranking/
-- TikTok, *Como o conteúdo é recomendado*: interações, informações do conteúdo e classificação de relevância. https://support.tiktok.com/pt_BR/using-tiktok/exploring-videos/how-tiktok-recommends-content
+## 3. Ranking do conteúdo orgânico
 
-Estas fontes explicam princípios gerais; elas **não validam os pesos numéricos** atribuídos à simulação.
+A pontuação de cada candidato soma: atualidade, popularidade transformada de forma logarítmica, proximidade, afinidade com o tema, afinidade com o autor e um componente determinístico de descoberta. Subtrai saturação do assunto e repetição do autor. O modelo compara o histórico recente e evita **três conteúdos consecutivos do mesmo assunto**, sempre que houver alternativa.
 
-## Verificações
+Posts já publicados não mudam de lugar. Só novos lotes são recalculados após interações, como curtir, ler avaliações, pesquisar, ignorar ou comprar. Sem personalização, a ordem passa a ser editorial.
 
-- `npm test` cobre a função de ranking e privacidade, incluindo decaimento, sinais positivos e negativos, retargeting, frequência, determinismo e restauração.
-- `npm run build` compila o restante do projeto e distribui `public/recommendation.js`.
-- `npm run test:e2e` valida que o jogador vê as publicações, acessa o painel, pode desligar a personalização e recebe explicações dos anúncios.
+## 4. Três campanhas comerciais
+
+Uma vaga patrocinada surge após pelo menos três publicações orgânicas; não existem dois anúncios seguidos.
+
+- **Prospecção:** primeira aparição de um produto, para explorar novos interesses.
+- **Retargeting:** reapresentação de uma oferta visitada, curtida ou salva, com espaçamento mínimo de seis posições.
+- **Complementaridade:** recomendação relacionada a uma compra anterior, sem repetir o item já comprado.
+
+Para cada campanha o sistema calcula afinidade, interesse relacionado, visita, carrinho, novidade, desgaste por exposição e distância desde o último anúncio do mesmo tema. Cada campanha tem ID único e não aparece duas vezes. Um produto já comprado é excluído de campanhas futuras. Um sinal de “Mostrar menos” rebaixa o tema.
+
+Os quatro temas originais aparecem no começo; powerbank, garrafa, luminária e ingresso fictício entram progressivamente nas épocas internas 1, 2, 3 e 4. **Esses são desbloqueios técnicos, não fases visíveis.**
+
+## 5. Percurso comercial contínuo
+
+O usuário pode abrir uma loja pela foto do anúncio com um clique, pelo botão do anúncio, por posts de parceria, stories ou vitrine. Dois toques continuam curtindo; comentários só abrem pelo balão. A aba Explorar permite procurar produtos, e buscas concluídas registram um sinal local quando a personalização está ligada.
+
+As oito lojas mostram preços, avaliações e descrições fictícios. Há sacola, checkout e confirmação sem qualquer pagamento real. Depois de uma compra fictícia, o recibo sugere até duas categorias complementares e oferece retorno imediato ao feed. As vitrines também reaparecem entre publicações para criar novas oportunidades de escolha. A pessoa pode sempre não comprar e preservar a reserva.
+
+## 6. Controles e revelação final
+
+O perfil pode desligar a personalização: os próximos posts seguem ordem editorial e o sistema deixa de aprender com os novos sinais; anúncios repetidos deixam de ser escolhidos. O menu de três pontos permite “Mostrar menos como este”, ocultando a publicação e registrando o feedback negativo. A explicação completa do algoritmo, com oito interesses inferidos, contagem de anúncios novos, retornos e complementos, **só aparece na conclusão**.
+
+O feed é finito e possui limite técnico de 58 itens para uma demonstração escolar. O jogador pode encerrá-lo antes, sem compras obrigatórias. Meta, orçamento e saldo não são parâmetros de ranking.
+
+## Testes e limites
+
+Executar npm test, npm run build e npm run test:e2e. Os testes verificam ordem determinística, variedade, limites de anúncios, decaimento, relações entre temas, rejeição, buscas, novos assets, percurso por oito lojas, compras fictícias, sugestões após compra, privacidade e conclusão.
+
+Não há modelo treinado, rastreamento de usuários reais, dados sensíveis, diagnóstico de consumismo ou cobrança. Os produtos, preços e depoimentos são criados para o jogo. Estratégias como FOMO, desconto de referência e personalização são mostradas para discussão crítica, não como orientação de compra.
+
+Referências conceituais, sem origem dos pesos: Meta AI, Instagram Feed Ranking System Card (https://ai.meta.com/tools/system-cards/instagram-feed-ranking/); TikTok, Como o conteúdo é recomendado (https://support.tiktok.com/pt_BR/using-tiktok/exploring-videos/how-tiktok-recommends-content).

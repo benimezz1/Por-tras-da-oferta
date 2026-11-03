@@ -20,7 +20,7 @@ async function enter(page) {
   await expect(page.locator(".phone")).toBeVisible();
 }
 async function loadAll(page) {
-  for (let n = 0; n < 8; n++) {
+  for (let n = 0; n < 12; n++) {
     const count = await page.locator(".load-more").count();
     if (!count) break;
     const before = await page.locator(".post").count();
@@ -33,7 +33,7 @@ test("uma única linha do tempo mistura produtos e recorda a meta só quando sol
   await enter(page);
   await expect(page.locator(".decision")).toHaveCount(0);
   await expect(page.locator(".transition")).toHaveCount(0);
-  await expect(page.locator(".story-rail .story")).toHaveCount(9);
+  await expect(page.locator(".story-rail .story")).toHaveCount(13);
   const authors=await page.locator(".story-rail .story").evaluateAll(buttons=>buttons.map(b=>b.getAttribute("data-story-user")));
   expect(new Set(authors).size).toBe(authors.length);
   expect(authors.filter(author=>author==="lucca")).toHaveLength(1);
@@ -74,7 +74,7 @@ test("continuação progressiva mantém a variedade sem telas de momento", async
   await page.locator(".load-more").click();
   expect(await page.locator(".post").count()).toBeGreaterThan(before);
   await loadAll(page);
-  await expect(page.locator('[data-rec-id^="p"]')).toHaveCount(12);
+  await expect(page.locator('[data-rec-id^="p"]')).toHaveCount(24);
   await expect(page.locator(".feed-end-hint")).toBeVisible();
   await page.locator(".finish-feed").click();
   await expect(page.locator(".end")).toBeVisible();
@@ -164,9 +164,9 @@ test("as fotografias dos posts e stories são distintas", async ({ page }) => {
   await enter(page);
   await loadAll(page);
   const photos = await page.locator('[data-rec-id^="p"] .post-media img.art-photo').evaluateAll(imgs => imgs.map(img => img.getAttribute("src")));
-  expect(photos).toHaveLength(12);
-  expect(new Set(photos).size).toBe(12);
-  expect(photos.every(src => /post-p[0-9]+[.]jpg$/.test(src || ""))).toBe(true);
+  expect(photos).toHaveLength(24);
+  expect(new Set(photos).size).toBe(24);
+  expect(photos.every(src => /(?:unique\/post-p[0-9]+[.]jpg|social\/[a-z_-]+[.]webp)$/.test(src || ""))).toBe(true);
   const storyPhotos = [];
   for (const index of [0, 2, 4, 7]) {
     await page.locator('[data-action="story"]').nth(index).click();
@@ -185,7 +185,7 @@ test("stories avançam no mesmo visualizador com toque, teclado e barra de progr
   const firstAuthor=await layer.getAttribute("data-story-user");
   const authored=await page.locator('.story-rail .story[data-story-user="'+firstAuthor+'"]').count();
   expect(authored).toBe(1);
-  const storyCounts={bia:2,lucca:3};
+  const storyCounts={bia:2,lucca:3,"rafa.tech":2,"vida.fit":2,"estudo.com":2,"agenda.festival":2};
   const expectedCount=storyCounts[firstAuthor]||1;
   await expect(layer.locator(".story-progress-segment")).toHaveCount(expectedCount);
   const first=await layer.locator(".story-user").textContent();
@@ -435,15 +435,15 @@ test("anúncio abre loja funcional, sacola, pagamento e recibo", async ({ page }
  await expect(page.locator(".receipt-screen")).toHaveCount(0);
 });
 
-test("explorar oferece quatro lojas com retorno simples ao catálogo", async ({ page }) => {
+test("explorar oferece oito lojas com retorno simples ao catálogo", async ({ page }) => {
  await enter(page);
  await page.locator('.phone-footer [data-action="search"]').click();
- await expect(page.locator(".shop-collection .shop-product")).toHaveCount(4);
+ await expect(page.locator(".shop-collection .shop-product")).toHaveCount(8);
  await page.locator('.shop-product[data-product="tenis"]').click();
  await expect(page.locator(".shop-title")).toContainText("Motion 88");
  await expect(page.locator(".shop-browser")).toContainText("rush-street.example");
  await page.locator('.layer-head [data-action="shop-back"]').click();
- await expect(page.locator(".shop-collection .shop-product")).toHaveCount(4);
+ await expect(page.locator(".shop-collection .shop-product")).toHaveCount(8);
  await page.locator('.shop-product[data-product="mochila"]').click();
  await expect(page.locator(".shop-title")).toContainText("Trail Mini");
  await page.locator('.shop-footer [data-action="checkout"]').click();
@@ -451,7 +451,7 @@ test("explorar oferece quatro lojas com retorno simples ao catálogo", async ({ 
  await page.locator('.layer-head [data-action="shop-back"]').click();
  await expect(page.locator(".shop-title")).toContainText("Trail Mini");
  await page.locator('.layer-head [data-action="shop-back"]').click();
- await expect(page.locator(".shop-collection .shop-product")).toHaveCount(4);
+ await expect(page.locator(".shop-collection .shop-product")).toHaveCount(8);
 });
 
 test("posts e stories com ofertas levam ao site do produto", async ({ page }) => {
@@ -490,4 +490,98 @@ test("vitrine personalizada do feed oferece acesso claro a lojas", async ({ page
  await page.locator(".shop-strip .shop-mini-card").first().click();
  await expect(page.locator(".shop-title")).toBeVisible();
  await expect(page.locator(".shop-browser")).toBeVisible();
+});
+
+
+test("o catálogo ampliado apresenta oito lojas, busca e novos itens compráveis", async ({page})=>{
+ await enter(page);
+ await page.locator('.phone-head [data-action="shop"]').click();
+ const entries=page.locator(".shop-collection .shop-product");
+ await expect(entries).toHaveCount(8);
+ const search=page.getByRole("searchbox",{name:"Pesquisar produtos"});
+ await search.fill("Volt");
+ await expect(page.locator(".shop-collection .shop-product:visible")).toHaveCount(1);
+ await expect(page.locator(".shop-search-wrap")).toContainText("1 oferta");
+ await expect.poll(async()=>page.evaluate(()=>{
+  const events=JSON.parse(localStorage.getItem("nofeed-simulator-v3")).algorithm.events;
+  return events.some(e=>e.type==="search"&&e.topic==="powerbank");
+ })).toBe(true);
+ await entries.filter({hasText:"Volt 10K"}).click();
+ await expect(page.locator(".shop-title")).toContainText("Volt 10K");
+ await expect(page.locator(".shop-hero svg")).toBeVisible();
+ await expect(page.locator(".shop-browser")).toContainText("nexo-tech.example");
+});
+
+test("o feed libera novos temas sem tela de capítulo e mantém publicidade espaçada", async ({page})=>{
+ await enter(page);
+ await loadAll(page);
+ const cards=page.locator(".post");
+ await expect(page.locator('[data-rec-id^="p"]')).toHaveCount(24);
+ const topics=await page.locator(".post").evaluateAll(els=>new Set(els.map(el=>el.getAttribute("data-rec-topic"))).size);
+ expect(topics).toBe(8);
+ const adTopics=await page.locator(".ad-post").evaluateAll(els=>[...new Set(els.map(el=>el.getAttribute("data-rec-topic")))]);
+ expect(adTopics.length).toBeGreaterThanOrEqual(4);
+ const ads=await cards.evaluateAll(els=>els.map((el,i)=>el.classList.contains("ad-post")?i:-1).filter(i=>i>=0));
+ expect(ads.length).toBeGreaterThanOrEqual(5);
+ expect(ads.every((i,k)=>k===0?i>=3:i-ads[k-1]>=4)).toBe(true);
+ await expect(page.locator(".decision,.transition")).toHaveCount(0);
+});
+
+test("compra gera sugestão complementar e permite uma segunda compra", async ({page})=>{
+ await enter(page);
+ await page.locator('.phone-head [data-action="shop"]').click();
+ await page.locator('.shop-product[data-product="fone"]').click();
+ await page.locator('.shop-footer [data-action="checkout"]').click();
+ await page.locator('.shop-footer [data-action="buy"]').click();
+ await expect(page.locator(".receipt-screen")).toBeVisible();
+ const suggestion=page.locator('.shop-receipt-suggestion[data-product="powerbank"]');
+ await expect(suggestion).toBeVisible();
+ await suggestion.click();
+ await expect(page.locator(".shop-title")).toContainText("Volt 10K");
+ await page.locator('.shop-footer [data-action="checkout"]').click();
+ await page.locator('.shop-footer [data-action="buy"]').click();
+ await expect(page.locator(".receipt-screen")).toBeVisible();
+ const result=await page.evaluate(()=>JSON.parse(localStorage.getItem("nofeed-simulator-v3")));
+ expect(result.purchases.map(p=>p.id)).toEqual(["fone","powerbank"]);
+ expect(result.wallet).toBeCloseTo(310.20,2);
+ await page.locator(".receipt-screen [data-action='close-overlay']").click();
+ await page.locator(".finish-feed").click();
+ await expect(page.locator(".end")).toContainText("não foi preservada");
+});
+
+test("mostrar menos oculta o post e reduz a afinidade sem revelar o algoritmo", async ({page})=>{
+ await enter(page);
+ const first=page.locator(".post").first();
+ const topic=await first.getAttribute("data-rec-topic");
+ const id=await first.getAttribute("data-rec-id");
+ await first.locator('[data-action="post-more"],[data-action="ad-more"]').click();
+ await page.locator('[data-action="less"]').click();
+ await expect(page.locator('.post[data-rec-id="'+id+'"]')).toHaveCount(0);
+ const events=await page.evaluate(()=>JSON.parse(localStorage.getItem("nofeed-simulator-v3")).algorithm.events);
+ expect(events.some(e=>e.type==="less"&&e.topic===topic)).toBe(true);
+ await expect(page.locator('[data-action="algorithm-final"]')).toHaveCount(0);
+});
+
+test("novos stories mantêm a autoria e levam às novas lojas fictícias", async ({page})=>{
+ await enter(page);
+ const owner=page.locator('.story-rail .story[data-story-user="rafa.tech"]');
+ await expect(owner).toHaveCount(1);
+ await owner.click();
+ const layer=page.locator(".story-layer");
+ await expect(layer).toHaveAttribute("data-story-user","rafa.tech");
+ await expect(layer.locator(".story-progress-segment")).toHaveCount(2);
+ await expect(layer.locator(".story-owner-avatar")).toBeVisible();
+ await layer.locator('[data-action="story-product"]').click();
+ await expect(layer).toHaveCount(0);
+ await expect(page.locator(".shop-title")).toContainText("Volt 10K");
+});
+
+test("conclusão explica oito temas e três tipos de campanhas, sem mostrar pesos no jogo", async ({page})=>{
+ await enter(page);
+ await expect(page.locator(".algo-topic")).toHaveCount(0);
+ await page.locator(".finish-feed").click();
+ await page.locator('[data-action="algorithm-final"]').click();
+ await expect(page.locator(".algo-topic")).toHaveCount(8);
+ await expect(page.locator(".algorithm-final")).toContainText("novas ofertas");
+ await expect(page.locator(".algorithm-final")).toContainText("produtos relacionados");
 });

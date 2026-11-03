@@ -10,7 +10,7 @@ O conflito pedagógico é intencional: a pessoa quer economizar, mas a plataform
 ## Como funciona
 
 1. **Preparação:** a tela de abertura estabelece o objetivo de preservar R$ 400 dentre R$ 620.
-2. **Rede social:** quatro temas — fones, tênis, streaming e mochilas — aparecem misturados desde o primeiro lote, inclusive em posts não patrocinados.
+2. **Rede social:** oito temas — fones, tênis, streaming, mochilas, bateria portátil, garrafa, luminária e ingresso fictício — aparecem misturados desde o primeiro lote, inclusive em posts não patrocinados.
 3. **Carregamento contínuo:** o primeiro conjunto contém cinco itens; rolar ou acionar “Mais publicações” adiciona lotes. Conteúdos já apresentados ficam no lugar; conteúdos futuros são recalculados a partir dos sinais existentes.
 4. **Interações:** clicar em posts, stories, ofertas, avaliações, carrinho, curtir, salvar ou indicar desinteresse pode modificar futuras recomendações.
 5. **Publicidade:** anúncios concorrem com posts orgânicos e podem reaparecer após interesse ou visita. Produtos comprados são excluídos da nova seleção promocional.
@@ -21,7 +21,7 @@ O conflito pedagógico é intencional: a pessoa quer economizar, mas a plataform
 
 ## Arquitetura
 
-A interface reutiliza as 12 fotografias de posts e 12 fotografias de stories do projeto. O catálogo anterior de quatro temas continua existindo somente como **base editorial**, não como fases visíveis.
+A interface mantém as 12 fotografias originais de posts e 12 de stories, acrescentando 12 fotografias de posts e oito de stories a partir dos arquivos locais do projeto. Os oito temas são apenas uma **base editorial interna**, sem fases visíveis.
 
 O módulo public/stream.js produz uma ordem contínua e adaptativa. Ele calcula pontuações por afinidade temática, autor, popularidade fictícia, diversidade e novidade, e reserva posições para publicidade. A variável interna phase é usada somente para decaimento de sinais após cada novo lote; não corresponde a um capítulo da narrativa. O módulo public/recommendation.js preserva o histórico explicável de sinais e os controles de personalização.
 
@@ -96,8 +96,20 @@ Este ajuste é principalmente de experiência e clareza de autoria; as fotos e o
 
 O caminho principal da experiência foi simplificado para **publicação patrocinada → loja simulada → carrinho ou comprar agora → confirmação de pedido → continuar o feed**. Não há site externo real nem cobrança. Os quatro sites são páginas internas da simulação identificadas com endereços `.example`, explicados como ilustrativos.
 
-A foto de um anúncio agora abre a loja com um toque ou clique simples; dois toques rápidos continuam curtindo, sem abrir a loja. O balão é o único acesso aos comentários. O botão rosa **Visitar loja e comprar** fica visível em cada anúncio, assim como os preços. A nova vitrine **Talvez você curta também**, a aba Explorar e o botão Ofertas do cabeçalho levam diretamente aos quatro catálogos fictícios.
+A foto de um anúncio abre a loja com um toque ou clique simples; dois toques rápidos continuam curtindo, sem abrir a loja. O balão é o único acesso aos comentários. O botão rosa **Visitar loja e comprar** fica visível em cada anúncio, assim como os preços. A nova vitrine **Talvez você curta também**, a aba Explorar e o botão Ofertas do cabeçalho levam diretamente aos quatro catálogos fictícios.
 
 Alguns posts e stories relacionados a produtos oferecem **links de compra**, preservando a identificação de publicações e parcerias. A loja mostra preço, especificações, análises fictícias, mensagens comerciais e a opção de avaliação crítica. Há uma sacola para combinar compras, checkout de confirmação sem solicitação de dados pessoais e recibo fictício; os gastos ficam no estado local do jogo e aparecem no balanço final.
 
 Para demonstrar mecanismos psicológicos de marketing, as páginas apresentam descontos de referência, personalização pelos interesses demonstrados, recorrência de anúncios e um adicional opcional previamente marcado na assinatura. Todos esses elementos são explicitamente apresentados como fictícios; a experiência permite não comprar e preservar a meta original.
+
+## Ampliação do motor — oito situações editoriais, sem capítulos
+
+A versão ampliada traz quatro novos produtos fictícios — **Volt 10K (bateria portátil)**, **Flow 750 (garrafa)**, **Halo Desk (luminária)** e **Pocket Fest (ingresso de evento imaginário)** — além das quatro ofertas originais. São 24 posts, 20 stories e oito lojas com acesso direto. Os novos posts e stories recebem fotos locais distintas dentro do repertório adicional; os produtos possuem ilustrações vetoriais originais.
+
+Os conteúdos continuam em uma única linha do tempo. A variável de época interna avança conforme o feed recebe novos lotes e libera assuntos progressivamente, mas não interrompe a partida para informar "fase 2", "fase 3" etc. A seleção pode reagir a curtidas, histórias, pesquisas na loja, visitas, sacola, compra, cancelamento e "Mostrar menos".
+
+O motor separa: **descoberta** de oferta, **retargeting** de produto visto ou salvo e **sugestão complementar** depois de uma compra. Sinais antigos decaem, interesses relacionados se propagam com peso reduzido, não há anúncios adjacentes nem repetição do mesmo anúncio, e um item comprado deixa de concorrer na publicidade. Há no máximo uma vaga patrocinada após três posts orgânicos. As vitrines de recomendações reaparecem em posições do feed para que novos itens sejam explorados ao longo da sessão.
+
+No recibo fictício surgem até duas opções relacionadas ao pedido, sem compra obrigatória. Também é possível buscar diretamente nas oito lojas, ocultar conteúdo indesejado e desativar personalização. A explicação quantitativa e o relatório de influência continuam **somente na conclusão**. Tudo fica no navegador, sem pagamento real e sem que o ranking tenha acesso à meta de economia.
+
+Para fórmulas, pesos, grafo de relações e limites, consultar o arquivo ALGORITMO-FEED.md.

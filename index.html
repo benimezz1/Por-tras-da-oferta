@@ -267,6 +267,20 @@
 .story-shop-cta{position:absolute;z-index:6;left:30px;right:30px;bottom:174px;border:1px solid #fff8;border-radius:12px;padding:13px;background:rgba(255,255,255,.96);color:#302335;font-size:13px;font-weight:850;box-shadow:0 6px 24px #0003}
 .story-shop-cta:hover{background:white}
 @media(max-width:810px){.game{display:flex;padding:0}.phone{width:min(100%,430px)}.shop-entry{padding:8px 10px}}
+.art-powerbank{background:radial-gradient(circle at 35% 30%,#eef7ff,#d9d0ee)}
+.art-garrafa{background:radial-gradient(circle at 50% 30%,#def4ea,#a9d8cc)}
+.art-luminaria{background:radial-gradient(circle at 50% 30%,#f9e5f5,#dbd0f2)}
+.art-ingresso{background:radial-gradient(circle at 60% 40%,#f5b1d8,#70558c)}
+.shop-search-wrap{padding:13px 14px 0;display:flex;flex-direction:column;gap:6px}
+.shop-search-input{border:1px solid #e8dce7;background:#fff;padding:13px 14px;border-radius:12px;font-size:14px;width:100%;outline-offset:2px}
+.shop-search-input:focus{border-color:#e180b2}
+.shop-search-wrap small{padding:0 3px 5px;font-size:11px}
+.receipt-suggestions{margin:18px 0 19px;text-align:left;border-top:1px solid #f0e9f1;padding-top:14px}
+.receipt-suggestions h3{font-size:14px;margin:0 0 9px}
+.shop-receipt-suggestion{width:100%;display:flex;align-items:center;gap:10px;background:#faf5f9;border:1px solid #efe3ef;border-radius:12px;margin:7px 0;padding:7px;text-align:left}
+.shop-receipt-suggestion .art{width:64px;height:62px;flex:none;border-radius:8px}
+.shop-receipt-suggestion strong{display:block;font-size:12px}
+.shop-receipt-suggestion small{display:block;margin-top:5px;color:#a34a7c;font-size:11px}
 </style>
 </head>
 <body>
@@ -284,6 +298,7 @@
   </div>
 </div>
 
+<script src="/expansion.js"></script>
 <script src="/recommendation.js"></script>
 <script src="/stream.js"></script>
 <script>
@@ -296,10 +311,10 @@ const Recommender=window.NoFeedRecommender;
 const Stream=window.NoFeedStream;
 let loadPending=false;
 const contentPool=()=>phases.flatMap((ph,themeIndex)=>
- ph.posts.map((p,postIndex)=>({...p,topic:ph.id,author:p.who,phase:0,order:postIndex*4+themeIndex}))
+ ph.posts.map((p,postIndex)=>({...p,topic:ph.id,author:p.who,phase:Stream.release[ph.id]||0,order:postIndex*phases.length+themeIndex}))
 );
-const storyPool=()=>phases.flatMap((ph,themeIndex)=>
- ph.stories.map((s,localIndex)=>({...s,idx:themeIndex*3+localIndex,product:ph.id}))
+const storyPool=()=>phases.flatMap(ph=>
+ ph.stories.map(s=>({...s,product:ph.id}))
 );
 function appendNext(){
  const batch=Stream.nextBatch(contentPool(),{
@@ -309,7 +324,7 @@ function appendNext(){
  },5);
  if(!batch.length)return false;
  state.feedItems.push(...batch);
- state.phase=Math.min(3,Math.floor(state.feedItems.length/5));
+ state.phase=Math.min(15,Math.floor(state.feedItems.length/6));
  save();
  return true;
 }
@@ -329,7 +344,7 @@ function coachPanel(){
  const id=overlay.id||state.viewed.at(-1)||state.feedItems.findLast(x=>x.kind==="ad")?.topic||"fone", p=products[id];
  const extra=id==='plano'&&state.extraChecked?9.90:0;
  const cost=p?p.price+extra:0;
- const themes={fone:'Praticidade e necessidade',tenis:'Popularidade, influência social e escassez',plano:'Assinatura e adicional pré-selecionado',mochila:'Desconto de referência e urgência'};
+ const themes={fone:'Praticidade e necessidade',tenis:'Popularidade, influência social e escassez',plano:'Assinatura e adicional pré-selecionado',mochila:'Desconto de referência e urgência',powerbank:'Prevenção de inconvenientes e recomendação complementar',garrafa:'Rotina idealizada e influência de criadores',luminaria:'Produtividade associada à compra de acessórios',ingresso:'Pertencimento social e medo de ficar de fora'};
  const balanceAfter=state.wallet-cost;
  const fits=balanceAfter>=state.goal;
  return `<header class="layer-head"><button class="icon-button" data-action="product" data-product="${esc(id)}" aria-label="Voltar ao anúncio">${icon('arrow')}</button><strong>Ajuda crítica · prévia local</strong></header>
@@ -370,13 +385,15 @@ const money=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).
 const icons={heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',comment:'<path d="M20 11.5a8 8 0 0 1-8 8 9.1 9.1 0 0 1-3.5-.7L3 21l1.3-5.2A8.3 8.3 0 0 1 4 11.5a8 8 0 0 1 16 0Z"/>',bookmark:'<path d="M6 3h12v18l-6-4-6 4V3Z"/>',cart:'<circle cx="9" cy="20" r="1"/><circle cx="19" cy="20" r="1"/><path d="M2 3h2l2.5 12h13.6l2-9H5"/>',arrow:'<path d="m15 18-6-6 6-6"/>',send:'<path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/>',home:'<path d="m3 10 9-7 9 7v10H3V10Z"/><path d="M9 20v-7h6v7"/>',search:'<circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 5 5"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',close:'<path d="M5 5 19 19M19 5 5 19"/>',chevron:'<path d="m9 5 7 7-7 7"/>',more:'<circle cx="4" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="20" cy="12" r="1"/>',bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',check:'<path d="m4 12 5 5L20 6"/>',info:'<circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/>',share:'<path d="M12 16V3M7 8l5-5 5 5M5 16v4h14v-4"/>',eye:'<path d="M2 12s3.7-7 10-7 10 7 10 7-3.7 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>'};
 const icon=(n,cls='')=>`<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true">${icons[n]||icons.info}</svg>`;
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const makeInitial=()=>({version:3,started:false,finished:false,phase:0,feedItems:[],helpRequests:0,wallet:620,goal:400,cart:[],purchases:[],decisions:[],viewed:[],liked:[],likedAds:[],bookmarks:[],lastOrder:null,stories:[],reviews:[],signals:{fone:0,tenis:0,plano:0,mochila:0},personalized:true,extraChecked:true,monthly:0,events:[],seenAds:[],algorithm:Recommender.emptyProfile()});
+const makeInitial=()=>({version:3,started:false,finished:false,phase:0,feedItems:[],helpRequests:0,wallet:620,goal:400,cart:[],purchases:[],decisions:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,monthly:0,events:[],seenAds:[],algorithm:Recommender.emptyProfile()});
 let state=makeInitial();try{
  const saved=JSON.parse(localStorage.getItem(KEY)||"null");
  if(saved?.version===3&&Array.isArray(saved.feedItems)&&Array.isArray(saved.decisions)){
-  state={...makeInitial(),...saved,feedItems:saved.feedItems.slice(0,48)};
+  state={...makeInitial(),...saved,feedItems:saved.feedItems.slice(0,Stream.MAX_FEED_ITEMS)};
   if(!Array.isArray(state.liked))state.liked=[];
   if(!Array.isArray(state.likedAds))state.likedAds=[];
+   if(!Array.isArray(state.hiddenPosts))state.hiddenPosts=[];
+   state.signals={...makeInitial().signals,...state.signals};
  }
 }catch(e){}
 state.algorithm=Recommender.normalize(state.algorithm);
@@ -420,22 +437,38 @@ const products={
  plano:{name:'MODO+ Premium',brand:'MODO MUSIC',kind:'plano',price:29.90,label:'Assinatura musical',tag:'Seu som, sem interrupções.',specs:['Sem anúncios no app','Playlists offline','Renovação automática mensal','VIP opcional: + R$ 9,90/mês'],desc:'Assinatura fictícia de música, com renovação automática. Preste atenção aos complementos que vêm selecionados durante a contratação.',ad:'Teste uma experiência musical sem interrupções por R$ 29,90/mês.',late:'Sua playlist está esperando. A assinatura segue disponível.',views:'4,8 mil assinaturas esta semana*',reviews:[['pedro','Uso muito, então pra mim compensa.','2 d'],['flavia','Só percebi o complemento depois de assinar.','8 h'],['kai','Gostei de ter as músicas offline.','3 h'],['tina','Prefiro continuar na versão grátis por enquanto.','1 h']]},
  mochila:{name:'Trail Mini',brand:'NOMA GOODS',kind:'mochila',price:159.90,old:279.90,label:'Mochila para passeio',tag:'Leve só o que importa.',specs:['18 litros de capacidade','Compartimento acolchoado','Alças ajustáveis','Prazo estimado: 5 dias úteis'],desc:'Mochila de uso diário anunciada como promoção de fim de semana. Observe o preço anterior e o suposto prazo limitado da oferta.',ad:'De R$ 279,90 por R$ 159,90. Só hoje, diz o anúncio.',late:'A promoção foi lembrada para você.',views:'Restam poucas unidades*, informa a marca',reviews:[['duda','Cabe meu casaco e uma garrafa, gostei.','4 d'],['leo','O desconto parece ótimo, mas nunca acompanhei o preço antes.','1 d'],['dri','Achei a costura delicada para carregar muito peso.','9 h'],['lucas','Vi um modelo parecido mais barato.','3 h']]}
 };
+Object.assign(products,window.NoFeedExpansion.products);
 const phases=[
  {day:'SEXTA • 18:24',name:'Antes de sábado',context:'Seu fone parou de funcionar. A turma vai se encontrar no sábado, e você ainda quer guardar R$ 400 para a viagem da escola.',question:'E o fone de ouvido?',hook:'Você pode comprar, guardar para depois ou seguir sem ele por enquanto.',id:'fone',emoji:'🎧',stories:[['bia','🌸','"SÁBADO VAI SER TUDO! Já separaram a playlist?"','venue','fone'],['lucca','🎸','"Vai ter música no caminho. Quem anima?"','bus','fone'],['agenda.local','🌆','"Sábado: encontro no parque, às 15h."','venue','fone']],posts:[{id:'p1',who:'bia.m',emoji:'🌸',when:'há 24 min',art:'venue',caption:'Sábado com a turma confirmado! Já tô contando os minutos 🫶',likes:124,comments:[['mari','Eu vou!'],['lucca','Boraaaa'],['nina','Só não esquece a playlist']]},{id:'p2',who:'agenda.local',emoji:'🎟️',when:'há 48 min',art:'venue',caption:'O parque vai estar movimentado sábado. Quem você vai levar?',likes:793,comments:[['bia','Eu e meus amigos 😍'],['renato','Vai chover?']]},{id:'p3',who:'lucca.r',emoji:'🎸',when:'há 1 h',art:'bus',caption:'Nada como ouvir música no ônibus com a galera. 🎶',likes:87,comments:[['bia','Nossa playlist já tá pronta'],['lara','Me manda depois!']]}]},
  {day:'SEGUNDA • 20:10',name:'Todo mundo tem',context:'Depois do encontro, começam a aparecer vídeos dos looks da turma e de um tênis que parece estar por toda parte.',question:'E o tênis da tendência?',hook:'Um produto pode parecer necessário só porque muitas pessoas estão usando.',id:'tenis',emoji:'👟',stories:[['livia','🦋','"MONTEI O LOOK! Esse tênis virou meu favorito."','vibe','tenis'],['moda.agora','✨','"Vocês viram a collab nova? Veja os looks da semana!"','sneaker','tenis'],['lucca','🎸','"Segunda e o grupo já planeja outro rolê."','venue','tenis']],posts:[{id:'p4',who:'gabi.n',emoji:'✨',when:'há 19 min',art:'vibe',caption:'Acabei de ver esse look e tô apaixonada. Quem também gosta?',likes:283,comments:[['ana','Esse tênis aparece toda hora'],['leo','Eu prefiro outro modelo']]},{id:'p5',who:'livia.looks',emoji:'🦋',when:'há 37 min · parceria',art:'sneaker',caption:'Minha escolha da semana! Motion 88. #publi',likes:4191,comments:[['elaine','Gostei da cor!'],['rafa','Publi, né?'],['joana','Alguém sabe se dura bastante?']]},{id:'p6',who:'diario.da.turma',emoji:'📸',when:'há 2 h',art:'venue',caption:'O álbum do sábado ficou pronto. Que dia bom!',likes:518,comments:[['bia','Amei muito!'],['duda','Quero a próxima!']]}]},
  {day:'TERÇA • 21:07',name:'Só mais um plano',context:'Você abre o celular para estudar ouvindo música. Entre playlists e recomendações, surge uma assinatura que promete mais conforto.',question:'Vale uma assinatura?',hook:'O valor parece pequeno, mas o pagamento acontece todo mês.',id:'plano',emoji:'🎵',stories:[['dj.andre','🎼','"Minha playlist da semana. Sem interrupções!"','playlist','plano'],['mia','🎧','"Não consigo parar de ouvir esse álbum."','playlist','plano'],['bia','🌸','"Estudando ouvindo música até tarde."','bus','plano']],posts:[{id:'p7',who:'dj.andre',emoji:'🎼',when:'há 20 min · parceria',art:'playlist',caption:'Minha playlist de foco da semana. Disponível no MODO+ #publi',likes:2216,comments:[['andreia','Essa playlist me ajudou!'],['isa','Funciona na versão grátis?']]},{id:'p8',who:'bia.m',emoji:'🌸',when:'há 55 min',art:'bus',caption:'Estudando com música baixinha. Mais alguém?',likes:208,comments:[['mari','Eu sem música não consigo'],['lucas','Prefiro silêncio pra estudar']]},{id:'p9',who:'stream.diario',emoji:'🎧',when:'há 2 h',art:'playlist',caption:'A música certa para cada momento.',likes:344,comments:[['tata','Amo a playlist descoberta'],['sofia','Eu enjoo rápido']] }]},
  {day:'QUINTA • 17:40',name:'Última oportunidade?',context:'A viagem da escola está mais perto. Agora a publicidade combina sua rotina, seus interesses e ofertas com desconto.',question:'E a mochila em promoção?',hook:'Preços riscados e ofertas com prazo curto podem fazer uma decisão parecer urgente.',id:'mochila',emoji:'🎒',stories:[['gabi','🧳','"Já tô organizando tudo pra viagem."','campus','mochila'],['loja.noma','🎒','"A promoção termina hoje!"','backpack','mochila'],['lucca','📷','"Quem vai levar câmera?"','campus','mochila']],posts:[{id:'p10',who:'gabi.n',emoji:'✨',when:'há 11 min',art:'campus',caption:'Ansiosa pra viagem da escola! O que não pode faltar na mochila?',likes:316,comments:[['bia','Carregador sempre'],['nina','Água e protetor!']]},{id:'p11',who:'rota.do.fim',emoji:'🌿',when:'há 1 h',art:'campus',caption:'Os melhores dias começam com uma boa companhia e pouco peso.',likes:1408,comments:[['mari','Que lugar lindo!'],['luca','Queria estar aí']]},{id:'p12',who:'duda.m',emoji:'🌈',when:'há 2 h',art:'backpack',caption:'Separando roupas e fazendo listas pro passeio. Organização é tudo.',likes:171,comments:[['ana','Também tô fazendo'],['leo','Só não esquece o casaco']]}]}
 ];
+phases.push(...window.NoFeedExpansion.moments);
 const postMediaMap={"p1":"post_p1","p2":"post_p2","p3":"post_p3","p4":"post_p4","p5":"post_p5","p6":"post_p6","p7":"post_p7","p8":"post_p8","p9":"post_p9","p10":"post_p10","p11":"post_p11","p12":"post_p12"};
 const storyMediaMap={"fone":["story_fone_0","story_fone_1","story_fone_2"],"tenis":["story_tenis_0","story_tenis_1","story_tenis_2"],"plano":["story_plano_0","story_plano_1","story_plano_2"],"mochila":["story_mochila_0","story_mochila_1","story_mochila_2"]};
-phases.forEach(ph=>{ph.stories=ph.stories.map((s,i)=>({user:s[0],emoji:s[1],text:s[2],art:s[3],product:s[4],source:storySourceType(s[0]),idx:i,photo:storyMediaMap[ph.id]?.[i]||s[3]}));ph.posts=ph.posts.map(p=>({...p,source:postSourceType(p),photo:postMediaMap[p.id]||p.art}));});
+let nextStoryIndex=0;
+phases.forEach(ph=>{
+ ph.stories=ph.stories.map((s,i)=>({user:s[0],emoji:s[1],text:s[2],art:s[3],product:s[4],source:storySourceType(s[0]),idx:nextStoryIndex++,photo:storyMediaMap[ph.id]?.[i]||s[5]||s[3]}));
+ ph.posts=ph.posts.map(p=>({...p,source:postSourceType(p),photo:postMediaMap[p.id]||p.photo||p.art}));
+});
 // Handmade vector illustrations, embedded: works even offline.
+function expansionProductSvg(kind){
+ const shapes={
+  powerbank:'<ellipse cx="270" cy="316" rx="138" ry="16" fill="#aaa3cc44"/><g transform="rotate(-10 270 180)"><rect x="179" y="57" width="184" height="252" rx="30" fill="#414067"/><rect x="191" y="69" width="160" height="229" rx="22" fill="#ebe8fa"/><rect x="220" y="75" width="98" height="12" rx="4" fill="#292941"/><rect x="216" y="118" width="112" height="137" rx="17" fill="#c3b2ed"/><path d="m270 141-27 48h24l-8 42 40-58h-24l10-32" fill="#684ba9"/><circle cx="272" cy="282" r="5" fill="#7e74ac"/></g>',
+  garrafa:'<ellipse cx="267" cy="318" rx="108" ry="15" fill="#93bfb666"/><rect x="218" y="39" width="99" height="39" rx="10" fill="#356b68"/><rect x="226" y="28" width="84" height="24" rx="8" fill="#477b76"/><path d="M216 78q-9 14-9 37v170q0 31 32 31h61q32 0 32-31V115q0-23-9-37" fill="#78b9ad"/><path d="M220 117h100v139H220z" fill="#b1dfd3"/><path d="m236 189 27-28 20 21 24-19" fill="none" stroke="#367675" stroke-width="8" stroke-linecap="round"/>',
+  luminaria:'<ellipse cx="273" cy="316" rx="133" ry="17" fill="#baa5cc77"/><ellipse cx="268" cy="294" rx="104" ry="20" fill="#595174"/><rect x="221" y="280" width="95" height="22" rx="9" fill="#625987"/><path d="M271 283V187l76-99" stroke="#6b6082" stroke-width="17" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M332 74c18-31 42-39 67-21l56 46-92 25z" fill="#c29fe5"/><path d="m365 124-43 111 113-90" fill="#f6df8977"/><path d="M369 119 423 98" stroke="#fff7d1" stroke-width="7" stroke-linecap="round"/>',
+  ingresso:'<g transform="rotate(-12 270 180)"><path d="M91 100h361v49q-22 5-22 27t22 27v54H91v-54q22-5 22-27t-22-27v-49Z" fill="#ba77be"/><path d="M111 116h321v122H111z" fill="#38294c"/><path d="M335 117v121" stroke="#e5b5dc" stroke-dasharray="6 8" stroke-width="3"/><text x="125" y="167" font-size="34" font-family="sans-serif" font-weight="bold" fill="#fff">POCKET</text><text x="125" y="204" font-size="34" font-family="sans-serif" font-weight="bold" fill="#ffb8d0">FEST</text><circle cx="378" cy="177" r="24" fill="#f8d6a3"/><path d="m371 180 8-16 8 16" stroke="#a45b9f" stroke-width="4" fill="none"/></g>'
+ };
+ if(!shapes[kind])return "";
+ return '<svg viewBox="0 0 540 360" role="img" aria-label="Ilustração original do produto fictício">'+shapes[kind]+'</svg>';
+}
 function productSvg(kind){
  if(kind==='fone')return `<svg viewBox="0 0 540 360" role="img" aria-label="Ilustração de fone sem fio"><ellipse cx="270" cy="306" rx="155" ry="22" fill="#ab89b72f"/><g transform="rotate(-13 272 173)"><path d="M169 199v-59a101 101 0 0 1 202 0v59" fill="none" stroke="#383342" stroke-width="40" stroke-linecap="round"/><path d="M169 200v-60a101 101 0 0 1 202 0v60" fill="none" stroke="#e5d5ec" stroke-width="30" stroke-linecap="round"/><rect x="124" y="167" width="72" height="117" rx="31" fill="#383544"/><rect x="139" y="174" width="56" height="101" rx="27" fill="#faf6fa"/><rect x="344" y="167" width="72" height="117" rx="31" fill="#383544"/><rect x="345" y="174" width="56" height="101" rx="27" fill="#faf6fa"/><path d="M157 214v24M383 214v24" stroke="#dfc5eb" stroke-width="6" stroke-linecap="round"/></g><circle cx="425" cy="78" r="7" fill="#c79cda"/><circle cx="112" cy="93" r="4" fill="#efb0d5"/></svg>`;
  if(kind==='tenis')return `<svg viewBox="0 0 540 360" role="img" aria-label="Ilustração de tênis"><ellipse cx="276" cy="300" rx="195" ry="23" fill="#a3a1cf33"/><g transform="rotate(-9 265 205)"><path d="M110 224c24 7 52-5 79-24l60-79c19-9 35 5 54 22 18 16 32 32 59 42 31 11 63 17 83 36 9 10 16 26 11 41-2 10-16 18-33 20H158c-65 0-91-8-91-32 0-13 17-29 43-26Z" fill="#fdfcff" stroke="#6c667e" stroke-width="5"/><path d="M160 241c34-3 77-29 116-79 20 8 35 27 55 41 28 19 61 18 95 43" fill="none" stroke="#a486be" stroke-width="15"/><path d="M77 264c37 14 122 12 182 12h171" fill="none" stroke="#39394c" stroke-width="12" stroke-linecap="round"/><path d="M216 184l57 12m-67 6 56 14m-76 7 57 14" stroke="#70627f" stroke-width="7" stroke-linecap="round"/><circle cx="351" cy="217" r="13" fill="#eca7b7"/><path d="m352 209 0 16M344 217h16" stroke="white" stroke-width="3"/></g><circle cx="110" cy="89" r="12" fill="#dccbe9"/></svg>`;
  if(kind==='plano')return `<svg viewBox="0 0 540 360" role="img" aria-label="Ilustração de assinatura musical"><circle cx="268" cy="177" r="123" fill="#c56dba35"/><circle cx="268" cy="177" r="104" fill="#f4c2dd"/><circle cx="268" cy="177" r="86" fill="#bb81df"/><circle cx="268" cy="177" r="69" fill="#f4c2dd"/><circle cx="268" cy="177" r="54" fill="#4f346e"/><path d="m248 145 51 31-51 31v-62Z" fill="#fff"/><path d="M112 130v81m-23-55v30m46-12v18M425 132v82m-24-56v37m46-43v48" stroke="#f4c9eb" stroke-width="9" stroke-linecap="round"/><circle cx="400" cy="78" r="8" fill="#fff7"/></svg>`;
  if(kind==='mochila')return `<svg viewBox="0 0 540 360" role="img" aria-label="Ilustração de mochila"><ellipse cx="270" cy="318" rx="131" ry="20" fill="#8bad9f45"/><path d="M191 105V73c0-27 21-44 44-44h67c23 0 45 17 45 44v32" fill="none" stroke="#425e55" stroke-width="22"/><path d="M156 144c-20-18-40-5-40 21v101c0 21 12 32 32 32h13m223-154c20-18 40-5 40 21v101c0 21-12 32-32 32h-13" fill="none" stroke="#5a8273" stroke-width="20"/><rect x="154" y="81" width="232" height="234" rx="54" fill="#527d6e"/><rect x="170" y="98" width="200" height="205" rx="42" fill="#7caa96"/><path d="M185 144h169" stroke="#547e6e" stroke-width="7" stroke-linecap="round"/><rect x="194" y="211" width="152" height="70" rx="17" fill="#dbeccf"/><path d="M270 206v20" stroke="#e7b988" stroke-width="9" stroke-linecap="round"/><path d="M255 250h30" stroke="#6c9a85" stroke-width="5" stroke-linecap="round"/></svg>`;
- return '';
+ return expansionProductSvg(kind);
 }
 function sceneSvg(kind){
  if(kind==='venue')return `<svg viewBox="0 0 700 430" role="img" aria-label="Ilustração de encontro ao pôr do sol"><circle cx="515" cy="109" r="70" fill="#ffd0a0"/><path d="M0 280 110 235 190 270 314 216 410 263 555 203 700 275V430H0Z" fill="#6b456f"/><path d="M0 322c125-63 238-9 342-31 149-32 247-2 358 26v113H0Z" fill="#333052"/><g fill="#201f36"><circle cx="255" cy="277" r="35"/><path d="M208 308q47-35 94 0l38 122H185Z"/><circle cx="387" cy="261" r="38"/><path d="M327 304q60-45 116 0l40 126H286Z"/><circle cx="525" cy="282" r="32"/><path d="M475 316q47-34 95 0l35 114H441Z"/></g><path d="m22 123 11-15m8 35 21-14m602 8-13 16" stroke="#fff9" stroke-width="5" stroke-linecap="round"/></svg>`;
@@ -458,6 +491,10 @@ function avatarSrc(user,defaultPhoto){return avatarMediaMap[user]||defaultPhoto;
 
 /* Logos autorais das paginas ficticias, usados nos stories e nos posts. */
 const pageLogos={
+ "rafa.tech":'<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#3d5478"/><circle cx="24" cy="24" r="19" fill="none" stroke="#ffffff88" stroke-width="2"/><text x="24" y="32" font-size="25" text-anchor="middle" fill="white" font-family="sans-serif" font-weight="bold">R</text></svg>',
+ "vida.fit":'<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#328275"/><circle cx="24" cy="24" r="19" fill="none" stroke="#ffffff88" stroke-width="2"/><text x="24" y="32" font-size="25" text-anchor="middle" fill="white" font-family="sans-serif" font-weight="bold">V</text></svg>',
+ "estudo.com":'<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#8463a0"/><circle cx="24" cy="24" r="19" fill="none" stroke="#ffffff88" stroke-width="2"/><text x="24" y="32" font-size="25" text-anchor="middle" fill="white" font-family="sans-serif" font-weight="bold">E</text></svg>',
+ "agenda.festival":'<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#a84280"/><circle cx="24" cy="24" r="19" fill="none" stroke="#ffffff88" stroke-width="2"/><text x="24" y="32" font-size="25" text-anchor="middle" fill="white" font-family="sans-serif" font-weight="bold">F</text></svg>',
  "agenda.local":'<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#16485a"/><rect x="11" y="12" width="26" height="26" rx="6" fill="#f8f8f0"/><path d="M11 20h26" stroke="#16485a" stroke-width="2"/><path d="M18 10v6m12-6v6" stroke="#f2b17d" stroke-width="3" stroke-linecap="round"/><circle cx="25" cy="28" r="5.5" fill="#ef9c7b"/><path d="m22 28 2.3 2.3 4-5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
  "moda.agora":'<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#34233e"/><circle cx="24" cy="24" r="20" fill="none" stroke="#ee9bc5" stroke-width="1"/><text x="23" y="32" fill="#fff2f6" font-family="Georgia,serif" font-style="italic" font-weight="700" font-size="29" text-anchor="middle">m</text><circle cx="37" cy="30" r="3.2" fill="#f5a5cb"/><path d="m35 8 1.2 3.5L40 13l-3.8 1.3L35 18l-1.1-3.7L30 13l3.9-1.5Z" fill="#f5a5cb"/></svg>',
  "dj.andre":'<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#332154"/><circle cx="24" cy="24" r="16" fill="#ad8ce6"/><circle cx="24" cy="24" r="11.5" fill="#251a3d"/><circle cx="24" cy="24" r="4" fill="#f1c2eb"/><path d="M8 29v-10m4 14V15m24 0v18m4-14v10" stroke="#e9d4ff" stroke-width="2" stroke-linecap="round"/><path d="m18 26 8-8" stroke="#fff4ff" stroke-width="2" stroke-linecap="round"/></svg>',
@@ -478,8 +515,8 @@ function mediaPhoto(kind,cssClass,alt){
  const recovery=id?` onerror="if(!this.dataset.remote){this.dataset.remote='yes';this.src='${remote}';}else{this.onerror=null;this.src='${local}';}"`:'';
  return `<img class="${cssClass}" src="${src}" alt="${esc(alt)}" loading="lazy" decoding="async"${recovery}/>`;
 }
-function storySourceType(name){return ['agenda.local','loja.noma','dj.andre','moda.agora'].includes(name)?'page':'friend';}
-function postSourceType(post){return ['p2','p5','p6','p7','p9','p11'].includes(post.id)?'page':'friend';}
+function storySourceType(name){return ['agenda.local','loja.noma','dj.andre','moda.agora','rafa.tech','vida.fit','estudo.com','agenda.festival'].includes(name)?'page':'friend';}
+function postSourceType(post){return !!post.promoted||['p2','p5','p6','p7','p9','p11'].includes(post.id)?'page':'friend';}
 
 
 function storyGroups(){
@@ -553,6 +590,13 @@ function asideLeft(){
 function asideRight(){return '';}
 
 const relatedPostLinks={
+ p13:{topic:"powerbank",label:"Ver carregador do vídeo"},
+ p14:{topic:"powerbank",label:"Bateria para o rolê"},
+ p16:{topic:"garrafa",label:"Conhecer garrafa da publi"},
+ p18:{topic:"garrafa",label:"Ver acessórios da viagem"},
+ p19:{topic:"luminaria",label:"Ver luminária de estudo"},
+ p21:{topic:"luminaria",label:"Ideias para a mesa"},
+ p22:{topic:"ingresso",label:"Conhecer ingresso fictício"},
  p3:{topic:"fone",label:"Fones para essa playlist"},
  p5:{topic:"tenis",label:"Ver tênis do look"},
  p7:{topic:"plano",label:"Ouvir no MODO+"},
@@ -565,7 +609,8 @@ function shopPicks(){
  return Recommender.topics.filter(x=>!purchased.has(x))
    .sort((a,b)=>{
     const relevance=id=>Recommender.affinity(state.algorithm,id,state.phase)
-      +(state.cart.includes(id)?3:0)+(state.viewed.includes(id)?1:0);
+      +(state.cart.includes(id)?3:0)+(state.viewed.includes(id)?1:0)
+      +Recommender.complementaryScore(id,state.purchases.map(p=>p.id))*7;
     return relevance(b)-relevance(a)||Recommender.topics.indexOf(a)-Recommender.topics.indexOf(b);
    }).slice(0,2);
 }
@@ -579,7 +624,7 @@ function shopStrip(){
 }
 function stageFeed(){
  const pool=contentPool();
- const cards=state.feedItems.map((item,i)=>{const card=item.kind==='post'?postCard(pool.find(p=>p.id===item.id)):adCard(item.topic,item.retarget);return card+(i===3?shopStrip():'');}).join('');
+ const cards=state.feedItems.map((item,i)=>{const card=state.hiddenPosts.includes(item.id)?"":item.kind==='post'?postCard(pool.find(p=>p.id===item.id)):adCard(item.topic,item.retarget,item);return card+([3,12,20,28].includes(i)?shopStrip():'');}).join('');
  const done=Stream.isDone(pool,state.feedItems);
  const next=done?'<div class="feed-end-hint"><strong>Você já percorreu as publicações desta demonstração.</strong><p>Uma rede real poderia continuar oferecendo mais conteúdo. Aqui, você pode revisitar posts, pedir ajuda ou observar as consequências do seu percurso.</p></div>':
  '<button class="load-more" data-action="load-more">Mais publicações para você ↓</button>';
@@ -612,12 +657,19 @@ function postCard(post){
  const photoAction=link?` data-action="open-photo" data-product="${link.topic}"`:"";
  return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":"amigo"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${post.who}</strong> ${post.caption}</p>${button}</article>`;
 }
-function adCard(id,retarget=false){
- const p=products[id],saved=state.cart.includes(id),likedId=retarget?`ad-ret-${id}`:`ad-main-${id}`;
- const liked=state.likedAds.includes(likedId);
- const note=retarget?`Você demonstrou interesse em ${p.name}. A loja apareceu outra vez.`:p.ad;
- const persuasion=id==='fone'?'Seu sábado merece trilha sonora.':id==='tenis'?'O tênis dos looks que você anda vendo.':id==='plano'?'Suas playlists sem interrupção.':'Que tal se preparar para a viagem?';
- return `<article class="post ad-post" data-rec-id="${likedId}" data-rec-topic="${id}"><div class="post-top"><span class="avatar brand-av">${p.brand.split(" ")[0].slice(0,4)}</span><div class="user-info"><div class="username">${p.brand.toLowerCase().replaceAll(" ",".")}</div><div class="post-sub"><span class="sponsored-label">Patrocinado · anúncio fictício</span></div></div><button class="icon-button" data-action="ad-more" data-product="${id}" aria-label="Opções do anúncio">${icon("more")}</button></div><div class="post-media feed-photo" data-action="open-photo" data-product="${id}" data-like-ad="${likedId}" role="group" aria-label="Anúncio ${esc(p.name)}. Um toque abre a loja. Dois toques curtem.">${art(p.kind,true,p.brand)}<span class="photo-tag">${retarget?"Você já viu este produto":"Oferta da loja*"}</span></div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like-ad" data-product="${id}" data-ad="${likedId}" aria-label="${liked?"Descurtir":"Curtir"} anúncio" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${likedId}" aria-label="Ver avaliações">${icon("comment")}</button><button class="icon-button push" data-action="product" data-product="${id}" aria-label="Visitar site da loja">${icon("eye")}</button></div><p class="post-caption"><strong>${p.brand.toLowerCase().replaceAll(" ",".")}</strong> ${persuasion} ${note}</p><div class="price-bar"><div><span>${p.old?`<s>${money(p.old)}</s> · `:""}${id==="plano"?"Assinatura mensal":"Preço anunciado"}</span><br><strong>${money(p.price)}${id==="plano"?'<small style="font-size:11px">/mês</small>':""}</strong></div><span>${retarget?"Para você":"Patrocinado"}</span></div><button class="ad-cta" data-action="product" data-product="${id}">Visitar loja e comprar <span aria-hidden="true">→</span></button></article>`;
+function adCard(id,retarget=false,item={}){
+ const p=products[id];if(!p)return "";
+ const adId=item.id||(retarget?"ad-ret-"+id:"ad-main-"+id);
+ const campaign=item.campaign||(retarget?"retarget":"prospecting");
+ const liked=state.likedAds.includes(adId);
+ const bought=state.purchases.findLast(x=>Recommender.related[x.id]?.[id]>.2);
+ const channel=campaign==="pair"?"Combina com suas escolhas":campaign==="retarget"?"Você já viu este produto":"Novidade patrocinada";
+ const text=campaign==="pair"&&bought
+  ?"Você adquiriu "+products[bought.id].name+". Conheça um acessório relacionado: "+p.name+"."
+  :campaign==="retarget"?p.late:p.ad;
+ const caption=campaign==="pair"?"Quem gostou de produtos semelhantes também pode se interessar."
+  :marketingHooks[id];
+ return `<article class="post ad-post" data-rec-id="${adId}" data-rec-topic="${id}" data-campaign="${campaign}"><div class="post-top"><span class="avatar brand-av">${esc(p.brand.split(" ")[0].slice(0,4))}</span><div class="user-info"><div class="username">${esc(p.brand.toLowerCase().replaceAll(" ","."))}</div><div class="post-sub"><span class="sponsored-label">Patrocinado · anúncio fictício</span></div></div><button class="icon-button" data-action="ad-more" data-product="${id}" data-post="${adId}" aria-label="Opções do anúncio">${icon("more")}</button></div><div class="post-media feed-photo" data-action="open-photo" data-product="${id}" data-like-ad="${adId}" role="group" aria-label="Anúncio de ${esc(p.name)}. Um toque abre a loja; dois toques curtem.">${art(p.kind,true,p.brand)}<span class="photo-tag">${channel}</span></div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like-ad" data-product="${id}" data-ad="${adId}" aria-label="${liked?"Descurtir":"Curtir"} anúncio" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${adId}" aria-label="Ver avaliações">${icon("comment")}</button><button class="icon-button push" data-action="product" data-product="${id}" aria-label="Visitar loja">${icon("eye")}</button></div><p class="post-caption"><strong>${esc(p.brand.toLowerCase().replaceAll(" ","."))}</strong> ${esc(text)} ${esc(caption)}</p><div class="price-bar"><div><span>${p.old?`<s>${money(p.old)}</s> · `:""}${id==="plano"?"Assinatura mensal":"Preço anunciado"}</span><br><strong>${money(p.price)}${id==="plano"?'<small style="font-size:11px">/mês</small>':""}</strong></div><span>${channel}</span></div><button class="ad-cta" data-action="product" data-product="${id}">Ver oferta na loja <span aria-hidden="true">→</span></button></article>`;
 }
 function adaptiveAd(current) {
   const result = Recommender.pickRetarget({
@@ -626,7 +678,7 @@ function adaptiveAd(current) {
   });
   return result ? adCard(result.topic, true) : "";
 }
-function decisionCard(){const ph=phases[state.phase],p=products[ph.id],inCart=state.cart.includes(ph.id);return `<section class="decision" id="decision"><p class="question-tag">CHEGOU SUA VEZ</p><h3>${ph.question}</h3><p>${ph.hook}</p><button class="decision-btn main" data-action="decision" data-decision="buy">Comprar ${p.name} · ${money(p.price)}</button><button class="decision-btn" data-action="decision" data-decision="cart">${inCart?'Manter no carrinho e seguir':'Guardar no carrinho e seguir'}</button><button class="decision-btn" data-action="decision" data-decision="skip">Não comprar agora</button><div class="decision-foot">Saldo: ${money(state.wallet)} · Meta de economia: ${money(state.goal)}<br>Suas escolhas alteram os próximos anúncios.</div></section><div class="endnote">Você chegou ao final do feed por hoje. ✦</div>`;}
+function decisionCard(){const ph=phases[Math.min(phases.length-1,state.phase)],p=products[ph.id],inCart=state.cart.includes(ph.id);return `<section class="decision" id="decision"><p class="question-tag">CHEGOU SUA VEZ</p><h3>${ph.question}</h3><p>${ph.hook}</p><button class="decision-btn main" data-action="decision" data-decision="buy">Comprar ${p.name} · ${money(p.price)}</button><button class="decision-btn" data-action="decision" data-decision="cart">${inCart?'Manter no carrinho e seguir':'Guardar no carrinho e seguir'}</button><button class="decision-btn" data-action="decision" data-decision="skip">Não comprar agora</button><div class="decision-foot">Saldo: ${money(state.wallet)} · Meta de economia: ${money(state.goal)}<br>Suas escolhas alteram os próximos anúncios.</div></section><div class="endnote">Você chegou ao final do feed por hoje. ✦</div>`;}
 
 function setupFeedAssist(){
  const scroller=document.querySelector('#feed-scroll'),cue=document.querySelector('.scroll-cue');
@@ -651,10 +703,12 @@ function algorithmResults(){
  const summary=Recommender.summary(state.algorithm,state.phase);
  const ads=state.feedItems.filter(item=>item.kind==="ad");
  const posts=state.feedItems.filter(item=>item.kind==="post");
- const repeats=ads.filter(item=>item.retarget).length;
+ const retargets=ads.filter(item=>item.campaign==="retarget").length;
+ const complementary=ads.filter(item=>item.campaign==="pair").length;
+ const explored=ads.filter(item=>item.campaign==="prospecting").length;
  const entries=Recommender.topics.map(topic=>{
   const points=summary.affinities[topic];
-  const percent=Math.min(100,Math.max(4,Math.round((points+8)/20*100)));
+  const percent=Math.min(100,Math.max(4,Math.round((points+11)/28*100)));
   const tendency=points>1?"Sinal de interesse":points<-1?"Menos interesse":"Poucos sinais";
   return `<div class="algo-topic"><div><strong>${Recommender.labels[topic]}</strong><span>${tendency} · ${points.toFixed(1)} pts</span></div><div class="algo-track"><span style="width:${percent}%"></span></div></div>`;
  }).join("");
@@ -663,6 +717,7 @@ function algorithmResults(){
   <div class="algorithm-panel">
    <p>O jogo registrou apenas suas interações fictícias e usou esses sinais para escolher quais conteúdos mostrar a seguir. <strong>A rede não recebeu sua meta de poupar R$ 400.</strong></p>
    <div class="algo-summary"><span><strong>${summary.events}</strong> sinais de interação</span><span><strong>${posts.length}</strong> posts apresentados</span><span><strong>${ads.length}</strong> anúncios fictícios</span></div>
+   <p class="small muted">Das mensagens comerciais, ${explored} apresentaram novas ofertas, ${retargets} retomaram produtos de interesse e ${complementary} sugeriram produtos relacionados a compras anteriores.</p>
    <h3>Interesses que a simulação inferiu</h3>
    ${entries}
    <p class="small muted">Pontuações ilustrativas, não percentuais de consumo. Um tema mais pontuado pode aparecer mais vezes porque você o curtiu, visualizou, salvou ou pesquisou.</p>
@@ -671,8 +726,11 @@ function algorithmResults(){
      <li>O sistema escolheu conteúdos de amigos, páginas e marcas entre vários assuntos.</li>
      <li>Seus likes, stories vistos, comentários, visitas e produtos salvos alteraram os pesos dos temas.</li>
      <li>A ordem dos próximos posts considerou afinidade, popularidade fictícia e variedade; os anteriores permaneceram onde já estavam.</li>
-     <li>Os anúncios concorreram por espaço com as publicações; ${repeats} anúncio(s) reapareceram por interesse anterior.</li>
-     <li>A escolha de guardar R$ 400 não entrou no ranking — é justamente o conflito de interesses que o jogo quer mostrar.</li>
+     <li>Posts e anúncios foram classificados por relevância, autor, contexto, novidade e penalidades por repetição. Os próximos lotes mudaram, mas os anteriores não foram reorganizados.</li>
+     <li>O sistema abriu novos temas conforme você rolava e misturou oito interesses comerciais ao feed sem capítulos visíveis.</li>
+     <li>Os anúncios usaram três abordagens: novidade, retorno de interesses anteriores e itens complementares após compras. Nenhum produto já comprado voltou como anúncio.</li>
+     <li>Curiosidade não é intenção certa de comprar: comentários, visitas e curtidas geraram sinais de peso diferente, que perderam força ao longo do percurso.</li>
+     <li>A escolha de guardar R$ 400 nunca entrou no ranking: o jogo contrapõe um objetivo pessoal a recomendações comerciais, sem forçar uma compra.</li>
     </ol>
    </div>
    <p class="algo-disclaimer">Este é um modelo educativo e explicável criado para o projeto, não uma reprodução dos sistemas proprietários do Instagram nem um diagnóstico de comportamento. Os dados ficam neste navegador.</p>
@@ -708,12 +766,16 @@ function setupFeedExposure() {
   scroll.querySelectorAll("[data-rec-id]").forEach(el=>feedObserver.observe(el));
 }
 
-const shopAddresses={fone:"aura-audio.example",tenis:"rush-street.example",plano:"modo-music.example",mochila:"noma-goods.example"};
+const shopAddresses={fone:"aura-audio.example",tenis:"rush-street.example",plano:"modo-music.example",mochila:"noma-goods.example",powerbank:"nexo-tech.example",garrafa:"verde-lab.example",luminaria:"luma-home.example",ingresso:"viva-tickets.example"};
 const marketingHooks={
  fone:"Sua playlist merece uma experiência nova. O anúncio reapareceu porque áudio combinou com suas interações.",
  tenis:"Você viu looks parecidos no feed. A marca apresenta este modelo como uma tendência da semana.",
  plano:"Aquela playlist sem interrupções está a um clique. Assinatura renovada mensalmente.",
- mochila:"A viagem está chegando? A loja destaca o desconto de referência e a oferta do dia."
+ mochila:"A viagem está chegando? A loja destaca o desconto de referência e a oferta do dia.",
+ powerbank:"A bateria extra apareceu porque você viu conteúdos sobre celular, música ou viagens.",
+ garrafa:"Pequenos acessórios entram nas recomendações depois de posts sobre rotina e passeios.",
+ luminaria:"A rede relacionou produtividade e estudos a acessórios para o seu espaço.",
+ ingresso:"Seus amigos estão falando de eventos, e o feed trouxe um ingresso fictício."
 };
 function cartLinePrice(id){
  const p=products[id];
@@ -749,10 +811,10 @@ function productPage(){
 function shopPage(){
  const ids=Recommender.topics;
  return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon("arrow")}</button><strong>Explorar lojas</strong><button class="icon-button" data-action="cart" aria-label="Abrir carrinho">${icon("cart")}${state.cart.length?`<span class="cart-dot">${state.cart.length}</span>`:""}</button></header>
-  <div class="layer-body"><div class="shop-banner"><b>Descubra ofertas no Pulso</b><p>Quatro lojas de demonstração. Tudo é fictício e fácil de explorar.</p></div>
-  <div class="shop-collection">${ids.map(id=>{
+  <div class="layer-body"><div class="shop-banner"><b>Descubra ofertas no Pulso</b><p>Oito lojas de demonstração. Tudo é fictício e fácil de explorar.</p></div>
+  <div class="shop-search-wrap"><input type="search" id="shop-search" class="shop-search-input" placeholder="Buscar produto ou loja..." aria-label="Pesquisar produtos" autocomplete="off"/><small id="shop-search-count" class="muted">Explore os produtos fictícios</small></div><div class="shop-collection">${ids.map(id=>{
    const p=products[id],bought=state.purchases.some(x=>x.id===id);
-   return `<button class="shop-product" data-action="product" data-product="${id}" aria-label="Visitar site ${esc(p.brand)}"><span>${art(p.kind,true,p.brand)}</span><span><strong>${esc(p.name)}</strong><small>${esc(p.brand)} · ${bought?"Já comprado":"Loja fictícia"}</small><b>${money(p.price)}${id==="plano"?"/mês":""}</b><small>Visitar site →</small></span></button>`;
+   return `<button class="shop-product" data-shop-name="${esc((p.name+" "+p.brand+" "+p.label).toLowerCase())}" data-action="product" data-product="${id}" aria-label="Visitar site ${esc(p.brand)}"><span>${art(p.kind,true,p.brand)}</span><span><strong>${esc(p.name)}</strong><small>${esc(p.brand)} · ${bought?"Já comprado":"Loja fictícia"}</small><b>${money(p.price)}${id==="plano"?"/mês":""}</b><small>Visitar site →</small></span></button>`;
   }).join("")}</div></div>`;
 }
 function cartPage(){
@@ -782,12 +844,19 @@ function checkoutPage(){
 }
 function receiptPage(){
  const order=state.lastOrder||{items:[],total:0};
+ const bought=state.purchases.map(x=>x.id);
+ const suggestions=Recommender.topics.filter(t=>!bought.includes(t))
+  .sort((a,b)=>Recommender.complementaryScore(b,bought)-Recommender.complementaryScore(a,bought)
+    ||shopPicks().indexOf(a)-shopPicks().indexOf(b)).slice(0,2);
  return `<header class="layer-head"><strong>Pedido de demonstração</strong></header><div class="layer-body">
  <section class="receipt-screen"><div class="receipt-check">✓</div><h2>Compra simulada confirmada!</h2>
  <p>Seu pedido fictício foi registrado nesta partida. Nenhum pagamento real foi realizado.</p>
  <div class="checkout-price"><span>Valor do pedido</span><strong>${money(order.total)}</strong></div>
  <div class="checkout-price"><span>Saldo fictício restante</span><strong>${money(state.wallet)}</strong></div>
  <p>Você pode continuar olhando o feed e verá as consequências das escolhas ao finalizar a experiência.</p>
+ ${suggestions.length?`<div class="receipt-suggestions"><h3>Pode combinar com sua compra</h3>
+ ${suggestions.map(id=>`<button class="shop-receipt-suggestion" data-action="product" data-product="${id}">${art(products[id].kind,true)}<span><strong>${esc(products[id].name)}</strong><small>${money(products[id].price)} · Ver na loja →</small></span></button>`).join("")}
+ </div>`:""}
  <button class="primary full" data-action="close-overlay">Voltar ao feed →</button>
  <button class="secondary full" style="margin-top:10px" data-action="shop">Ver outras lojas</button>
  </section></div>`;
@@ -830,9 +899,13 @@ function drawOverlay(){
 }
 
 function drawModal(){const phone=document.querySelector('.phone');if(!phone)return;document.querySelector('.layer-backdrop')?.remove();const v=modal;let content='';if(v.type==='comments'){
- let comments=[];let title='Comentários';if(v.post.startsWith('ad-main-')||v.post.startsWith('ad-ret-')){let id=v.post.replace(/^ad-(main|ret)-/,'');comments=products[id].reviews;title=`Opiniões sobre ${products[id].name}`;}else{for(const ph of phases){const post=ph.posts.find(x=>x.id===v.post);if(post){comments=post.comments.map((c,i)=>[c[0],c[1],`${i+1} h`]);break;}}}
+ let comments=[];let title='Comentários';if(/^ad-(main|ret|pair)-/.test(v.post)){let id=v.post.replace(/^ad-(main|ret|pair)-/,'');comments=products[id].reviews;title=`Opiniões sobre ${products[id].name}`;}else{for(const ph of phases){const post=ph.posts.find(x=>x.id===v.post);if(post){comments=post.comments.map((c,i)=>[c[0],c[1],`${i+1} h`]);break;}}}
  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${title}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header><div class="sheet-scroll">${comments.map((c,i)=>`<div class="comment"><span class="avatar">${['🧑','👩','🧒','🙂'][i%4]}</span><div><strong>${esc(c[0])}</strong><p>${esc(c[1])}</p><small>${c[2]||'há pouco'}</small></div></div>`).join('')}<p class="small muted" style="margin-top:12px">Comentários criados para a simulação. Eles não comprovam qualidade, estoque ou popularidade.</p></div>`;
- }else if(v.type==='more'){content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Sobre o conteúdo</strong><button class="icon-button" data-action="close-modal">${icon('close')}</button></header><div class="sheet-scroll"><p class="small">Você pode ver anúncios, publicações de amigos e parcerias comerciais. O selo “Patrocinado” identifica anúncios pagos.</p><button class="secondary" data-action="close-modal" style="width:100%">Voltar à publicação</button></div>`;
+ }else if(v.type==='more'){
+ content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Opções de publicação</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
+  <div class="sheet-scroll"><p class="small muted">Você pode escolher não ver conteúdos semelhantes.</p>
+  <button class="secondary full" data-action="less" data-topic="${esc(v.topic||'')}" data-post="${esc(v.post||'')}">Mostrar menos como este</button>
+  <button class="tertiary full" style="margin-top:10px" data-action="close-modal">Cancelar</button></div>`;
  }else if(v.type==='search'){content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Explorar</strong><button class="icon-button" data-action="close-modal">${icon('close')}</button></header><div class="sheet-scroll"><p class="small muted">A aba Explorar é simplificada nesta demonstração. Você pode navegar pelas publicações, stories e lojas. Você pode visitar os stories, ler os comentários e entrar nas lojas.</p></div>`;
  }
  const box=document.createElement('div');box.className='layer-backdrop';box.innerHTML=`<section class="bottom-sheet" role="dialog" aria-modal="true">${content}</section>`;phone.appendChild(box);
@@ -961,7 +1034,7 @@ function drawStory(){
  el.setAttribute('data-story-user',s.user);
  el.setAttribute('data-story-index',String(index));
  el.setAttribute('aria-label',`Stories de ${s.user}`);
- const hasShopLink=['livia','moda.agora','loja.noma','dj.andre'].includes(s.user);
+ const hasShopLink=['livia','moda.agora','loja.noma','dj.andre','rafa.tech','vida.fit','estudo.com','agenda.festival'].includes(s.user);
  const storyShopLink=hasShopLink?`<button class="story-shop-cta" data-action="story-product" data-product="${s.product}">Ver oferta na loja · ${money(products[s.product].price)} →</button>`:'';
  const image=story.photoUrl
   ? `<img class="story-photo" alt="Story publicado por ${esc(s.user)}" src="${esc(story.photoUrl)}" loading="eager" decoding="sync" draggable="false"/>`
@@ -1027,7 +1100,7 @@ function closeOverlay(){
 function openComments(post){
  if(typeof post!=="string")return;
  if(post.startsWith("ad-")){
-  const id=post.replace(/^ad-(main|ret)-/,"");
+  const id=post.replace(/^ad-(main|ret|pair)-/,"");
   if(!products[id])return;
   if(!state.reviews.includes(id)){
    state.reviews.push(id);
@@ -1173,7 +1246,7 @@ let lastLikeFlash={photo:null,time:0};
 let feedTouchStart=null,lastFeedTouchTap=null;
 function setLikeState(kind,id,shouldLike){
  const isAd=kind==="ad";
- const topic=isAd?String(id).replace(/^ad-(main|ret)-/,""):postInfo(id)?.topic;
+ const topic=isAd?String(id).replace(/^ad-(main|ret|pair)-/,""):postInfo(id)?.topic;
  if(!topic||!Recommender.topics.includes(topic))return false;
  const bucket=isAd?state.likedAds:state.liked;
  const current=bucket.includes(id);
@@ -1251,6 +1324,30 @@ function handleFeedTouchEnd(e){
 function handleFeedTouchCancel(){
  feedTouchStart=null;
 }
+
+let searchLearningTimer=null;
+root.addEventListener("input",e=>{
+ const input=e.target;
+ if(input?.id!=="shop-search")return;
+ const term=input.value.trim().toLowerCase();
+ const cards=[...document.querySelectorAll(".shop-collection .shop-product")];
+ let visible=0,matchTopic="";
+ for(const card of cards){
+  const match=card.dataset.shopName?.includes(term);
+  card.hidden=!match;
+  if(match){visible++;if(!matchTopic)matchTopic=card.dataset.product;}
+ }
+ const count=document.getElementById("shop-search-count");
+ if(count)count.textContent=visible?visible+" oferta(s) encontrada(s)":"Nenhum resultado. Tente outro termo.";
+ clearTimeout(searchLearningTimer);
+ if(term.length>=3&&matchTopic&&state.personalized){
+  searchLearningTimer=setTimeout(()=>{
+   if(overlay?.type!=="shop"||document.getElementById("shop-search")?.value.trim().toLowerCase()!==term)return;
+   trackModel("search",matchTopic,"search-"+matchTopic);
+  },400);
+ }
+});
+
 root.addEventListener('click',e=>{
  const el=e.target.closest('[data-action]');
  if(!el){
@@ -1298,8 +1395,17 @@ root.addEventListener('click',e=>{
  else if(a==='coach'){state.helpRequests++;save();overlay={type:'coach',id:id||undefined};modal=null;drawOverlay();}
  else if(a==='goal'){overlay={type:'goal'};modal=null;drawOverlay();}
  else if(a==='pass'){trackModel('skip',id,id);pushEvent('skip',`Decidiu esperar antes de comprar ${products[id]?.name||'o produto'}`);closeOverlay();renderGame(true);toast('Você voltou ao feed sem comprar.');}
+ else if(a==='less'){
+  const topic=el.dataset.topic,target=post;
+  if(Recommender.topics.includes(topic)&&target){
+   trackModel('less',topic,target);
+   if(!state.hiddenPosts.includes(target))state.hiddenPosts.push(target);
+   save();
+  }
+  closeModal();renderGame(true);toast('Você verá menos conteúdo parecido.');
+ }
  else if(a==='close-modal')closeModal()
- else if(a==='post-more'||a==='ad-more'){modal={type:'more'};drawModal();}
+ else if(a==='post-more'||a==='ad-more'){const card=el.closest('.post');modal={type:'more',post:card?.dataset.recId||'',topic:card?.dataset.recTopic||''};drawModal();}
  else if(a==='close-overlay')closeOverlay()
  else if(a==='cart'){overlay={type:'cart'};drawOverlay();}
  else if(a==='profile'){overlay={type:'profile'};drawOverlay();}
