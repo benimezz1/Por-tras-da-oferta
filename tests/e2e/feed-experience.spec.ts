@@ -58,7 +58,7 @@ test("stories, comentários, produtos e ajuda não exigem decisão entre capítu
   await expect(page.locator(".bottom-sheet")).toBeVisible();
   await page.locator('[data-action="close-modal"]').click();
   await page.locator('.ad-post [data-action="product"]').first().click();
-  await expect(page.locator(".product-info")).toBeVisible();
+  await expect(page.locator(".shop-title")).toBeVisible();
   await page.locator('.layer [data-action="coach"]').click();
   await expect(page.locator(".critical-panel")).toContainText("O anúncio chama sua atenção");
   await expect(page.locator(".critical-panel")).toContainText("Não é uma resposta do MCP conectado");
@@ -95,7 +95,11 @@ test("compras livres podem comprometer o objetivo sem encerrar o feed", async ({
   let failedGoal = false;
   for (const id of options) {
     await page.locator('.ad-post[data-rec-topic="' + id + '"] [data-action="product"]').first().click();
-    await page.locator('[data-action="buy"]').click();
+    await page.locator('.shop-footer [data-action="checkout"]').click();
+    await expect(page.locator(".checkout-summary")).toBeVisible();
+    await page.locator('.shop-footer [data-action="buy"]').click();
+    await expect(page.locator(".receipt-screen")).toBeVisible();
+    await page.locator(".receipt-screen [data-action='close-overlay']").click();
     await expect(page.locator(".phone")).toBeVisible();
     const remaining = await page.evaluate(() => JSON.parse(localStorage.getItem("nofeed-simulator-v3")).wallet);
     if (remaining < 400) { failedGoal = true; break; }
@@ -360,26 +364,27 @@ test("foto do feed: clique simples não abre comentários e duplo clique curte c
   await expect(page.locator(".bottom-sheet")).toBeVisible();
 });
 
-test("anúncios também podem ser curtidos com duplo clique, sem abrir loja ou comentários", async ({ page }) => {
+test("um clique na foto do anúncio abre o site e dois cliques curtem sem sair", async ({ page }) => {
   await enter(page);
   const ad=page.locator(".ad-post").first();
   const adId=await ad.getAttribute("data-rec-id");
   const photo=ad.locator(".feed-photo");
   const heart=ad.locator('[data-action="like-ad"]');
-  await photo.click();
-  await expect(page.locator(".layer")).toHaveCount(0);
-  await expect(page.locator(".bottom-sheet")).toHaveCount(0);
   await photo.dblclick();
   await expect(heart).toHaveAttribute("aria-pressed","true");
   await expect(heart.locator("svg")).toHaveCSS("fill","rgb(236, 71, 126)");
-  expect(await page.evaluate((id)=>JSON.parse(localStorage.getItem("nofeed-simulator-v3")).likedAds.includes(id),adId)).toBe(true);
+  await expect(page.locator(".layer")).toHaveCount(0);
+  expect(await page.evaluate(id=>JSON.parse(localStorage.getItem("nofeed-simulator-v3")).likedAds.includes(id),adId)).toBe(true);
   await page.reload();
   const again=page.locator('.ad-post[data-rec-id="'+adId+'"]');
   await expect(again.locator('[data-action="like-ad"]')).toHaveAttribute("aria-pressed","true");
   await again.locator('[data-action="like-ad"]').click();
   await expect(again.locator('[data-action="like-ad"]')).toHaveAttribute("aria-pressed","false");
-  await again.locator('[data-action="product"]').first().click();
-  await expect(page.locator(".product-info")).toBeVisible();
+  await again.locator(".feed-photo").click();
+  await expect(page.locator(".shop-title")).toBeVisible();
+  await expect(page.locator(".shop-browser")).toContainText(".example");
+  await expect(page.locator(".layer")).toContainText("SITE FICTÍCIO");
+  await expect(page.locator(".bottom-sheet")).toHaveCount(0);
 });
 
 test("toque duplo na foto em celular curte, enquanto arrastar não curte", async ({ page }, testInfo) => {
@@ -403,4 +408,86 @@ test("toque duplo na foto em celular curte, enquanto arrastar não curte", async
   await expect(heart).toHaveAttribute("aria-pressed","true");
   await expect(heart.locator("svg")).toHaveClass(/heart-filled/);
   await expect(page.locator(".bottom-sheet")).toHaveCount(0);
+});
+
+test("anúncio abre loja funcional, sacola, pagamento e recibo", async ({ page }) => {
+ await enter(page);
+ const ad=page.locator(".ad-post").first();
+ const topic=await ad.getAttribute("data-rec-topic");
+ const price=topic==="plano"?39.8:{fone:219.90,tenis:279.90,mochila:159.90}[topic];
+ await ad.locator(".ad-cta").click();
+ await expect(page.locator(".shop-title")).toBeVisible();
+ await expect(page.locator(".shop-browser")).toContainText(".example");
+ await page.locator('.shop-footer [data-action="add-cart"]').click();
+ await expect(page.locator('.shop-footer [data-action="cart"]')).toBeVisible();
+ await page.locator('.shop-footer [data-action="cart"]').click();
+ await expect(page.locator(".cart-item")).toHaveCount(1);
+ await page.locator('[data-action="checkout-cart"]').click();
+ await expect(page.locator(".checkout-summary")).toBeVisible();
+ await page.locator('.shop-footer [data-action="buy"]').click();
+ await expect(page.locator(".receipt-screen")).toContainText("Compra simulada confirmada");
+ const result=await page.evaluate(()=>JSON.parse(localStorage.getItem("nofeed-simulator-v3")));
+ expect(result.purchases).toHaveLength(1);
+ expect(result.purchases[0].id).toBe(topic);
+ expect(result.wallet).toBeCloseTo(620-price,2);
+ await page.locator(".receipt-screen [data-action='close-overlay']").click();
+ await expect(page.locator(".phone-content")).toBeVisible();
+ await expect(page.locator(".receipt-screen")).toHaveCount(0);
+});
+
+test("explorar oferece quatro lojas com retorno simples ao catálogo", async ({ page }) => {
+ await enter(page);
+ await page.locator('.phone-footer [data-action="search"]').click();
+ await expect(page.locator(".shop-collection .shop-product")).toHaveCount(4);
+ await page.locator('.shop-product[data-product="tenis"]').click();
+ await expect(page.locator(".shop-title")).toContainText("Motion 88");
+ await expect(page.locator(".shop-browser")).toContainText("rush-street.example");
+ await page.locator('.layer-head [data-action="shop-back"]').click();
+ await expect(page.locator(".shop-collection .shop-product")).toHaveCount(4);
+ await page.locator('.shop-product[data-product="mochila"]').click();
+ await expect(page.locator(".shop-title")).toContainText("Trail Mini");
+ await page.locator('.shop-footer [data-action="checkout"]').click();
+ await expect(page.locator(".checkout-summary")).toBeVisible();
+ await page.locator('.layer-head [data-action="shop-back"]').click();
+ await expect(page.locator(".shop-title")).toContainText("Trail Mini");
+ await page.locator('.layer-head [data-action="shop-back"]').click();
+ await expect(page.locator(".shop-collection .shop-product")).toHaveCount(4);
+});
+
+test("posts e stories com ofertas levam ao site do produto", async ({ page }) => {
+ await enter(page);
+ await loadAll(page);
+ await page.locator('[data-rec-id="p5"] .post-shop-link').click();
+ await expect(page.locator(".shop-title")).toContainText("Motion 88");
+ await page.locator('.layer-head [data-action="shop-back"]').click();
+ await page.locator('.story-rail .story[data-story-user="loja.noma"]').click();
+ const story=page.locator(".story-layer");
+ await expect(story).toBeVisible();
+ await expect(story.locator(".story-shop-cta")).toContainText("Ver oferta na loja");
+ await story.locator('.story-shop-cta').click();
+ await expect(page.locator(".story-layer")).toHaveCount(0);
+ await expect(page.locator(".shop-title")).toContainText("Trail Mini");
+});
+
+test("assinatura oferece adicional opcional e recalcula o checkout", async ({ page }) => {
+ await enter(page);
+ await page.locator('.phone-head [data-action="shop"]').click();
+ await page.locator('.shop-product[data-product="plano"]').click();
+ await page.locator('.shop-footer [data-action="checkout"]').click();
+ await expect(page.locator(".checkout-summary")).toContainText("R$ 39,80");
+ await page.locator('.checkout-summary #vip-extra').uncheck();
+ await expect(page.locator(".checkout-summary")).toContainText("R$ 29,90");
+ await page.locator('.shop-footer [data-action="buy"]').click();
+ await expect(page.locator(".receipt-screen")).toBeVisible();
+ const state=await page.evaluate(()=>JSON.parse(localStorage.getItem("nofeed-simulator-v3")));
+ expect(state.monthly).toBe(29.90);
+ expect(state.wallet).toBeCloseTo(590.10,2);
+});
+
+test("vitrine personalizada do feed oferece acesso claro a lojas", async ({ page }) => {
+ await enter(page);
+ await expect(page.locator(".shop-strip .shop-mini-card")).toHaveCount(2);
+ await page.locator(".shop-strip .shop-mini-card").first().click();
+ await expect(page.locator(".shop-title")).toBeVisible();
+ await expect(page.locator(".shop-browser")).toBeVisible();
 });

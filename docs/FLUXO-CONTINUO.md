@@ -91,3 +91,13 @@ Este ajuste é principalmente de experiência e clareza de autoria; as fotos e o
 - A fotografia exibe uma breve animação de coração ao receber dois toques. A animação não obstrui os cliques ou a rolagem.
 - Os comentários de publicações e anúncios são acessados **somente pelo ícone de balão de comentário**, não tocando a fotografia.
 - A página do produto patrocinado continua acessível pelo botão "Conhecer o produto" e pelo ícone de visualização, mas não por um toque na imagem.
+
+## Reformulação das compras e do comércio social
+
+O caminho principal da experiência foi simplificado para **publicação patrocinada → loja simulada → carrinho ou comprar agora → confirmação de pedido → continuar o feed**. Não há site externo real nem cobrança. Os quatro sites são páginas internas da simulação identificadas com endereços `.example`, explicados como ilustrativos.
+
+A foto de um anúncio agora abre a loja com um toque ou clique simples; dois toques rápidos continuam curtindo, sem abrir a loja. O balão é o único acesso aos comentários. O botão rosa **Visitar loja e comprar** fica visível em cada anúncio, assim como os preços. A nova vitrine **Talvez você curta também**, a aba Explorar e o botão Ofertas do cabeçalho levam diretamente aos quatro catálogos fictícios.
+
+Alguns posts e stories relacionados a produtos oferecem **links de compra**, preservando a identificação de publicações e parcerias. A loja mostra preço, especificações, análises fictícias, mensagens comerciais e a opção de avaliação crítica. Há uma sacola para combinar compras, checkout de confirmação sem solicitação de dados pessoais e recibo fictício; os gastos ficam no estado local do jogo e aparecem no balanço final.
+
+Para demonstrar mecanismos psicológicos de marketing, as páginas apresentam descontos de referência, personalização pelos interesses demonstrados, recorrência de anúncios e um adicional opcional previamente marcado na assinatura. Todos esses elementos são explicitamente apresentados como fictícios; a experiência permite não comprar e preservar a meta original.

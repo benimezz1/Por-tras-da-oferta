@@ -194,6 +194,79 @@
   100%{opacity:0;transform:scale(1.35)}
 }
 @media(prefers-reduced-motion:reduce){.photo-like-burst{animation:none;opacity:.95}}
+
+/* Mercado integrado ao feed: vitrine, paginas de loja e pagamento sempre simulados. */
+.game{display:flex;align-items:center;justify-content:center;gap:0}
+.game .rail{display:none}
+.game .phone{margin:0 auto}
+.shop-entry{border:0;border-radius:999px;background:#f8e9f3;color:#8c366f;padding:9px 12px;font-size:12px;font-weight:800;white-space:nowrap}
+.shop-entry:hover{background:#f3daec}
+.shop-entry:focus-visible,.shop-product:focus-visible,.ad-cta:focus-visible{outline:3px solid #a372dc;outline-offset:2px}
+.shop-strip{padding:17px 14px 18px;border-top:1px solid #f1e9ef;background:#fff9fd}
+.shop-strip-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px}
+.shop-strip-header strong{font-size:14px;letter-spacing:-.02em}
+.shop-strip-header button{border:0;background:none;color:#925079;font-size:12px;font-weight:800;padding:6px}
+.shop-strip-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.shop-mini-card{display:flex;flex-direction:column;gap:5px;text-align:left;border:1px solid #f0e3ec;background:white;border-radius:14px;overflow:hidden;padding:0 0 11px;min-width:0}
+.shop-mini-card .art{height:108px;width:100%;background:#f6f2f8}
+.shop-mini-card strong,.shop-mini-card b,.shop-mini-card small{padding:0 11px;display:block}
+.shop-mini-card strong{font-size:12px}
+.shop-mini-card b{font-size:15px;color:#30242d}
+.shop-mini-card small{font-size:11px;color:#9d5383;font-weight:800}
+.post-shop-link{margin:0 15px 13px;padding:11px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fef7fb;border:1px solid #f1d9e7;border-radius:11px;color:#963f72;font-size:12px;font-weight:800;width:calc(100% - 30px)}
+.post-shop-link:hover{background:#f8e9f2}
+.ad-cta{background:#ed477e;border-color:#ed477e;color:white;font-size:13px;padding:14px 15px}
+.ad-cta:hover{background:#d73972;border-color:#d73972}
+.ad-post .post-media{cursor:pointer}
+.ad-post .price-bar{border:0;background:#fff7fb}
+.ad-post .price-bar strong{font-size:20px}
+.shop-banner{padding:15px 18px;background:linear-gradient(115deg,#38213c,#a94f83);color:white;margin:0}
+.shop-banner b{display:block;font-size:19px;letter-spacing:-.04em}
+.shop-banner p{font-size:12px;opacity:.88;margin:5px 0 0}
+.shop-collection{padding:14px}
+.shop-product{display:grid;grid-template-columns:100px minmax(0,1fr);gap:12px;align-items:center;text-align:left;width:100%;background:white;border:1px solid #efe7ee;border-radius:14px;margin-bottom:11px;padding:8px;color:inherit}
+.shop-product .art{height:100px;border-radius:10px;background:#f7f0f9}
+.shop-product strong{display:block;font-size:14px}
+.shop-product small{display:block;color:#968897;font-size:11px;margin:4px 0}
+.shop-product b{display:block;color:#7f3e70;font-size:17px}
+.shop-browser{display:flex;align-items:center;gap:9px;min-width:0;background:#f8f4f8;padding:8px 11px;border:1px solid #efe7ef;border-radius:10px;font-size:11px;color:#6c6070}
+.shop-browser b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.shop-browser .safe{color:#648574;font-weight:800}
+.shop-hero{background:#f7eff7;overflow:hidden;position:relative}
+.shop-hero .art{height:235px}
+.shop-hero .product-photo{width:100%;height:100%;object-fit:contain}
+.shop-title{padding:15px 18px 0}
+.shop-title h2{font-size:26px;letter-spacing:-.045em;line-height:1.1;margin:5px 0 8px}
+.shop-label{display:inline-block;font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:#a04c7b;font-weight:850}
+.shop-price{font-size:26px;font-weight:850;margin:13px 0 5px}
+.shop-price del{font-size:13px;color:#a698a8;font-weight:500;margin-right:8px}
+.shop-hook{background:#fff0f6;color:#8a396d;padding:11px 13px;border-radius:12px;font-size:12px;line-height:1.5;font-weight:700;margin:10px 0}
+.shop-details{padding:0 18px 20px;font-size:12px;color:#817686;line-height:1.6}
+.shop-details ul{margin:12px 0;padding-left:20px}
+.shop-details li{margin:5px 0}
+.shop-navigation{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:11px 16px;border-bottom:1px solid #f1e9f0}
+.shop-navigation button{background:#fff;border:1px solid #eadce6;border-radius:9px;font-size:11px;font-weight:750;padding:8px 10px}
+.shop-trust{padding:9px 18px;color:#8f7f8e;font-size:11px;background:#fbf7fb}
+.shop-footer{border-top:1px solid #f0e7f0;padding:12px 13px 15px;display:grid;grid-template-columns:1fr 1fr;gap:9px;background:white;flex-shrink:0}
+.shop-footer .primary,.shop-footer .secondary{padding:14px 9px;font-size:13px}
+.shop-footer .primary{background:#e83f77}
+.shop-footer .primary:hover{background:#d82c68}
+.checkout-summary{padding:19px 18px 22px}
+.checkout-summary h2{font-size:25px;letter-spacing:-.045em;margin:8px 0 13px}
+.checkout-item{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:11px 0;border-bottom:1px solid #f1eaf0}
+.checkout-item span{max-width:70%}
+.checkout-price{display:flex;align-items:center;justify-content:space-between;padding:18px 0 10px;font-size:15px}
+.checkout-price strong{font-size:25px}
+.checkout-note{margin:14px 0;font-size:12px;line-height:1.55;color:#786d79}
+.checkout-warning{border-radius:12px;padding:12px 13px;background:#fff1e6;color:#86532c;font-weight:750;font-size:12px;line-height:1.4}
+.receipt-screen{text-align:center;padding:46px 24px 20px}
+.receipt-check{display:grid;place-items:center;font-size:32px;color:white;background:#41a777;width:72px;height:72px;border-radius:50%;margin:0 auto 16px}
+.receipt-screen h2{font-size:28px;letter-spacing:-.04em;margin:0 0 10px}
+.receipt-screen p{font-size:13px;line-height:1.6;color:#86798a}
+.shop-tiny-label{display:inline-flex;background:#faedf6;color:#8b4c76;border-radius:9px;padding:6px 9px;font-size:11px;font-weight:700}
+.story-shop-cta{position:absolute;z-index:6;left:30px;right:30px;bottom:115px;border:1px solid #fff8;border-radius:12px;padding:13px;background:rgba(255,255,255,.96);color:#302335;font-size:13px;font-weight:850;box-shadow:0 6px 24px #0003}
+.story-shop-cta:hover{background:white}
+@media(max-width:810px){.game{display:flex;padding:0}.phone{width:min(100%,430px)}.shop-entry{padding:8px 10px}}
 </style>
 </head>
 <body>
@@ -297,7 +370,7 @@ const money=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).
 const icons={heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',comment:'<path d="M20 11.5a8 8 0 0 1-8 8 9.1 9.1 0 0 1-3.5-.7L3 21l1.3-5.2A8.3 8.3 0 0 1 4 11.5a8 8 0 0 1 16 0Z"/>',bookmark:'<path d="M6 3h12v18l-6-4-6 4V3Z"/>',cart:'<circle cx="9" cy="20" r="1"/><circle cx="19" cy="20" r="1"/><path d="M2 3h2l2.5 12h13.6l2-9H5"/>',arrow:'<path d="m15 18-6-6 6-6"/>',send:'<path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/>',home:'<path d="m3 10 9-7 9 7v10H3V10Z"/><path d="M9 20v-7h6v7"/>',search:'<circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 5 5"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',close:'<path d="M5 5 19 19M19 5 5 19"/>',chevron:'<path d="m9 5 7 7-7 7"/>',more:'<circle cx="4" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="20" cy="12" r="1"/>',bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',check:'<path d="m4 12 5 5L20 6"/>',info:'<circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/>',share:'<path d="M12 16V3M7 8l5-5 5 5M5 16v4h14v-4"/>',eye:'<path d="M2 12s3.7-7 10-7 10 7 10 7-3.7 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>'};
 const icon=(n,cls='')=>`<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true">${icons[n]||icons.info}</svg>`;
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const makeInitial=()=>({version:3,started:false,finished:false,phase:0,feedItems:[],helpRequests:0,wallet:620,goal:400,cart:[],purchases:[],decisions:[],viewed:[],liked:[],likedAds:[],bookmarks:[],stories:[],reviews:[],signals:{fone:0,tenis:0,plano:0,mochila:0},personalized:true,extraChecked:true,monthly:0,events:[],seenAds:[],algorithm:Recommender.emptyProfile()});
+const makeInitial=()=>({version:3,started:false,finished:false,phase:0,feedItems:[],helpRequests:0,wallet:620,goal:400,cart:[],purchases:[],decisions:[],viewed:[],liked:[],likedAds:[],bookmarks:[],lastOrder:null,stories:[],reviews:[],signals:{fone:0,tenis:0,plano:0,mochila:0},personalized:true,extraChecked:true,monthly:0,events:[],seenAds:[],algorithm:Recommender.emptyProfile()});
 let state=makeInitial();try{
  const saved=JSON.parse(localStorage.getItem(KEY)||"null");
  if(saved?.version===3&&Array.isArray(saved.feedItems)&&Array.isArray(saved.decisions)){
@@ -478,16 +551,42 @@ function asideLeft(){
  </aside>`;
 }
 function asideRight(){return '';}
+
+const relatedPostLinks={
+ p3:{topic:"fone",label:"Fones para essa playlist"},
+ p5:{topic:"tenis",label:"Ver tênis do look"},
+ p7:{topic:"plano",label:"Ouvir no MODO+"},
+ p9:{topic:"plano",label:"Conhecer assinatura"},
+ p10:{topic:"mochila",label:"Mochilas para a viagem"},
+ p12:{topic:"mochila",label:"Ver mochilas"}
+};
+function shopPicks(){
+ const purchased=new Set(state.purchases.map(x=>x.id));
+ return Recommender.topics.filter(x=>!purchased.has(x))
+   .sort((a,b)=>{
+    const relevance=id=>Recommender.affinity(state.algorithm,id,state.phase)
+      +(state.cart.includes(id)?3:0)+(state.viewed.includes(id)?1:0);
+    return relevance(b)-relevance(a)||Recommender.topics.indexOf(a)-Recommender.topics.indexOf(b);
+   }).slice(0,2);
+}
+function shopStrip(){
+ const picks=shopPicks();
+ if(!picks.length)return "";
+ return `<aside class="shop-strip"><div class="shop-strip-header"><strong>Talvez você curta também</strong><button data-action="shop">Ver lojas →</button></div><div class="shop-strip-grid">${picks.map(id=>{
+  const p=products[id];
+  return `<button class="shop-mini-card" data-action="product" data-product="${id}" aria-label="Ver ${esc(p.name)} na loja">${art(p.kind,true,p.brand)}<strong>${esc(p.name)}</strong><b>${money(p.price)}${id==='plano'?'/mês':''}</b><small>Ver na loja →</small></button>`;
+ }).join('')}</div></aside>`;
+}
 function stageFeed(){
  const pool=contentPool();
- const cards=state.feedItems.map(item=>item.kind==='post'?postCard(pool.find(p=>p.id===item.id)):adCard(item.topic,item.retarget)).join('');
+ const cards=state.feedItems.map((item,i)=>{const card=item.kind==='post'?postCard(pool.find(p=>p.id===item.id)):adCard(item.topic,item.retarget);return card+(i===3?shopStrip():'');}).join('');
  const done=Stream.isDone(pool,state.feedItems);
  const next=done?'<div class="feed-end-hint"><strong>Você já percorreu as publicações desta demonstração.</strong><p>Uma rede real poderia continuar oferecendo mais conteúdo. Aqui, você pode revisitar posts, pedir ajuda ou observar as consequências do seu percurso.</p></div>':
  '<button class="load-more" data-action="load-more">Mais publicações para você ↓</button>';
  return `<div class="game">${asideLeft()}<main class="phone" aria-label="Simulador de rede social">
  <header class="phone-head"><span class="phone-logo">pulso<b>.</b></span><div class="phone-actions">
  
- <button class="icon-button" data-action="notifications" aria-label="Notificações">${icon('heart')}</button>
+ <button class="shop-entry" data-action="shop" aria-label="Abrir lojas">Ofertas</button><button class="icon-button" data-action="notifications" aria-label="Notificações">${icon('heart')}</button>
  <button class="icon-button" data-action="cart" aria-label="Abrir carrinho" style="position:relative">${icon('cart')}${state.cart.length?`<span class="cart-dot">${state.cart.length}</span>`:''}</button>
  </div></header>
  <div class="phone-content" id="feed-scroll">
@@ -496,10 +595,10 @@ function stageFeed(){
  <div class="recommendation-caption">${state.personalized?'Sugestões de publicações para você':'Publicações em ordem editorial'}</div>
  ${cards}${next}
  <button class="finish-feed" data-action="finish">Sair do feed e ver minhas escolhas →</button>
- <p class="feed-footer-note">Não há uma compra obrigatória. Você decide quando parar.</p>
+ <p class="feed-footer-note">Ofertas e compras são simuladas. Você decide o que fazer.</p>
  </div><button class="scroll-cue" data-action="scroll-cue" aria-label="Role para baixo para continuar">Continue rolando ↓</button>
  <footer class="phone-footer"><button class="icon-button" data-action="feedtop" aria-label="Início do feed">${icon('home')}</button>
- <button class="icon-button" data-action="search" aria-label="Explorar">${icon('search')}</button>
+ <button class="icon-button" data-action="search" aria-label="Explorar lojas">${icon('search')}</button>
  <button class="icon-button" data-action="goal" aria-label="Minha meta">${icon('bookmark')}</button>
  <button class="icon-button" data-action="cart" aria-label="Carrinho">${icon('cart')}</button>
  <button class="icon-button" data-action="profile" aria-label="Meu perfil">${icon('user')}</button>
@@ -508,12 +607,17 @@ function stageFeed(){
 
 function postCard(post){
  const liked=state.liked.includes(post.id),saved=state.bookmarks.includes(post.id),isPage=post.source==="page";
- return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage ? "page" : ""}">${isPage ? "página" : "amigo"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo" data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Toque duas vezes para curtir.">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved ? "#e84a80" : "inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${post.who}</strong> ${post.caption}</p></article>`;
+ const link=relatedPostLinks[post.id];
+ const button=link?`<button class="post-shop-link" data-action="product" data-product="${link.topic}">${esc(link.label)} · ${money(products[link.topic].price)} <span aria-hidden="true">→</span></button>`:"";
+ const photoAction=link?` data-action="open-photo" data-product="${link.topic}"`:"";
+ return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":"amigo"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${post.who}</strong> ${post.caption}</p>${button}</article>`;
 }
 function adCard(id,retarget=false){
- const p=products[id],saved=state.cart.includes(id),text=retarget?(saved?`Ainda no seu carrinho: ${p.name}. A loja quer que você volte.`:p.late):p.ad;
- const adId=retarget?`ad-ret-${id}`:`ad-main-${id}`,liked=state.likedAds.includes(adId);
- return `<article class="post ad-post" data-rec-id="${adId}" data-rec-topic="${id}"><div class="post-top"><span class="avatar brand-av">${p.brand.split(" ")[0].slice(0,4)}</span><div class="user-info"><div class="username">${p.brand.toLowerCase().replaceAll(" ",".")}</div><div class="post-sub"><span class="sponsored-label">Patrocinado · ${retarget?"Recomendado para você":"Anúncio da campanha fictícia"}</span></div></div><button class="icon-button" data-action="ad-more" data-product="${id}" aria-label="Opções do anúncio">${icon("more")}</button></div><div class="post-media feed-photo" data-like-ad="${adId}" role="group" aria-label="Foto do anúncio de ${esc(p.name)}. Toque duas vezes para curtir.">${art(p.kind,true,p.brand)}<span class="photo-tag">${retarget?"Você já demonstrou interesse":"OFERTA EXCLUSIVA*"}</span></div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like-ad" data-product="${id}" data-ad="${adId}" aria-label="${liked?"Descurtir":"Curtir"} anúncio" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${adId}" aria-label="Ver avaliações">${icon("comment")}</button><button class="icon-button push" data-action="product" data-product="${id}" aria-label="Ver produto">${icon("eye")}</button></div><p class="post-caption"><strong>${p.brand.toLowerCase().replaceAll(" ",".")}</strong> ${text}</p><div class="price-bar"><div><span>${p.old?`<s>${money(p.old)}</s> · `:""}Valor anunciado</span><br><strong>${money(p.price)}${id==="plano"?'<small style="font-size:11px">/mês</small>':""}</strong></div><span>${retarget?"Para você":"Patrocinado"}</span></div><button class="ad-cta" data-action="product" data-product="${id}">Conhecer o produto ${icon("chevron")}</button></article>`;
+ const p=products[id],saved=state.cart.includes(id),likedId=retarget?`ad-ret-${id}`:`ad-main-${id}`;
+ const liked=state.likedAds.includes(likedId);
+ const note=retarget?`Você demonstrou interesse em ${p.name}. A loja apareceu outra vez.`:p.ad;
+ const persuasion=id==='fone'?'Seu sábado merece trilha sonora.':id==='tenis'?'O tênis dos looks que você anda vendo.':id==='plano'?'Suas playlists sem interrupção.':'Que tal se preparar para a viagem?';
+ return `<article class="post ad-post" data-rec-id="${likedId}" data-rec-topic="${id}"><div class="post-top"><span class="avatar brand-av">${p.brand.split(" ")[0].slice(0,4)}</span><div class="user-info"><div class="username">${p.brand.toLowerCase().replaceAll(" ",".")}</div><div class="post-sub"><span class="sponsored-label">Patrocinado · anúncio fictício</span></div></div><button class="icon-button" data-action="ad-more" data-product="${id}" aria-label="Opções do anúncio">${icon("more")}</button></div><div class="post-media feed-photo" data-action="open-photo" data-product="${id}" data-like-ad="${likedId}" role="group" aria-label="Anúncio ${esc(p.name)}. Um toque abre a loja. Dois toques curtem.">${art(p.kind,true,p.brand)}<span class="photo-tag">${retarget?"Você já viu este produto":"Oferta da loja*"}</span></div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like-ad" data-product="${id}" data-ad="${likedId}" aria-label="${liked?"Descurtir":"Curtir"} anúncio" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${likedId}" aria-label="Ver avaliações">${icon("comment")}</button><button class="icon-button push" data-action="product" data-product="${id}" aria-label="Visitar site da loja">${icon("eye")}</button></div><p class="post-caption"><strong>${p.brand.toLowerCase().replaceAll(" ",".")}</strong> ${persuasion} ${note}</p><div class="price-bar"><div><span>${p.old?`<s>${money(p.old)}</s> · `:""}${id==="plano"?"Assinatura mensal":"Preço anunciado"}</span><br><strong>${money(p.price)}${id==="plano"?'<small style="font-size:11px">/mês</small>':""}</strong></div><span>${retarget?"Para você":"Patrocinado"}</span></div><button class="ad-cta" data-action="product" data-product="${id}">Visitar loja e comprar <span aria-hidden="true">→</span></button></article>`;
 }
 function adaptiveAd(current) {
   const result = Recommender.pickRetarget({
@@ -603,17 +707,128 @@ function setupFeedExposure() {
   },{root:scroll,threshold:[0,0.2,0.45]});
   scroll.querySelectorAll("[data-rec-id]").forEach(el=>feedObserver.observe(el));
 }
-function drawOverlay(){const phone=document.querySelector('.phone');if(!phone)return;document.querySelector('.layer')?.remove();const wrap=document.createElement('div');wrap.className='layer';const id=overlay.id;if(overlay.type==='product'){
- const p=products[id];const choice=id==='plano'?`<label class="option-row"><input id="vip-extra" type="checkbox" ${state.extraChecked?'checked':''}/><span><strong>Adicionar recursos VIP (+ ${money(9.90)}/mês)</strong><br><small class="muted">Adicional opcional. A loja deixou essa opção marcada.</small></span></label>`:'';
- wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon('arrow')}</button><strong>site · ${p.brand}</strong><span style="margin-left:auto" class="small muted">🔒 compra simulada</span></header><div class="layer-body"><div class="product-hero">${art(p.kind,true,p.brand)}</div><section class="product-info"><p class="eyebrow">${p.label}</p><h2>${p.name}</h2><p class="product-desc">${p.desc}</p><div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:14px 0">${p.old?`<span class="old-price">${money(p.old)}</span>`:''}<span class="new-price">${money(p.price)}</span><span class="deal-bubble">${id==='plano'?'por mês':'Preço da campanha*'}</span></div><div class="product-specs">${p.specs.map(s=>`<div class="spec">${s}</div>`).join('')}</div><button class="reviews-shortcut" data-action="comments" data-post="ad-main-${id}"><div><strong>★ Avaliações e comentários</strong><div class="review-note">Opiniões positivas e negativas da simulação</div></div>${icon('chevron')}</button>${choice}<button class="secondary critical-action" data-action="coach" data-product="${id}">✦ Preciso mesmo disso? Pedir ajuda</button>
- <button class="tertiary critical-action" data-action="pass" data-product="${id}">Vou pensar mais antes de comprar</button>
- <p class="warning-note">* Produto, comentários, marcas, alegações comerciais e preços fictícios. Anúncios não são ofertas reais.</p></section></div><div class="product-foot"><button class="secondary" data-action="add-cart" data-product="${id}">${state.cart.includes(id)?'✓ Salvo no carrinho':'Salvar no carrinho'}</button><button class="primary" data-action="buy" data-product="${id}">${id==='plano'?`Assinar · ${money(p.price+(state.extraChecked?9.90:0))}/mês`:'Comprar agora'}</button></div>`;
- }else if(overlay.type==='cart'){wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon('arrow')}</button><strong>Seu carrinho</strong><span style="margin-left:auto" class="pill">${state.cart.length} item(ns)</span></header><div class="layer-body" style="padding:14px 18px">${state.cart.length?state.cart.map(id=>{const p=products[id];return `<div class="cart-item"><div class="cart-thumb">${art(p.kind,true)}</div><div class="cart-item-text"><strong>${p.name}</strong><p>${money(p.price)}${id==='plano'?'/mês':''}</p><button class="text-link" data-action="remove-cart" data-product="${id}">Remover</button></div><button class="tiny-button" data-action="product" data-product="${id}">Ver</button></div>`}).join(''):`<div class="empty"><div style="font-size:44px">🛒</div><p>Seu carrinho está vazio.</p><p class="small">Salvar algo não significa que você precisa comprar.</p></div>`}<p class="small muted" style="margin-top:20px">As lojas da simulação podem usar itens salvos para oferecer novos anúncios personalizados.</p></div>`;
- }else if(overlay.type==='profile'){wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon('arrow')}</button><strong>Meu perfil</strong></header><div class="layer-body" style="padding:22px"><div style="text-align:center;padding:8px 0 22px"><div class="avatar" style="margin:auto;width:74px;height:74px;font-size:35px">🙂</div><h3 style="margin:12px 0 4px">você</h3><p class="small muted">Perfil fictício da simulação</p></div><div class="end-box" style="padding:15px;margin:0"><strong style="font-size:13px">Seu saldo</strong><div style="font-size:24px;font-weight:850;margin:8px 0">${money(state.wallet)}</div><p class="small muted">Objetivo reservado: ${money(state.goal)}</p></div><label class="option-row"><input id="privacy-switch" type="checkbox" ${state.personalized?'checked':''}/><span><strong>Recomendações personalizadas</strong><br><small class="muted">Se desligar, posts voltam à ordem cronológica e anúncios deixam de ser repetidos com base nos sinais da partida.</small></span></label><p class="small muted">Desligar a personalização não elimina publicidade, mas muda a próxima seleção de conteúdos.</p><button class="reviews-shortcut" data-action="goal"><strong>Relembrar meu objetivo fora da rede</strong>${icon("chevron")}</button></div>`;
- }else if(overlay.type==='goal'){wrap.innerHTML=goalPanel();}else if(overlay.type==='coach'){wrap.innerHTML=coachPanel();}else if(overlay.type==='notifications'){wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay">${icon('arrow')}</button><strong>Notificações</strong></header><div class="layer-body" style="padding:20px"><h3 style="font-size:19px">Novidades no seu feed</h3>${state.cart.length?state.cart.map(id=>`<button class="reviews-shortcut" data-action="product" data-product="${id}"><span>🛍️ ${products[id].name} continua no seu carrinho</span>${icon('chevron')}</button>`).join(''):'<p class="small muted">Nenhuma novidade por aqui.</p>'}<p class="small muted">As notificações são fictícias.</p></div>`;
+
+const shopAddresses={fone:"aura-audio.example",tenis:"rush-street.example",plano:"modo-music.example",mochila:"noma-goods.example"};
+const marketingHooks={
+ fone:"Sua playlist merece uma experiência nova. O anúncio reapareceu porque áudio combinou com suas interações.",
+ tenis:"Você viu looks parecidos no feed. A marca apresenta este modelo como uma tendência da semana.",
+ plano:"Aquela playlist sem interrupções está a um clique. Assinatura renovada mensalmente.",
+ mochila:"A viagem está chegando? A loja destaca o desconto de referência e a oferta do dia."
+};
+function cartLinePrice(id){
+ const p=products[id];
+ return !p?0:p.price+(id==="plano"&&state.extraChecked?9.90:0);
+}
+function cartTotal(ids){
+ return Math.round(ids.reduce((sum,id)=>sum+cartLinePrice(id),0)*100)/100;
+}
+function productPage(){
+ const id=overlay.id,p=products[id],bought=state.purchases.some(item=>item.id===id),inCart=state.cart.includes(id);
+ if(!p)return shopPage();
+ const choice=id==="plano"?`<label class="option-row"><input id="vip-extra" type="checkbox" ${state.extraChecked?"checked":""}/><span><strong>Acrescentar VIP por ${money(9.90)}/mês</strong><br><small class="muted">Complemento opcional. A opção está pré-selecionada pela loja fictícia.</small></span></label>`:"";
+ return `<header class="layer-head"><button class="icon-button" data-action="shop-back" aria-label="Voltar">${icon("arrow")}</button><div class="shop-browser" style="flex:1;min-width:0"><span class="safe">🔒</span><b>${shopAddresses[id]}</b></div><button class="icon-button" data-action="cart" aria-label="Ver carrinho">${icon("cart")}</button></header>
+  <div class="layer-body"><div class="shop-trust">SITE FICTÍCIO · Você está dentro da demonstração, sem pagamentos reais.</div>
+  <div class="shop-banner"><b>${esc(p.brand)}</b><p>${esc(p.tag)}</p></div>
+  <div class="shop-hero">${art(p.kind,true,p.brand)}</div>
+  <section class="shop-title"><span class="shop-label">${esc(p.label)}</span><h2>${esc(p.name)}</h2>
+  <div class="shop-price">${p.old?`<del>${money(p.old)}</del>`:""}${money(p.price)}${id==="plano"?'<small style="font-size:12px">/mês</small>':""}</div>
+  <span class="shop-tiny-label">★ ${p.reviews.length} avaliações fictícias · Oferta da simulação</span>
+  <div class="shop-hook">${marketingHooks[id]}</div></section>
+  <section class="shop-details"><p>${esc(p.desc)}</p><ul>${p.specs.map(item=>`<li>${esc(item)}</li>`).join("")}</ul>
+  ${choice}
+  <button class="reviews-shortcut" data-action="comments" data-post="ad-main-${id}"><span><strong>Ler avaliações e opiniões</strong><small class="muted" style="display:block">Comentários favoráveis e críticos criados para o jogo</small></span>${icon("chevron")}</button>
+  <button class="secondary critical-action full" data-action="coach" data-product="${id}">Ajuda: pensar antes de comprar</button>
+  <p class="warning-note">Os preços, descontos, lojas, estoque, prazo e comentários são fictícios. Este site não solicita pagamentos nem dados pessoais.</p>
+  <button class="text-link" data-action="shop" style="margin:10px 0 20px">Ver outras lojas →</button>
+  </section></div>
+  <div class="shop-footer">
+   <button class="secondary" data-action="${inCart?"cart":"add-cart"}" data-product="${id}" ${bought?"disabled":""}>${bought?"Já comprado":inCart?"Ver sacola ("+state.cart.length+")":"Adicionar à sacola"}</button>
+   <button class="primary" data-action="checkout" data-product="${id}" ${bought?"disabled":""}>${bought?"Comprado":"Comprar agora →"}</button>
+  </div>`;
+}
+function shopPage(){
+ const ids=Recommender.topics;
+ return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon("arrow")}</button><strong>Explorar lojas</strong><button class="icon-button" data-action="cart" aria-label="Abrir carrinho">${icon("cart")}${state.cart.length?`<span class="cart-dot">${state.cart.length}</span>`:""}</button></header>
+  <div class="layer-body"><div class="shop-banner"><b>Descubra ofertas no Pulso</b><p>Quatro lojas de demonstração. Tudo é fictício e fácil de explorar.</p></div>
+  <div class="shop-collection">${ids.map(id=>{
+   const p=products[id],bought=state.purchases.some(x=>x.id===id);
+   return `<button class="shop-product" data-action="product" data-product="${id}" aria-label="Visitar site ${esc(p.brand)}"><span>${art(p.kind,true,p.brand)}</span><span><strong>${esc(p.name)}</strong><small>${esc(p.brand)} · ${bought?"Já comprado":"Loja fictícia"}</small><b>${money(p.price)}${id==="plano"?"/mês":""}</b><small>Visitar site →</small></span></button>`;
+  }).join("")}</div></div>`;
+}
+function cartPage(){
+ const ids=state.cart.filter(id=>products[id]&&!state.purchases.some(p=>p.id===id));
+ return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon("arrow")}</button><strong>Sua sacola</strong><span class="pill" style="margin-left:auto">${ids.length} item(ns)</span></header>
+ <div class="layer-body" style="padding:14px 18px">${ids.length?ids.map(id=>{
+  const p=products[id];
+  return `<div class="cart-item"><div class="cart-thumb">${art(p.kind,true,p.brand)}</div><div class="cart-item-text"><strong>${esc(p.name)}</strong><p>${money(cartLinePrice(id))}${id==="plano"?"/mês":""}</p><button class="text-link" data-action="remove-cart" data-product="${id}">Remover</button></div><button class="tiny-button" data-action="product" data-product="${id}">Ver loja →</button></div>`;
+ }).join("")+`<div class="checkout-price"><span>Total estimado</span><strong>${money(cartTotal(ids))}</strong></div><button class="primary full" data-action="checkout-cart">Finalizar pedido fictício →</button>`:
+ '<div class="empty"><div style="font-size:42px">🛍️</div><h3>Nada na sacola ainda</h3><p>Você pode abrir qualquer loja e adicionar produtos.</p><button class="primary" data-action="shop">Explorar ofertas</button></div>'}
+ <p class="small muted" style="margin-top:20px">Estes são produtos e compras simuladas. Nada será cobrado de verdade.</p></div>`;
+}
+function checkoutPage(){
+ const ids=(overlay.items||[]).filter(id=>products[id]&&!state.purchases.some(p=>p.id===id));
+ const total=cartTotal(ids);
+ return `<header class="layer-head"><button class="icon-button" data-action="shop-back" aria-label="Voltar à loja">${icon("arrow")}</button><strong>Finalizar compra</strong></header>
+ <div class="layer-body checkout-summary"><span class="shop-label">PEDIDO DE DEMONSTRAÇÃO</span><h2>Quase lá!</h2>
+ <p class="small muted">Você está em um checkout simulado. Não informe cartão, endereço nem dados pessoais.</p>
+ ${ids.map(id=>`<div class="checkout-item"><span>${esc(products[id].name)}${id==="plano"?" · assinatura mensal":""}</span><strong>${money(cartLinePrice(id))}</strong></div>`).join("")}
+ ${ids.includes("plano")?`<label class="option-row"><input id="vip-extra" type="checkbox" ${state.extraChecked?"checked":""}/><span><strong>Adicionar VIP (+ ${money(9.90)}/mês)</strong><br><small class="muted">Pré-marcado pela loja simulada; você pode desmarcar.</small></span></label>`:""}
+ <div class="checkout-price"><span>Total do pedido</span><strong>${money(total)}</strong></div>
+ <p class="checkout-note">Saldo fictício disponível: <strong>${money(state.wallet)}</strong>. ${ids.includes("plano")?"Assinaturas são cobradas por mês na simulação.":"Produtos e entrega são fictícios."}</p>
+ ${total>state.wallet?'<div class="checkout-warning">Você não tem saldo fictício suficiente para esse pedido. Remova um item e tente novamente.</div>':""}
+ <div class="shop-tiny-label">🔒 Nenhum pagamento verdadeiro</div>
+ </div>
+ <div class="shop-footer"><button class="secondary" data-action="shop-back">Voltar</button><button class="primary" data-action="buy" ${ids.length===0||total>state.wallet?"disabled":""}>Confirmar compra fictícia</button></div>`;
+}
+function receiptPage(){
+ const order=state.lastOrder||{items:[],total:0};
+ return `<header class="layer-head"><strong>Pedido de demonstração</strong></header><div class="layer-body">
+ <section class="receipt-screen"><div class="receipt-check">✓</div><h2>Compra simulada confirmada!</h2>
+ <p>Seu pedido fictício foi registrado nesta partida. Nenhum pagamento real foi realizado.</p>
+ <div class="checkout-price"><span>Valor do pedido</span><strong>${money(order.total)}</strong></div>
+ <div class="checkout-price"><span>Saldo fictício restante</span><strong>${money(state.wallet)}</strong></div>
+ <p>Você pode continuar olhando o feed e verá as consequências das escolhas ao finalizar a experiência.</p>
+ <button class="primary full" data-action="close-overlay">Voltar ao feed →</button>
+ <button class="secondary full" style="margin-top:10px" data-action="shop">Ver outras lojas</button>
+ </section></div>`;
+}
+
+function drawOverlay(){
+ const phone=document.querySelector(".phone");if(!phone||!overlay)return;
+ document.querySelector(".layer")?.remove();
+ const wrap=document.createElement("div");
+ wrap.className="layer";
+ wrap.setAttribute("role","dialog");
+ wrap.setAttribute("aria-modal","true");
+ const id=overlay.id;
+ if(overlay.type==="shop")wrap.innerHTML=shopPage();
+ else if(overlay.type==="product")wrap.innerHTML=productPage();
+ else if(overlay.type==="cart")wrap.innerHTML=cartPage();
+ else if(overlay.type==="checkout")wrap.innerHTML=checkoutPage();
+ else if(overlay.type==="receipt")wrap.innerHTML=receiptPage();
+ else if(overlay.type==="profile"){
+  wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon("arrow")}</button><strong>Meu perfil</strong></header><div class="layer-body" style="padding:22px">
+   <div style="text-align:center;padding:8px 0 22px"><div class="avatar" style="margin:auto;width:74px;height:74px;font-size:35px">🙂</div><h3 style="margin:12px 0 4px">você</h3><p class="small muted">Perfil fictício da simulação</p></div>
+   <div class="end-box" style="padding:15px;margin:0"><strong style="font-size:13px">Seu saldo</strong><div style="font-size:24px;font-weight:850;margin:8px 0">${money(state.wallet)}</div><p class="small muted">${state.purchases.length} compra(s) fictícia(s) efetuada(s)</p></div>
+   <button class="reviews-shortcut" data-action="shop"><strong>Explorar as lojas</strong>${icon("chevron")}</button>
+   <label class="option-row"><input id="privacy-switch" type="checkbox" ${state.personalized?"checked":""}/><span><strong>Recomendações personalizadas</strong><br><small class="muted">Se desligar, novos posts deixam de considerar seus sinais e anúncios repetidos são desativados.</small></span></label>
+   <button class="reviews-shortcut" data-action="goal"><strong>Relembrar minha meta financeira</strong>${icon("chevron")}</button>
+   </div>`;
  }
+ else if(overlay.type==="goal")wrap.innerHTML=goalPanel();
+ else if(overlay.type==="coach")wrap.innerHTML=coachPanel();
+ else if(overlay.type==="notifications"){
+  const ids=[...new Set([...state.cart,...shopPicks()])].filter(id=>products[id]).slice(0,3);
+  wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon("arrow")}</button><strong>Notificações</strong></header><div class="layer-body" style="padding:18px">
+    <h3 style="font-size:19px">Novidades para você</h3>
+    ${ids.map(id=>`<button class="reviews-shortcut" data-action="product" data-product="${id}"><span><strong>${esc(products[id].brand)}</strong><small style="display:block;margin-top:5px;color:#8b7a8b">${state.cart.includes(id)?"Ainda na sua sacola":"Veja o que apareceu entre as ofertas"} · ${money(products[id].price)}</small></span>${icon("chevron")}</button>`).join("")}
+    <p class="small muted">Notificações e ofertas fictícias para o jogo.</p>
+   </div>`;
+ }
+ else return;
  phone.appendChild(wrap);
 }
+
 function drawModal(){const phone=document.querySelector('.phone');if(!phone)return;document.querySelector('.layer-backdrop')?.remove();const v=modal;let content='';if(v.type==='comments'){
  let comments=[];let title='Comentários';if(v.post.startsWith('ad-main-')||v.post.startsWith('ad-ret-')){let id=v.post.replace(/^ad-(main|ret)-/,'');comments=products[id].reviews;title=`Opiniões sobre ${products[id].name}`;}else{for(const ph of phases){const post=ph.posts.find(x=>x.id===v.post);if(post){comments=post.comments.map((c,i)=>[c[0],c[1],`${i+1} h`]);break;}}}
  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${title}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header><div class="sheet-scroll">${comments.map((c,i)=>`<div class="comment"><span class="avatar">${['🧑','👩','🧒','🙂'][i%4]}</span><div><strong>${esc(c[0])}</strong><p>${esc(c[1])}</p><small>${c[2]||'há pouco'}</small></div></div>`).join('')}<p class="small muted" style="margin-top:12px">Comentários criados para a simulação. Eles não comprovam qualidade, estoque ou popularidade.</p></div>`;
@@ -746,6 +961,8 @@ function drawStory(){
  el.setAttribute('data-story-user',s.user);
  el.setAttribute('data-story-index',String(index));
  el.setAttribute('aria-label',`Stories de ${s.user}`);
+ const hasShopLink=['livia','moda.agora','loja.noma','dj.andre'].includes(s.user);
+ const storyShopLink=hasShopLink?`<button class="story-shop-cta" data-action="story-product" data-product="${s.product}">Ver oferta na loja · ${money(products[s.product].price)} →</button>`:'';
  const image=story.photoUrl
   ? `<img class="story-photo" alt="Story publicado por ${esc(s.user)}" src="${esc(story.photoUrl)}" loading="eager" decoding="sync" draggable="false"/>`
   : '<div class="story-photo-fallback" role="img" aria-label="Imagem indisponível"></div>';
@@ -759,7 +976,7 @@ function drawStory(){
   <button type="button" class="story-tap-zone previous" data-action="story-prev" aria-label="Story anterior"></button>
   <button type="button" class="story-tap-zone next" data-action="story-next" aria-label="Próximo story"></button>
   <div class="story-caption" aria-live="polite">${esc(s.text)}</div>
-  <div class="story-guidance">Toque para avançar · Segure para pausar</div>`;
+  ${storyShopLink}<div class="story-guidance">Toque para avançar · Segure para pausar</div>`;
  const old=document.querySelector('.story-layer');
  if(old)old.replaceWith(el);
  else phone.appendChild(el);
@@ -791,27 +1008,41 @@ function storyPointerCancel(){
 }
 
 function toast(msg){const phone=document.querySelector('.phone');if(!phone)return;clearTimeout(toastTimer);phone.querySelector('.toast')?.remove();const t=document.createElement('div');t.className='toast';t.textContent=msg;phone.appendChild(t);toastTimer=setTimeout(()=>t.remove(),2700);}
-function openProduct(id){if(!products[id])return;if(!state.viewed.includes(id)){state.viewed.push(id);pushEvent('view',`Visitou a loja de ${products[id].name}`);}signal(id,2);trackModel('product',id,id);save();overlay={type:'product',id};modal=null;drawOverlay();}
-function closeOverlay(){const refresh=overlay?.type==='profile';overlay=null;document.querySelector('.layer')?.remove();if(refresh)renderGame(true);}
-function openComments(post){if(post.startsWith('ad-')){const id=post.replace(/^ad-(main|ret)-/,'');if(!state.reviews.includes(id)){state.reviews.push(id);pushEvent('comments',`Leu avaliações de ${products[id].name}`);signal(id,1);save();}trackModel('comments',id,post);}else{const info=postInfo(post);if(info)trackModel('comments',info.topic,post,info.who);}modal={type:'comments',post};drawModal();}
-function closeModal(){modal=null;document.querySelector('.layer-backdrop')?.remove();}
-function addToCart(id){if(!state.cart.includes(id)){state.cart.push(id);signal(id,3);pushEvent('cart',`Salvou ${products[id].name} no carrinho`);trackModel('cart',id,id);}save();renderGame(true);toast(`${products[id].name} salvo no carrinho. Você pode voltar quando quiser.`);}
-function buy(id){
- const p=products[id];if(!p)return false;
- const extra=id==='plano'&&state.extraChecked?9.90:0,cost=p.price+extra;
- if(state.wallet<cost){toast('Seu saldo fictício não cobre a compra.');return false;}
- if(state.purchases.some(x=>x.id===id)){toast('Você já adquiriu esse item fictício.');return false;}
- state.wallet=Math.round((state.wallet-cost)*100)/100;
- state.purchases.push({id,cost,phase:state.phase,extra,at:Date.now()});
- if(id==='plano')state.monthly=cost;
- state.cart=state.cart.filter(x=>x!==id);
- signal(id,2);trackModel('buy',id,id);
- pushEvent('buy',`Comprou ${p.name}${extra?' com adicional VIP':''} por ${money(cost)}`);
- save();closeOverlay();renderGame(true);
- toast('Compra fictícia registrada. Seu saldo mudou, mas o feed continua.');
- return true;
-}
 
+let storeOpenTimer=null,suppressPhotoOpenUntil=0;
+function openShop(){
+ clearTimeout(storeOpenTimer);
+ storeOpenTimer=null;
+ if(story)stopStory();
+ closeModal();
+ overlay={type:"shop"};drawOverlay();
+}
+function openProduct(id){
+ if(!products[id])return;
+ clearTimeout(storeOpenTimer);storeOpenTimer=null;
+ if(story)stopStory();
+ const from=overlay?.type==="shop"?"shop":overlay?.type==="cart"?"cart":overlay?.from==="shop"?"shop":"feed";
+ if(!state.viewed.includes(id)){state.viewed.push(id);pushEvent("view",`Visitou a loja fictícia ${products[id].brand}`);}
+ signal(id,2);trackModel("product",id,id);save();
+ closeModal();overlay={type:"product",id,from};drawOverlay();
+}
+function checkout(ids,from="feed"){
+ const selected=[...new Set(ids)].filter(id=>products[id]&&!state.purchases.some(x=>x.id===id));
+ if(!selected.length){toast("Escolha um produto disponível.");return;}
+ overlay={type:"checkout",items:selected,from};drawOverlay();
+}
+function backFromShop(){
+ if(!overlay)return;
+ if(overlay.type==="checkout"){
+  overlay=overlay.from==="cart"?{type:"cart"}:{type:"product",id:overlay.items[0],from:overlay.from||"feed"};
+  drawOverlay();return;
+ }
+ if(overlay.type==="product"){
+  if(overlay.from==="shop"){overlay={type:"shop"};drawOverlay();return;}
+  if(overlay.from==="cart"){overlay={type:"cart"};drawOverlay();return;}
+ }
+ closeOverlay();
+}
 
 function renderEnd(){
  exitHomeButton.hidden=false;
@@ -933,9 +1164,10 @@ function handleFeedTouchEnd(e){
   lastFeedTouchTap=null;return;
  }
  const now=performance.now(),prior=lastFeedTouchTap;
- if(prior&&prior.photo===tap.photo&&now-prior.time<420&&Math.hypot(prior.x-e.clientX,prior.y-e.clientY)<38){
+ if(prior&&prior.photo===tap.photo&&now-prior.time<340&&Math.hypot(prior.x-e.clientX,prior.y-e.clientY)<38){
   lastFeedTouchTap=null;
   e.preventDefault();
+  cancelPhotoShopClick();
   likeFeedPhoto(tap.photo);
  }else lastFeedTouchTap={photo:tap.photo,time:now,x:e.clientX,y:e.clientY};
 }
@@ -949,6 +1181,7 @@ root.addEventListener('click',e=>{
   return;
  }
  const a=el.dataset.action,id=el.dataset.product,post=el.dataset.post;
+ if(a==='open-photo'&&performance.now()<suppressPhotoOpenUntil)return;
  if(storyIgnoreClick&&(a==='story-next'||a==='story-prev')){
   storyIgnoreClick=false;
   return;
@@ -979,6 +1212,12 @@ root.addEventListener('click',e=>{
  }
  else if(a==='comments')openComments(post)
  else if(a==='product')openProduct(id)
+ else if(a==='shop'||a==='search'){openShop();}
+ else if(a==='open-photo'){scheduleShopFromPhoto(el);}
+ else if(a==='shop-back'){backFromShop();}
+ else if(a==='checkout'){checkout([id],overlay?.from||'feed');}
+ else if(a==='checkout-cart'){checkout(state.cart.slice(),'cart');}
+ else if(a==='story-product'){stopStory();openProduct(id);}
  else if(a==='coach'){state.helpRequests++;save();overlay={type:'coach',id:id||undefined};modal=null;drawOverlay();}
  else if(a==='goal'){overlay={type:'goal'};modal=null;drawOverlay();}
  else if(a==='pass'){trackModel('skip',id,id);pushEvent('skip',`Decidiu esperar antes de comprar ${products[id]?.name||'o produto'}`);closeOverlay();renderGame(true);toast('Você voltou ao feed sem comprar.');}
@@ -988,13 +1227,12 @@ root.addEventListener('click',e=>{
  else if(a==='cart'){overlay={type:'cart'};drawOverlay();}
  else if(a==='profile'){overlay={type:'profile'};drawOverlay();}
  else if(a==='notifications'){overlay={type:'notifications'};drawOverlay();}
- else if(a==='search'){modal={type:'search'};drawModal();}
  else if(a==='share')toast('Compartilhamento indisponível nesta demonstração.')
  else if(a==='feedtop')document.querySelector('#feed-scroll')?.scrollTo({top:0,behavior:'smooth'});
  else if(a==='scroll-cue')document.querySelector('#feed-scroll')?.scrollBy({top:340,behavior:'smooth'});
  else if(a==='add-cart')addToCart(id)
- else if(a==='remove-cart'){state.cart=state.cart.filter(x=>x!==id);trackModel('removeCart',id,id);save();renderGame(true);overlay={type:'cart'};drawOverlay();}
- else if(a==='buy')buy(id)
+ else if(a==='remove-cart'){state.cart=state.cart.filter(x=>x!==id);trackModel('removeCart',id,id);save();overlay={type:'cart'};drawOverlay();}
+ else if(a==='buy')buy(overlay?.items||[])
  else if(a==='algorithm-final'){
   const panel=document.getElementById('algorithm-final-panel');
   if(panel){
@@ -1012,12 +1250,13 @@ root.addEventListener('dblclick',e=>{
  const photo=e.target.closest('.feed-photo');
  if(!photo)return;
  e.preventDefault();
+ cancelPhotoShopClick();
  likeFeedPhoto(photo);
 });
 root.addEventListener('pointerdown',handleFeedTouchStart);
 root.addEventListener('pointerup',handleFeedTouchEnd);
 root.addEventListener('pointercancel',handleFeedTouchCancel);
-root.addEventListener('change',e=>{if(e.target?.id==='vip-extra'){state.extraChecked=e.target.checked;save();const b=document.querySelector('.product-foot button[data-action=buy]');if(b)b.textContent='Assinar · '+money(products.plano.price+(state.extraChecked?9.90:0))+'/mês';}if(e.target?.id==='privacy-switch'){state.personalized=e.target.checked;save();renderGame(true);toast(state.personalized?'Recomendações personalizadas ativadas.':'Ordem cronológica e coleta de sinais desativadas.');}});
+root.addEventListener('change',e=>{if(e.target?.id==='vip-extra'){state.extraChecked=e.target.checked;save();if(overlay?.type==='checkout'||overlay?.type==='product')drawOverlay();}if(e.target?.id==='privacy-switch'){state.personalized=e.target.checked;save();renderGame(true);toast(state.personalized?'Recomendações personalizadas ativadas.':'Ordem cronológica e coleta de sinais desativadas.');}});
 window.addEventListener('keydown',e=>{
  if(!exitConfirm.hidden){
   if(e.key==='Escape'){e.preventDefault();closeExitConfirm();}
