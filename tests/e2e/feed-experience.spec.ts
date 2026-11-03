@@ -3,8 +3,11 @@ import { test, expect } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.removeItem("nofeed-simulator-v3");
-    localStorage.removeItem("nofeed-simulator-v2");
+    if (!sessionStorage.getItem("nofeed-e2e-initialized")) {
+      localStorage.removeItem("nofeed-simulator-v3");
+      localStorage.removeItem("nofeed-simulator-v2");
+      sessionStorage.setItem("nofeed-e2e-initialized", "1");
+    }
   });
 });
 
