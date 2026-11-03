@@ -18,8 +18,11 @@ async function enter(page) {
 }
 async function loadAll(page) {
   for (let n = 0; n < 8; n++) {
-    if (!await page.locator(".load-more").count()) break;
-    await page.locator(".load-more").click();
+    const count = await page.locator(".load-more").count();
+    if (!count) break;
+    const before = await page.locator(".post").count();
+    await page.locator(".load-more").evaluate(button => button.click());
+    await expect.poll(async () => page.locator(".post").count(), {timeout:8000}).toBeGreaterThan(before);
   }
 }
 
