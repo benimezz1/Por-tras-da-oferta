@@ -264,7 +264,7 @@
 .receipt-screen h2{font-size:28px;letter-spacing:-.04em;margin:0 0 10px}
 .receipt-screen p{font-size:13px;line-height:1.6;color:#86798a}
 .shop-tiny-label{display:inline-flex;background:#faedf6;color:#8b4c76;border-radius:9px;padding:6px 9px;font-size:11px;font-weight:700}
-.story-shop-cta{position:absolute;z-index:6;left:30px;right:30px;bottom:115px;border:1px solid #fff8;border-radius:12px;padding:13px;background:rgba(255,255,255,.96);color:#302335;font-size:13px;font-weight:850;box-shadow:0 6px 24px #0003}
+.story-shop-cta{position:absolute;z-index:6;left:30px;right:30px;bottom:174px;border:1px solid #fff8;border-radius:12px;padding:13px;background:rgba(255,255,255,.96);color:#302335;font-size:13px;font-weight:850;box-shadow:0 6px 24px #0003}
 .story-shop-cta:hover{background:white}
 @media(max-width:810px){.game{display:flex;padding:0}.phone{width:min(100%,430px)}.shop-entry{padding:8px 10px}}
 </style>
@@ -726,7 +726,7 @@ function productPage(){
  const id=overlay.id,p=products[id],bought=state.purchases.some(item=>item.id===id),inCart=state.cart.includes(id);
  if(!p)return shopPage();
  const choice=id==="plano"?`<label class="option-row"><input id="vip-extra" type="checkbox" ${state.extraChecked?"checked":""}/><span><strong>Acrescentar VIP por ${money(9.90)}/mês</strong><br><small class="muted">Complemento opcional. A opção está pré-selecionada pela loja fictícia.</small></span></label>`:"";
- return `<header class="layer-head"><button class="icon-button" data-action="shop-back" aria-label="Voltar">${icon("arrow")}</button><div class="shop-browser" style="flex:1;min-width:0"><span class="safe">🔒</span><b>${shopAddresses[id]}</b></div><button class="icon-button" data-action="cart" aria-label="Ver carrinho">${icon("cart")}</button></header>
+ return `<header class="layer-head"><button class="icon-button" data-action="shop-back" aria-label="Voltar">${icon("arrow")}</button><div class="shop-browser" style="flex:1;min-width:0"><span class="safe">🔒</span><b>${shopAddresses[id]}</b></div><button class="icon-button" data-action="cart" aria-label="Ver carrinho">${icon("cart")}</button><button class="icon-button" data-action="close-overlay" aria-label="Fechar loja">${icon("close")}</button></header>
   <div class="layer-body"><div class="shop-trust">SITE FICTÍCIO · Você está dentro da demonstração, sem pagamentos reais.</div>
   <div class="shop-banner"><b>${esc(p.brand)}</b><p>${esc(p.tag)}</p></div>
   <div class="shop-hero">${art(p.kind,true,p.brand)}</div>
@@ -737,7 +737,7 @@ function productPage(){
   <section class="shop-details"><p>${esc(p.desc)}</p><ul>${p.specs.map(item=>`<li>${esc(item)}</li>`).join("")}</ul>
   ${choice}
   <button class="reviews-shortcut" data-action="comments" data-post="ad-main-${id}"><span><strong>Ler avaliações e opiniões</strong><small class="muted" style="display:block">Comentários favoráveis e críticos criados para o jogo</small></span>${icon("chevron")}</button>
-  <button class="secondary critical-action full" data-action="coach" data-product="${id}">Ajuda: pensar antes de comprar</button>
+  <button class="secondary critical-action full" data-action="coach" data-product="${id}">Ajuda: pensar antes de comprar</button><button class="tertiary critical-action full" data-action="pass" data-product="${id}">Agora não · voltar ao feed</button>
   <p class="warning-note">Os preços, descontos, lojas, estoque, prazo e comentários são fictícios. Este site não solicita pagamentos nem dados pessoais.</p>
   <button class="text-link" data-action="shop" style="margin:10px 0 20px">Ver outras lojas →</button>
   </section></div>
