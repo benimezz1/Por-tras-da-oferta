@@ -27,7 +27,11 @@ test("uma única linha do tempo mistura produtos e recorda a meta só quando sol
   await enter(page);
   await expect(page.locator(".decision")).toHaveCount(0);
   await expect(page.locator(".transition")).toHaveCount(0);
-  await expect(page.locator(".story-rail .story")).toHaveCount(12);
+  await expect(page.locator(".story-rail .story")).toHaveCount(9);
+  const authors=await page.locator(".story-rail .story").evaluateAll(buttons=>buttons.map(b=>b.getAttribute("data-story-user")));
+  expect(new Set(authors).size).toBe(authors.length);
+  expect(authors.filter(author=>author==="lucca")).toHaveLength(1);
+  expect(authors.filter(author=>author==="bia")).toHaveLength(1);
   const topics = await page.locator("[data-rec-topic]").evaluateAll(els => [...new Set(els.map(el => el.getAttribute("data-rec-topic")))]);
   expect(topics.length).toBeGreaterThanOrEqual(3);
   await expect(page.locator(".post.ad-post")).toHaveCount(1);
@@ -154,7 +158,7 @@ test("as fotografias dos posts e stories são distintas", async ({ page }) => {
   expect(new Set(photos).size).toBe(12);
   expect(photos.every(src => /post-p[0-9]+[.]jpg$/.test(src || ""))).toBe(true);
   const storyPhotos = [];
-  for (const index of [0, 3, 6, 9]) {
+  for (const index of [0, 2, 4, 7]) {
     await page.locator('[data-action="story"]').nth(index).click();
     storyPhotos.push(await page.locator(".story-layer img.art-photo").getAttribute("src"));
     await page.locator("button.story-close").click();
@@ -168,7 +172,12 @@ test("stories avançam no mesmo visualizador com toque, teclado e barra de progr
   await page.locator('[data-action="story"]').first().click();
   const layer=page.locator(".story-layer");
   await expect(layer).toBeVisible();
-  await expect(layer.locator(".story-progress-segment")).toHaveCount(12);
+  const firstAuthor=await layer.getAttribute("data-story-user");
+  const authored=await page.locator('.story-rail .story[data-story-user="'+firstAuthor+'"]').count();
+  expect(authored).toBe(1);
+  const storyCounts={bia:2,lucca:3};
+  const expectedCount=storyCounts[firstAuthor]||1;
+  await expect(layer.locator(".story-progress-segment")).toHaveCount(expectedCount);
   const first=await layer.locator(".story-user").textContent();
   await layer.locator('[data-action="story-next"]').click();
   await expect(layer).toBeVisible();
@@ -189,18 +198,21 @@ test("stories passam automaticamente e podem ser pausados", async ({ page }) => 
   await page.locator('[data-action="story"]').first().click();
   const layer=page.locator(".story-layer");
   const first=await layer.locator(".story-user").textContent();
+  const firstIndex=await layer.getAttribute("data-story-index");
   await page.clock.fastForward(5700);
   await expect(layer).toBeVisible();
+  await expect(layer).not.toHaveAttribute("data-story-index",firstIndex);
   const second=await layer.locator(".story-user").textContent();
-  expect(second).not.toEqual(first);
+  expect(second).toBeTruthy();
   await layer.locator('[data-action="story-pause"]').click();
   await expect(layer).toHaveClass(/is-paused/);
   await page.clock.fastForward(8000);
   expect(await layer.locator(".story-user").textContent()).toEqual(second);
   await layer.locator('[data-action="story-pause"]').click();
   await expect(layer).not.toHaveClass(/is-paused/);
+  const secondIndex=await layer.getAttribute("data-story-index");
   await page.clock.fastForward(5700);
-  expect(await layer.locator(".story-user").textContent()).not.toEqual(second);
+  await expect(layer).not.toHaveAttribute("data-story-index",secondIndex);
 });
 
 test("deslizar o story para o lado troca de publicação sem sair do visualizador", async ({ page }) => {
@@ -220,9 +232,14 @@ test("deslizar o story para o lado troca de publicação sem sair do visualizado
 test("o último story encerra a sequência sem reabrir o feed", async ({ page }) => {
   await enter(page);
   await page.locator('[data-action="story"]').last().click();
-  await expect(page.locator(".story-layer")).toBeVisible();
-  await page.locator(".story-layer [data-action='story-next']").click();
-  await expect(page.locator(".story-layer")).toHaveCount(0);
+  const layer=page.locator(".story-layer");
+  await expect(layer).toBeVisible();
+  const count=await layer.locator(".story-progress-segment").count();
+  for(let i=0;i<count;i++){
+   if(await layer.count()===0)break;
+   await layer.locator("[data-action='story-next']").click();
+  }
+  await expect(layer).toHaveCount(0);
   await expect(page.locator(".phone")).toBeVisible();
 });
 
@@ -234,4 +251,66 @@ test("o carrinho permanece acessível sem botão de algoritmo no feed", async ({
   await expect(page.locator('[data-action="algorithm"]')).toHaveCount(0);
   await page.locator('.phone-head [data-action="cart"]').click();
   await expect(page.locator(".cart-item")).toHaveCount(1);
+});
+
+
+test("cada autor reúne seus stories, muda de perfil e reinicia as barras", async ({ page }) => {
+  await enter(page);
+  const lucca=page.locator('.story-rail .story[data-story-user="lucca"]');
+  await expect(lucca).toHaveCount(1);
+  await lucca.click();
+  const layer=page.locator(".story-layer");
+  await expect(layer).toHaveAttribute("data-story-user","lucca");
+  await expect(layer.locator(".story-progress-segment")).toHaveCount(3);
+  const usernames=[];
+  for(let i=0;i<3;i++){
+    usernames.push(await layer.locator(".story-user strong").textContent());
+    if(i<2)await layer.locator('[data-action="story-next"]').click();
+  }
+  expect(usernames).toEqual(["lucca","lucca","lucca"]);
+  await layer.locator('[data-action="story-next"]').click();
+  await expect(layer).toBeVisible();
+  await expect(layer).not.toHaveAttribute("data-story-user","lucca");
+  const changed=await layer.locator(".story-user strong").textContent();
+  expect(changed).toBeTruthy();
+  await expect(layer.locator(".story-progress-fill.completed")).toHaveCount(0);
+  const current=layer.locator(".story-progress-fill.current");
+  await expect(current).toHaveCount(1);
+  await expect(layer.locator("img.story-photo")).toBeVisible();
+  await expect(layer.locator("img.story-photo")).toHaveJSProperty("complete",true);
+});
+
+test("troca para imagem já carregada sem mostrar tela cinza durante transição lenta", async ({ page }) => {
+  await page.route("**/assets/social/unique/story-plano-2.jpg", async route => {
+    await new Promise(resolve=>setTimeout(resolve,1800));
+    await route.continue();
+  });
+  await enter(page);
+  await page.locator('.story-rail .story[data-story-user="bia"]').click();
+  const layer=page.locator(".story-layer");
+  await expect(layer).toHaveAttribute("data-story-user","bia");
+  const original=await layer.locator("img.story-photo").getAttribute("src");
+  await layer.locator('[data-action="story-next"]').click();
+  await expect(layer).toBeVisible();
+  await expect(layer.locator("img.story-photo")).toHaveAttribute("src",original);
+  await expect(layer.locator("img.story-photo")).toBeVisible();
+  await expect(layer).toHaveAttribute("data-story-user","bia");
+  await expect(layer.locator("img.story-photo")).not.toHaveAttribute("src",original,{timeout:7000});
+  await expect(layer.locator("img.story-photo")).toBeVisible();
+  await expect(layer.locator("img.story-photo")).toHaveJSProperty("complete",true);
+});
+
+test("ao entrar em um story, o avatar e o nome pertencem ao autor selecionado", async ({ page }) => {
+  await enter(page);
+  const authors=["gabi","livia","mia","loja.noma"];
+  for(const author of authors){
+    const bubble=page.locator('.story-rail .story[data-story-user="'+author+'"]');
+    await expect(bubble).toHaveCount(1);
+    await bubble.click();
+    const layer=page.locator(".story-layer");
+    await expect(layer).toHaveAttribute("data-story-user",author);
+    await expect(layer.locator(".story-user strong")).toHaveText(author);
+    await expect(layer.locator(".story-owner-avatar")).toBeVisible();
+    await layer.locator('[data-action="close-story"]').click();
+  }
 });

@@ -72,3 +72,13 @@ A cada story visto, o sistema registra o interesse fictício daquele conteúdo. 
 Os atalhos do algoritmo foram removidos do cabeçalho, menu inferior e cartões do feed, assim como o botão lateral **Pedir ajuda crítica**. O menu de três pontos das publicações continua funcional, mas sem exibir pontuações ou informações internas do sistema durante a navegação. Na conclusão, o botão de relatório expande o resumo do algoritmo com a distribuição de sinais, tópicos inferidos e explicação dos anúncios. O controle básico de personalização permanece nas configurações de perfil, como em uma rede social convencional.
 
 O objetivo é que a reflexão aconteça **depois** da experiência, sem apresentar a crítica em todos os estímulos.
+
+## Ajuste de autoria e carregamento dos stories
+
+- A barra de stories apresenta **um avatar por perfil**, e não um avatar por fotografia. Os 12 stories existentes são agrupados por 9 autores fictícios; Bia possui dois stories e Lucca possui três.
+- A sequência percorre primeiro todas as publicações de um perfil e só então muda para o próximo. As barras de progresso passam a representar **apenas os stories do autor atual**. Ao mudar de autor, a foto de perfil, o nome, o horário e as barras são atualizados juntos.
+- As imagens locais são carregadas e decodificadas **antes** de mudar a tela. Enquanto a próxima foto não estiver pronta, a anterior permanece visível, evitando a passagem por um quadro vazio. As duas fotos seguintes são pré-carregadas para tornar a navegação mais fluida.
+- Fotos usam o original com preenchimento desfocado nas laterais para preservar enquadramento, fundo escuro e cabeçalho contrastante. A navegação por toque, deslize, setas, pausa e fechamento continua.
+- Um evento de story é registrado uma vez por publicação vista, sem atribuir todos os eventos a um único autor.
+
+Este ajuste é principalmente de experiência e clareza de autoria; as fotos e os produtos fictícios existentes foram preservados.

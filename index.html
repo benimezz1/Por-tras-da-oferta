@@ -161,6 +161,24 @@
 .algorithm-final .algo-topic{margin:14px 0}
 .algorithm-final .algo-steps{margin-top:16px}
 .algorithm-final .algo-disclaimer{color:#857688;font-size:12px;line-height:1.6;margin:16px 0 4px}
+
+/* Fotos pre-carregadas e transicao sem tela vazia. Cada autor possui barra propria. */
+.story-layer{background:#1f1b24;animation:none;isolation:isolate}
+.story-layer .story-picture{position:relative;display:block;overflow:hidden;background:#1f1b24;min-height:100%}
+.story-layer .story-picture::before{content:"";position:absolute;inset:-25px;background-image:var(--story-bg);background-size:cover;background-position:center;filter:blur(22px) brightness(.55);transform:scale(1.1);z-index:0}
+.story-layer .story-photo{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;object-fit:contain;object-position:center;animation:story-photo-in .10s ease both}
+.story-layer .story-photo-fallback{position:absolute;inset:0;background:linear-gradient(135deg,#34283f,#1f202d)}
+@keyframes story-photo-in{from{opacity:.92}to{opacity:1}}
+.story-layer .story-top{padding-top:13px;height:72px;top:9px;background:linear-gradient(180deg,rgba(8,6,12,.72),rgba(8,6,12,.36) 66%,transparent);align-items:center}
+.story-layer .story-owner-avatar{box-sizing:border-box;border:2px solid rgba(255,255,255,.9);width:37px;height:37px;flex-shrink:0}
+.story-layer .story-user{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px;line-height:1.12;white-space:normal;overflow:hidden;color:white;text-shadow:0 1px 3px rgba(0,0,0,.75)}
+.story-layer .story-user strong{font-size:13px;font-weight:850;line-height:1.2;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.story-layer .story-user small{font-size:10px;font-weight:500;opacity:.9;color:#f6eef7}
+.story-layer .story-type{margin-left:0;font-size:9px;padding:4px 7px;background:rgba(12,8,16,.38)}
+.story-layer .story-caption{z-index:4;bottom:68px;background:rgba(21,16,27,.80);box-shadow:0 5px 24px rgba(0,0,0,.16);backdrop-filter:blur(5px)}
+.story-layer .story-guidance{z-index:4;bottom:22px;text-shadow:0 1px 7px #000}
+.story-layer .story-progress-row{z-index:7;top:10px}
+.story-layer .story-tap-zone{top:82px;bottom:0}
 </style>
 </head>
 <body>
@@ -274,8 +292,35 @@ let state=makeInitial();try{
 state.algorithm=Recommender.normalize(state.algorithm);
 let overlay=null,story=null,modal=null,toastTimer=null,introTimer=null,scene=0;
 const STORY_DURATION=5500;
-let storyTimer=null,storyStartedAt=0,storyPointer=null,storyIgnoreClick=false;
+let storyTimer=null,storyStartedAt=0,storyPointer=null,storyIgnoreClick=false,storyChangeSeq=0;
 const storyPauseReasons=new Set();
+const storyPhotoPromises=new Map();
+function storyPhotoUrl(index){
+ const item=storyPool()[index];
+ if(!item)return Promise.resolve(null);
+ if(storyPhotoPromises.has(index))return storyPhotoPromises.get(index);
+ const source=mediaSrc(item.photo);
+ const fallback=mediaAssets[photoFallbackKeys[item.photo]||'friends_park'];
+ const load=url=>new Promise(resolve=>{
+  if(!url)return resolve(null);
+  const img=new Image();
+  img.decoding='async';
+  img.loading='eager';
+  img.onload=()=>{
+   const ready=typeof img.decode==='function'?img.decode().catch(()=>null):Promise.resolve();
+   ready.then(()=>resolve(url));
+  };
+  img.onerror=()=>resolve(null);
+  img.src=url;
+ });
+ const promise=load(source).then(url=>url||load(fallback)).then(url=>url||'');
+ storyPhotoPromises.set(index,promise);
+ return promise;
+}
+function storyTime(item){
+ const times=['26 min','1 h','3 h','46 min','2 h','4 h','12 min','31 min','5 h','18 min','1 h','6 h'];
+ return times[item.idx]||'há pouco';
+}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
 const signal=(id,num=1)=>{if(Object.prototype.hasOwnProperty.call(state.signals,id))state.signals[id]+=num;};
 const pushEvent=(type,message)=>{state.events.push({phase:state.phase,type,message});save()};
@@ -346,12 +391,24 @@ function mediaPhoto(kind,cssClass,alt){
 function storySourceType(name){return ['agenda.local','loja.noma','dj.andre','moda.agora'].includes(name)?'page':'friend';}
 function postSourceType(post){return ['p2','p5','p6','p7','p9','p11'].includes(post.id)?'page':'friend';}
 
-function renderStories(list){
- if(!list.length)return '';
- const ranked=Recommender.rankStories(list,recommendationOptions());
- return '<section class="story-rail" aria-label="Stories de amigos e páginas"><div class="story-rail-heading">STORIES <span>Amigos, criadores e páginas</span></div><div class="stories">'+ranked.map(s=>{
-  const sid='story-'+s.idx,page=s.source==='page';
-  return '<button class="story '+(page?'page-story':'')+' '+(state.stories.includes(sid)?'read':'')+'" data-action="story" data-index="'+s.idx+'" aria-label="Abrir story de '+esc(s.user)+'"><span class="story-ring"><span class="story-face">'+profileAvatar(s.user,s.photo,page)+'</span></span><span class="story-name">'+esc(s.user)+'</span></button>';
+
+function storyGroups(){
+ const ranked=Recommender.rankStories(storyPool(),recommendationOptions());
+ const authors=new Map();
+ for(const item of ranked){
+  if(!authors.has(item.user))authors.set(item.user,{user:item.user,source:item.source,items:[]});
+  authors.get(item.user).items.push(item);
+ }
+ return [...authors.values()].map(group=>({...group,items:group.items.sort((a,b)=>a.idx-b.idx)}));
+}
+function renderStories(){
+ const groups=storyGroups();
+ if(!groups.length)return '';
+ return '<section class="story-rail" aria-label="Stories de amigos e páginas"><div class="story-rail-heading">STORIES <span>Amigos, criadores e páginas</span></div><div class="stories">'+groups.map(group=>{
+  const first=group.items[0];
+  const fullyRead=group.items.every(s=>state.stories.includes('story-'+s.idx));
+  const page=group.source==='page';
+  return '<button class="story '+(page?'page-story':'')+' '+(fullyRead?'read':'')+'" data-action="story" data-index="'+first.idx+'" data-story-user="'+esc(group.user)+'" aria-label="Ver '+group.items.length+' story'+(group.items.length===1?'':'s')+' de '+esc(group.user)+'"><span class="story-ring"><span class="story-face">'+profileAvatar(group.user,first.photo,page)+'</span></span><span class="story-name">'+esc(group.user)+'</span></button>';
  }).join('')+'</div></section>';
 }
 
@@ -548,56 +605,77 @@ function drawModal(){const phone=document.querySelector('.phone');if(!phone)retu
  }
  const box=document.createElement('div');box.className='layer-backdrop';box.innerHTML=`<section class="bottom-sheet" role="dialog" aria-modal="true">${content}</section>`;phone.appendChild(box);
 }
+
 function storyOrder(){
- return Recommender.rankStories(storyPool(),recommendationOptions()).map(s=>s.idx);
+ return storyGroups().flatMap(g=>g.items.map(item=>item.idx));
 }
 function visitStory(){
  if(!story)return;
- const index=story.order[story.position],s=storyPool()[index];
+ const idx=story.order[story.position],s=storyPool()[idx];
  if(!s){stopStory();return;}
- const key="story-"+index;
+ const key='story-'+idx;
  if(!state.stories.includes(key)){
   state.stories.push(key);
   signal(s.product,1);
-  pushEvent("story",`Viu o story de ${s.user}`);
+  pushEvent('story',`Viu o story de ${s.user}`);
  }
- trackModel("story",s.product,key,s.user);
- document.querySelector(`.story[data-index="${index}"]`)?.classList.add("read");
+ trackModel('story',s.product,key,s.user);
+ const group=story.groups.find(g=>g.user===s.user);
+ if(group&&group.items.every(item=>state.stories.includes('story-'+item.idx))){
+  for(const button of document.querySelectorAll('.story[data-story-user]')){
+   if(button.dataset.storyUser===s.user)button.classList.add('read');
+  }
+ }
 }
 function startStory(index){
- const order=storyOrder(),position=order.indexOf(index);
+ const groups=storyGroups();
+ const order=groups.flatMap(g=>g.items.map(item=>item.idx));
+ const position=order.indexOf(index);
  if(position<0)return;
  stopStory();
- story={order,position,remaining:STORY_DURATION};
+ story={groups,order,position,targetPosition:position,remaining:STORY_DURATION,photoUrl:''};
  showStoryPosition(position);
 }
-function showStoryPosition(position){
- if(!story)return;
- if(position>=story.order.length){stopStory();return;}
- story.position=Math.max(0,position);
- story.remaining=STORY_DURATION;
- clearTimeout(storyTimer);
- storyTimer=null;
+async function showStoryPosition(position){
+ const session=story;
+ if(!session)return;
+ if(position>=session.order.length){stopStory();return;}
+ const next=Math.max(0,position),seq=++storyChangeSeq;
+ session.targetPosition=next;
+ pauseStory('transition');
+ const photoUrl=await storyPhotoUrl(session.order[next]);
+ if(story!==session||seq!==storyChangeSeq)return;
+ session.position=next;
+ session.targetPosition=next;
+ session.remaining=STORY_DURATION;
+ session.photoUrl=photoUrl;
  storyPauseReasons.clear();
- if(document.hidden)storyPauseReasons.add("hidden");
- if(!exitConfirm.hidden)storyPauseReasons.add("confirm");
+ if(document.hidden)storyPauseReasons.add('hidden');
+ if(!exitConfirm.hidden)storyPauseReasons.add('confirm');
  visitStory();
- if(story)drawStory();
+ if(!story)return;
+ drawStory();
+ for(let offset=1;offset<=2;offset++){
+  const upcoming=session.order[next+offset];
+  if(upcoming!==undefined)storyPhotoUrl(upcoming);
+ }
 }
 function advanceStory(direction=1){
  if(!story)return;
- showStoryPosition(story.position+direction);
+ const reference=Number.isInteger(story.targetPosition)?story.targetPosition:story.position;
+ showStoryPosition(reference+direction);
 }
 function stopStory(){
+ storyChangeSeq++;
  clearTimeout(storyTimer);
  storyTimer=null;
  story=null;
  storyPointer=null;
  storyPauseReasons.clear();
- document.querySelector(".story-layer")?.remove();
+ document.querySelector('.story-layer')?.remove();
 }
 function startStoryPlayback(){
- if(!story||storyPauseReasons.size||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+ if(!story||storyPauseReasons.size||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
  clearTimeout(storyTimer);
  storyStartedAt=performance.now();
  storyTimer=setTimeout(()=>{storyTimer=null;advanceStory(1);},Math.max(25,story.remaining));
@@ -610,71 +688,80 @@ function pauseStory(reason){
   storyTimer=null;
  }
  storyPauseReasons.add(reason);
- document.querySelector(".story-layer")?.classList.add("is-paused");
+ document.querySelector('.story-layer')?.classList.add('is-paused');
 }
 function resumeStory(reason){
  if(!story||!storyPauseReasons.has(reason))return;
  storyPauseReasons.delete(reason);
- if(storyPauseReasons.size===0){
-  document.querySelector(".story-layer")?.classList.remove("is-paused");
+ if(!storyPauseReasons.size){
+  document.querySelector('.story-layer')?.classList.remove('is-paused');
   startStoryPlayback();
  }
 }
 function toggleStoryPause(){
  if(!story)return;
- if(storyPauseReasons.has("manual"))resumeStory("manual");
- else pauseStory("manual");
- const button=document.querySelector(".story-pause");
+ if(storyPauseReasons.has('manual'))resumeStory('manual');
+ else pauseStory('manual');
+ const button=document.querySelector('.story-pause');
  if(button){
-  const paused=storyPauseReasons.has("manual");
-  button.textContent=paused?"▶":"Ⅱ";
-  button.setAttribute("aria-label",paused?"Retomar stories":"Pausar stories");
-  button.setAttribute("aria-pressed",String(paused));
+  const paused=storyPauseReasons.has('manual');
+  button.textContent=paused?'▶':'Ⅱ';
+  button.setAttribute('aria-label',paused?'Retomar stories':'Pausar stories');
+  button.setAttribute('aria-pressed',String(paused));
  }
 }
 function drawStory(){
- const phone=document.querySelector(".phone");
+ const phone=document.querySelector('.phone');
  if(!phone||!story)return;
- document.querySelector(".story-layer")?.remove();
  const index=story.order[story.position],s=storyPool()[index];
  if(!s){stopStory();return;}
- const paused=storyPauseReasons.size>0;
- const progress=story.order.map((_,i)=>{
-  const cls=i<story.position?"completed":i===story.position?"current":"pending";
+ const group=story.groups.find(g=>g.user===s.user);
+ if(!group){stopStory();return;}
+ const within=group.items.findIndex(item=>item.idx===index),total=group.items.length;
+ const progress=group.items.map((_,i)=>{
+  const cls=i<within?'completed':i===within?'current':'pending';
   return `<span class="story-progress-segment"><span class="story-progress-fill ${cls}"></span></span>`;
- }).join("");
- const el=document.createElement("section");
- el.className="story-layer"+(paused?" is-paused":"");
- el.setAttribute("role","dialog");
- el.setAttribute("aria-label",`Stories de ${s.user}`);
+ }).join('');
+ const paused=storyPauseReasons.size>0;
+ const el=document.createElement('section');
+ el.className='story-layer'+(paused?' is-paused':'');
+ el.setAttribute('role','dialog');
+ el.setAttribute('data-story-user',s.user);
+ el.setAttribute('data-story-index',String(index));
+ el.setAttribute('aria-label',`Stories de ${s.user}`);
+ const image=story.photoUrl
+  ? `<img class="story-photo" alt="Story publicado por ${esc(s.user)}" src="${esc(story.photoUrl)}" loading="eager" decoding="sync" draggable="false"/>`
+  : '<div class="story-photo-fallback" role="img" aria-label="Imagem indisponível"></div>';
  el.innerHTML=`<div class="story-progress-row" aria-hidden="true" style="--story-duration:${STORY_DURATION}ms">${progress}</div>
-  <div class="story-top"><span class="avatar photo-avatar">${profileAvatar(s.user,s.photo,s.source==="page")}</span>
-  <span class="story-user">${esc(s.user)} · 12 h</span>
-  <span class="story-type">${s.source==="page"?"página":"amigo"}</span>
+  <div class="story-top"><span class="avatar photo-avatar story-owner-avatar">${profileAvatar(s.user,s.photo,s.source==='page')}</span>
+  <span class="story-user"><strong>${esc(s.user)}</strong><small>há ${storyTime(s)} · ${within+1} de ${total}</small></span>
+  <span class="story-type">${s.source==='page'?'página':'amigo'}</span>
   <button type="button" class="story-pause" data-action="story-pause" aria-label="Pausar stories" aria-pressed="false">Ⅱ</button>
-  <button type="button" class="story-close" data-action="close-story" aria-label="Fechar stories">${icon("close")}</button></div>
-  <div class="story-picture">${art(s.art,false,"",s.photo)}</div>
+  <button type="button" class="story-close" data-action="close-story" aria-label="Fechar stories">${icon('close')}</button></div>
+  <div class="story-picture" style="--story-bg:url('${esc(story.photoUrl||'')}')">${image}</div>
   <button type="button" class="story-tap-zone previous" data-action="story-prev" aria-label="Story anterior"></button>
   <button type="button" class="story-tap-zone next" data-action="story-next" aria-label="Próximo story"></button>
-  <div class="story-caption" aria-live="polite">${s.text}</div>
-  <div class="story-guidance">Toque nas laterais para navegar · Segure para pausar</div>`;
- phone.appendChild(el);
+  <div class="story-caption" aria-live="polite">${esc(s.text)}</div>
+  <div class="story-guidance">Toque para avançar · Segure para pausar</div>`;
+ const old=document.querySelector('.story-layer');
+ if(old)old.replaceWith(el);
+ else phone.appendChild(el);
  startStoryPlayback();
 }
 function storyPointerDown(e){
- const zone=e.target.closest(".story-tap-zone");
+ const zone=e.target.closest('.story-tap-zone');
  if(!story||!zone)return;
  storyIgnoreClick=false;
  storyPointer={id:e.pointerId,x:e.clientX,y:e.clientY,time:performance.now()};
- pauseStory("hold");
+ pauseStory('hold');
 }
 function storyPointerUp(e){
  if(!storyPointer||storyPointer.id!==e.pointerId)return;
  const previous=storyPointer;
  storyPointer=null;
- resumeStory("hold");
+ resumeStory('hold');
  const dx=e.clientX-previous.x,dy=e.clientY-previous.y;
- if(Math.abs(dx)>55 && Math.abs(dx)>Math.abs(dy)*1.3){
+ if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.3){
   storyIgnoreClick=true;
   advanceStory(dx<0?1:-1);
  }else if(performance.now()-previous.time>430){
@@ -683,8 +770,9 @@ function storyPointerUp(e){
 }
 function storyPointerCancel(){
  storyPointer=null;
- resumeStory("hold");
+ resumeStory('hold');
 }
+
 function toast(msg){const phone=document.querySelector('.phone');if(!phone)return;clearTimeout(toastTimer);phone.querySelector('.toast')?.remove();const t=document.createElement('div');t.className='toast';t.textContent=msg;phone.appendChild(t);toastTimer=setTimeout(()=>t.remove(),2700);}
 function openProduct(id){if(!products[id])return;if(!state.viewed.includes(id)){state.viewed.push(id);pushEvent('view',`Visitou a loja de ${products[id].name}`);}signal(id,2);trackModel('product',id,id);save();overlay={type:'product',id};modal=null;drawOverlay();}
 function closeOverlay(){const refresh=overlay?.type==='profile';overlay=null;document.querySelector('.layer')?.remove();if(refresh)renderGame(true);}
