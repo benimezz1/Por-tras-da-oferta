@@ -1913,12 +1913,15 @@ function endStep3(s){
  <div class="end-box"><h3>Por que isso importa</h3><p class="small muted">Na TIC Kids Online Brasil 2025, 55% dos adolescentes de 11 a 17 anos tiveram contato com publicidade em redes sociais, 84% viram conteúdos que divulgavam produtos sem identificação clara, e 51% das crianças e adolescentes pediram algo depois de ver um anúncio online. Reconhecer as estratégias é um passo para o consumo responsável do ODS 12.</p></div>
  <button class="secondary algorithm-final-reveal" data-action="algorithm-final" aria-expanded="false" aria-controls="algorithm-final-panel">ⓘ Entender como o algoritmo montou meu feed</button>
  ${algorithmResults()}
- <div class="end-box"><h3>Seu percurso para o MCP</h3>
- <p class="small muted">Baixe um JSON completo desta partida, incluindo os cinco dias, interações, compras fictícias, estratégias, vibe, decisões, algoritmo e quiz. Depois faça login na página do MCP e importe o arquivo, se quiser compartilhar seu percurso educativo com o assistente. Nenhum dado é enviado automaticamente.</p>
- <button class="secondary full" data-action="export-c4">⬇ Exportar JSON da semana</button>
+ <div class="c4-sync-panel"><h3>Seu percurso no ChatGPT</h3>
+ <p class="small muted">A partida fictícia da conta <strong>${esc(identity?.username||'jogador')}</strong> é enviada automaticamente ao MCP depois do quiz.</p>
+ <p id="c4-sync-status" class="c4-sync-status" role="status">Preparando envio ao MCP…</p>
+ <button class="secondary" data-action="retry-c4" hidden>Tentar enviar novamente</button>
+ <p class="small muted">Para o ChatGPT consultar seu percurso, peça para usar o plugin <strong>Por Trás da Oferta</strong> e vincule o mesmo apelido. Digite sua senha somente no site seguro de vínculo, nunca no chat.</p>
+ <button class="secondary full" data-action="export-c4">⬇ Baixar cópia do JSON (opcional)</button>
  <p class="small muted export-c4-status" role="status"></p>
- <a href="https://mcp.portrasdaoferta.workers.dev/#importar" target="_blank" rel="noopener noreferrer">Abrir página de importação do MCP ↗</a></div>
- <div class="end-buttons"><button class="primary" data-action="restart">Jogar novamente ↗</button><button class="secondary" data-action="sources">Base da pesquisa</button></div>
+ </div>
+ <div class="end-buttons"><button class="primary" data-action="restart">Jogar novamente ↗</button><button class="secondary" data-action="switch-player">Outro jogador / sair</button><button class="secondary" data-action="sources">Base da pesquisa</button></div>
  <div id="sources" hidden class="end-box tiny-sources"><strong>Referências do projeto</strong><p>Bandyopadhyay et al. (2021) · Bauman (2008) · De Jans et al. (2020) · Dinh e Lee (2024) · Feng et al. (2024) · Huang et al. (2025) · Iyer et al. (2020) · NIC.br, TIC Kids Online Brasil 2025 (2026) · OCDE (2022), dark commercial patterns · Setyani et al. (2019) · Shamim, Azam e Islam (2024) · Van der Bend et al. (2023). Complementares: Mathur et al. (2019), Dark Patterns at Scale; Prelec e Simester (2001), efeito do cartão de crédito. Entrevista com a psicóloga Ana Carolina Barros Mendonça Cortez Penna.</p><p>Marcas, pessoas e valores são fictícios. O ranking imita princípios gerais conhecidos, sem reproduzir modelos proprietários.</p></div>`;
 }
 function renderEnd(){
@@ -1928,11 +1931,41 @@ function renderEnd(){
  root.innerHTML=`<main class="end end-step-${step}"><div class="end-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
  <div class="end-progress">${['Sábado','Por trás','Quiz','Raio-x'].map((l,i)=>`<span class="${i<=step?'on':''}">${l}</span>`).join('')}</div>
  ${body}
- <p class="end-disclaimer">Simulação educativa do Colégio Rio Branco · C4. Nenhuma compra é real, nada sai deste navegador e o jogo não diagnostica ninguém.</p>
+ <p class="end-disclaimer">Simulação educativa do Colégio Rio Branco · C4. Nenhuma compra é real. Ao concluir, o jogo envia o percurso fictício ao MCP da conta identificada, se houver conexão. O jogo não faz diagnósticos.</p>
  </div></main>`;
  window.scrollTo(0,0);root.querySelector('.end')?.scrollTo?.(0,0);
+ if(step===3){showC4SyncStatus();if(state.c4SyncedRunId!==state.runId)void sendCompletedC4();}
 }
-function render(){if(!state.started){renderHome();return;}if(state.finished){renderEnd();return;}renderGame();}
+function showC4SyncStatus(){
+ const node=document.getElementById('c4-sync-status'),retry=root.querySelector('[data-action="retry-c4"]');
+ if(!node)return;
+ const sent=state.c4SyncedRunId===state.runId;
+ node.textContent=sent?'✓ Percurso recebido pelo MCP. Agora o ChatGPT pode consultar esta conta após o vínculo.'
+  :syncInFlight?'Enviando suas respostas e escolhas ao MCP…'
+  :syncMessage||'O envio será realizado automaticamente.';
+ if(retry)retry.hidden=sent||syncInFlight;
+}
+async function sendCompletedC4(){
+ if(!identity||!state.finished||state.endStep!==3||state.c4SyncedRunId===state.runId||syncInFlight)return;
+ const playerId=identity.id,run=state.runId;
+ syncInFlight=true;syncMessage='';
+ showC4SyncStatus();
+ try{
+  const payload=ExportC4.build(state,{pressure:Pressure,recommender:Recommender});
+  const result=await ContaC4.complete(payload);
+  if(result?.usuario?.id!==playerId||result?.partida!==run)
+   throw Error('O servidor não confirmou a conta e a partida corretas.');
+  if(!identity||identity.id!==playerId||state.runId!==run)return;
+  state.c4SyncedRunId=run;
+  state.c4SyncedAt=new Date().toISOString();
+  save();
+  syncMessage='';
+ }catch(error){
+  if(identity?.id===playerId&&state.runId===run)
+   syncMessage=(error?.message||'Não foi possível enviar a partida.')+' Use “Tentar enviar novamente”; seu progresso continua salvo neste dispositivo.';
+ }finally{syncInFlight=false;showC4SyncStatus();}
+}
+function render(){if(!identity){renderAccountGate();return;}if(!state.started){renderHome();return;}if(state.finished){renderEnd();return;}renderGame();}
 
 let lastLikeFlash={photo:null,time:0};
 let feedTouchStart=null,lastFeedTouchTap=null;
