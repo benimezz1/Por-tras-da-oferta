@@ -271,7 +271,7 @@ test("baixa cópia JSON pelo perfil, além do envio automático final", async ({
   });
   expect(exported.resumo.estrategias).toHaveLength(10);
   expect(exported.sessao.id).toBeTruthy();
-  await expect(page.locator(".layer .export-c4-status")).toContainText("Arquivo JSON baixado");
+  await expect(page.locator(".layer .export-c4-status")).toContainText("Cópia JSON baixada");
   await expect(page.locator(".status-bar")).toContainText("SEG");
 });
 
