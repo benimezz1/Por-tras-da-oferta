@@ -250,7 +250,8 @@ test("exporta JSON da semana pelo perfil sem enviar dados automaticamente", asyn
   const downloadPromise = page.waitForEvent("download");
   await page.locator('.layer [data-action="export-c4"]').click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toMatch(/^por-tras-da-oferta-semana-.*\\.json$/);
+  expect(download.suggestedFilename().startsWith("por-tras-da-oferta-semana-")).toBe(true);
+  expect(download.suggestedFilename().endsWith(".json")).toBe(true);
   const filePath = await download.path();
   expect(filePath).toBeTruthy();
   const exported = JSON.parse(await readFile(filePath!, "utf8"));
