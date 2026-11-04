@@ -293,3 +293,55 @@ test("o encerramento inclui exportação do percurso para o MCP", async ({ page 
   expect(data.resumo.quiz.respondidas).toBe(5);
   expect(data.sessao.concluidaEm).toBeTruthy();
 });
+
+test("final do quiz envia JSON automaticamente ao MCP da conta correta", async ({ page }) => {
+  await enter(page);
+  for (let d=0; d<5; d++) await nextDay(page);
+  await page.locator('[data-action="end-next"]').click();
+  await page.locator('[data-action="end-next"]').click();
+  const quiz = page.locator(".quiz-q");
+  await expect(quiz).toHaveCount(5);
+  for (let i=0; i<5; i++) await quiz.nth(i).locator(".quiz-opt").first().click();
+  const sent = page.waitForRequest(req =>
+    req.method() === "POST" && req.url().includes("/api/c4/client/complete"));
+  await page.locator('[data-action="end-next"]').click();
+  const request = await sent;
+  const payload = request.postDataJSON();
+  expect(request.headers()["authorization"]).toMatch(/^Bearer /);
+  expect(payload).toMatchObject({
+    formato:"por-tras-da-oferta/c4-semana",
+    versao:1,simulado:true,
+    estado:{version:4,finished:true,endStep:3,day:5}
+  });
+  expect(Object.keys(payload.estado.quiz)).toHaveLength(5);
+  expect(payload.estado).not.toHaveProperty("password");
+  await expect(page.locator("#c4-sync-status")).toContainText("Percurso recebido pelo MCP");
+  const state=await saved(page);
+  expect(state.c4SyncedRunId).toBe(payload.sessao.id);
+  await page.reload();
+  await expect(page.locator("#c4-sync-status")).toContainText("Percurso recebido pelo MCP");
+});
+
+test("cada apelido mantém seu próprio progresso no mesmo Chrome", async ({ page }) => {
+  await enter(page);
+  const first=await saved(page);
+  expect(first.started).toBe(true);
+  await page.locator('.phone-footer [data-action="profile"]').click();
+  await page.locator('.layer [data-action="switch-player"]').click();
+  await expect(page.locator(".account-screen")).toBeVisible();
+
+  await page.locator('input[name="username"]').fill("outro_aluno");
+  await page.locator('input[name="password"]').fill("outra-senha-12345");
+  await page.locator('#c4-account-form button[value="signup"]').click();
+  await expect(page.locator(".home")).toBeVisible();
+  expect(await page.evaluate(() =>
+    localStorage.getItem("nofeed-simulator-v4:user:player-outro_aluno"))).toBeNull();
+  await page.locator('[data-action="switch-player"]').click();
+  await expect(page.locator(".account-screen")).toBeVisible();
+
+  await page.locator('input[name="username"]').fill("aluno_teste");
+  await page.locator('input[name="password"]').fill("senha-teste-12345");
+  await page.locator('#c4-account-form button[value="login"]').click();
+  await expect(page.locator(".status-bar")).toContainText("SEG");
+  expect((await saved(page)).runId).toBe(first.runId);
+});
