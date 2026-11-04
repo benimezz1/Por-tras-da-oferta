@@ -1798,6 +1798,31 @@ function endStep2(){
  <div class="quiz">${items}</div>
  <button class="primary end-next" data-action="end-next" ${answered<qs.length?'disabled':''}>${answered<qs.length?`Responda as ${qs.length} perguntas`:'Ver meu raio-x →'}</button>`;
 }
+/* Atualiza somente a resposta: recriar .end reiniciaria o scrollTop do quiz. */
+function answerQuizOption(button){
+ const id=button.dataset.q,choice=button.dataset.key;
+ const questions=Pressure.quiz(state.pressure,5);
+ const current=questions.find(q=>q.id===id);
+ const card=button.closest('.quiz-q');
+ if(!current||!card||state.quiz[id]||!current.options.includes(choice))return;
+ state.quiz[id]=choice;
+ save();
+ const correct=choice===current.answer;
+ card.querySelectorAll('.quiz-opt').forEach(option=>{
+  option.disabled=true;
+  option.classList.toggle('right',option.dataset.key===current.answer);
+  option.classList.toggle('wrong',!correct&&option.dataset.key===choice);
+ });
+ const feedback=document.createElement('p');
+ feedback.className='quiz-feedback '+(correct?'right':'wrong');
+ feedback.setAttribute('role','status');
+ feedback.textContent=(correct?'✓ Isso mesmo.':'✗ Era '+Pressure.STRATEGIES[current.answer].name+'.')+' '+Pressure.STRATEGIES[current.answer].short;
+ card.appendChild(feedback);
+ if(questions.every(q=>state.quiz[q.id])){
+  const next=root.querySelector('.end-step-2 .end-next');
+  if(next){next.disabled=false;next.textContent='Ver meu raio-x →';}
+ }
+}
 function endStep3(s){
  const qs=Pressure.quiz(state.pressure,5),right=qs.filter(q=>state.quiz[q.id]===q.answer).length;
  const prof=Pressure.profile(state.pressure),top=prof.filter(p=>p.influenced).slice(0,3);
@@ -1956,7 +1981,7 @@ root.addEventListener('click',e=>{
  else if(a==='load-more'){if(appendNext())renderGame(true);}
  else if(a==='finish'){finishWeek();}
  else if(a==='end-next'){state.endStep=Math.min(3,(state.endStep||0)+1);save();renderEnd();}
- else if(a==='quiz'){const q=el.dataset.q;if(q&&!state.quiz[q]){state.quiz[q]=el.dataset.key;save();const y=window.scrollY;renderEnd();window.scrollTo(0,y);}}
+ else if(a==='quiz'){answerQuizOption(el);}
  else if(a==='inbox'){if(story)stopStory();closeModal();overlay={type:'inbox'};drawOverlay();}
  else if(a==='chat'){el.closest('.push-banner')?.remove();openChat(el.dataset.thread);}
  else if(a==='chat-choice'){chooseChat(el.dataset.thread,Number(el.dataset.day),el.dataset.choice);}
