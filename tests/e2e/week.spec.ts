@@ -164,7 +164,25 @@ test("sem compras o jogador embarca e passa pelo final em quatro etapas", async 
   const questions = page.locator(".quiz-q");
   await expect(questions).toHaveCount(5);
   await expect(page.locator('[data-action="end-next"]')).toBeDisabled();
-  for (let i = 0; i < 5; i++) await questions.nth(i).locator(".quiz-opt").first().click();
+  // A resposta precisa aparecer no mesmo lugar, sem reconstruir o quiz ou voltar ao topo.
+  const fourthQuestion = questions.nth(3);
+  const fourthOption = fourthQuestion.locator(".quiz-opt").first();
+  await fourthOption.scrollIntoViewIfNeeded();
+  const scroller = page.locator(".end");
+  const originalCard = await fourthQuestion.elementHandle();
+  const scrollBefore = await scroller.evaluate((element) => element.scrollTop);
+  expect(scrollBefore).toBeGreaterThan(100);
+  await fourthOption.click();
+  await expect(fourthQuestion.locator(".quiz-feedback")).toBeVisible();
+  expect(await originalCard?.evaluate((element) => element.isConnected)).toBe(true);
+  const scrollAfter = await scroller.evaluate((element) => element.scrollTop);
+  expect(Math.abs(scrollAfter - scrollBefore)).toBeLessThan(25);
+  expect(scrollAfter).toBeGreaterThan(100);
+
+  for (let i = 0; i < 5; i++) {
+    if (i !== 3) await questions.nth(i).locator(".quiz-opt").first().click();
+  }
+  await expect(page.locator('[data-action="end-next"]')).toBeEnabled();
   await page.locator('[data-action="end-next"]').click();
   await expect(page.locator(".end")).toContainText("Reconheceu");
   const button = page.locator('[data-action="algorithm-final"]');
