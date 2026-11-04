@@ -26,7 +26,7 @@
       throw Error("Motores da campanha indisponíveis.");
     const snapshot = {};
     for (const key of FIELDS) if (Object.prototype.hasOwnProperty.call(state, key))
-      snapshot[key] = clone(state[key]);
+      snapshot[key] = state[key] === undefined ? null : clone(state[key]);
     const settlement = pressure.settle(state);
     const exposures = pressure.profile(state.pressure);
     const questions = pressure.quiz(state.pressure, 5);
