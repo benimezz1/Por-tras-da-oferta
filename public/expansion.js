@@ -47,7 +47,7 @@
    question:"Precisa de outra bateria?",hook:"A rede transforma um inconveniente possível em uma nova compra.",
    stories:[
     ["rafa.tech","🔋","Meu celular morreu bem na hora da foto! E voces?","bus","powerbank","friends_bus"],
-    ["rafa.tech","⚡","Uma bateria extra muda o dia? Publi ficticia.","bus","powerbank","sneakers"]
+    ["rafa.tech","⚡","Uma bateria extra muda o dia? Link na bio ⚡","bus","powerbank","sneakers"]
    ],
    posts:[
     {id:"p13",who:"rafa.tech",emoji:"⚡",when:"há 12 min · parceria",art:"bus",photo:"bus_close",promoted:true,caption:"Fiquei sem bateria no passeio, então estou testando uma solução compacta: Volt 10K. #publi",likes:1276,comments:[["lucca","Preciso para as fotos"],["ana","Dá para carregar quantas vezes?"]]},
@@ -61,7 +61,7 @@
    question:"Mais um item para o passeio?",hook:"Os itens baratos podem somar mais do que parecem.",
    stories:[
     ["vida.fit","💧","O que nao pode faltar na mochila?","campus","garrafa","trip_landscape"],
-    ["vida.fit","🌿","Meu kit do dia. Tem parceria ficticia na legenda!","campus","garrafa","backpack"]
+    ["vida.fit","🌿","Meu kit do dia. Cupom na legenda! 💧","campus","garrafa","backpack"]
    ],
    posts:[
     {id:"p16",who:"vida.fit",emoji:"💧",when:"há 18 min · parceria",art:"campus",photo:"trip_close",promoted:true,caption:"Meu kit para sair de casa: tênis confortável, água e garrafa Flow 750. #publi",likes:2134,comments:[["gabi","A cor é linda"],["pedro","Tenho garrafa em casa."]]},
@@ -75,7 +75,7 @@
    question:"Uma compra melhora seu foco?",hook:"A propaganda transforma organização em produto.",
    stories:[
     ["estudo.com","✨","Antes e depois do meu cantinho!","playlist","luminaria","fashion_stairs"],
-    ["estudo.com","💡","Luz indireta me ajuda a estudar. Parceria ficticia!","playlist","luminaria","park_close"]
+    ["estudo.com","💡","Luz indireta me ajuda a estudar. #publi","playlist","luminaria","park_close"]
    ],
    posts:[
     {id:"p19",who:"estudo.com",emoji:"💡",when:"há 9 min · parceria",art:"playlist",photo:"study_music",promoted:true,caption:"Organizei minha mesa para estudar com Halo Desk. #publi Não existe milagre, mas o ambiente ficou aconchegante.",likes:2890,comments:[["mia","Amei o setup"],["raquel","Já tenho abajur e serve bem."]]},
@@ -89,7 +89,7 @@
    question:"Vale ir só porque todo mundo vai?",hook:"A sensação de ficar de fora cria urgência.",
    stories:[
     ["agenda.festival","🎫","O grupo inteiro comentando o Pocket Fest!","venue","ingresso","sneaker_worn"],
-    ["agenda.festival","🎶","A programação desta simulação e ficticia.","venue","ingresso","sneaker_detail"]
+    ["agenda.festival","🎶","Line-up revelado! Lote 2 quase no fim 🎶","venue","ingresso","sneaker_detail"]
    ],
    posts:[
     {id:"p22",who:"agenda.festival",emoji:"🎫",when:"há 13 min · parceria",art:"venue",photo:"festival_lights",promoted:true,caption:"Pocket Fest: encontro imaginário, ingressos fictícios, memórias que só existem no jogo. #publi",likes:4311,comments:[["lucca","Bora galera"],["leo","Confirma antes de comprar!"]]},

@@ -1,5 +1,6 @@
-
 # Fluxo contínuo do No Feed — proposta implementada
+
+> **Atualização:** a dinâmica principal agora é a [semana até a viagem](SEMANA-ATE-A-VIAGEM.md). O feed contínuo descrito abaixo continua sendo a base do algoritmo, mas foi dividido em cinco dias, ganhou eventos de roteiro e deixou de exibir avisos de bastidor durante a partida.
 
 ## Tese educativa
 

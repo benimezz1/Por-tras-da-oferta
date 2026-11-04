@@ -23,13 +23,15 @@
     criador:args.personalized?model.authorAffinity(args.profile,post.author,args.phase||0)*.27:0,
     diversidade:-recentTopic*1.1,
     autorRepetido:-recentAuthor*.72,
-    descoberta:args.personalized?hash("p:"+post.id)*.42:0
+    descoberta:args.personalized?hash("p:"+post.id)*.42:0,
+    foco:(args.focus||[]).includes(post.topic)?1.5:0
    };
    return {score:Object.values(parts).reduce((a,b)=>a+b,0),parts};
   }
   function choosePost(posts,args){
    const published=new Set((args.shown||[]).filter(x=>x.kind==="post").map(x=>x.id));
-   const available=posts.filter(post=>!published.has(post.id)&&(post.phase||0)<=(args.phase||0));
+   const allowed=Array.isArray(args.allowed)?args.allowed:null;
+   const available=posts.filter(post=>!published.has(post.id)&&(allowed?allowed.includes(post.topic):(post.phase||0)<=(args.phase||0)));
    if(!available.length)return null;
    if(!args.personalized){
     available.sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
@@ -66,7 +68,8 @@
     campanha:isRet?1.45:ad.campaign==="pair"?1.6:0,
     saturacao:-recent.filter(x=>x.kind==="ad"&&x.topic===ad.topic).length*2.9,
     fadiga:-baseline.impressions*1.25,
-    exploracao:hash("ad:"+ad.id)*.38
+    exploracao:hash("ad:"+ad.id)*.38,
+    foco:(args.focus||[]).includes(ad.topic)?2.4:0
    };
    return {score:Object.values(parts).reduce((a,b)=>a+b,0),parts};
   }
@@ -75,7 +78,8 @@
    const purchased=args.purchased||[],phase=args.phase||0;
    const candidates=[];
    for(const topic of topics){
-    if(purchased.includes(topic)||phase<(release[topic]||0))continue;
+    const gated=Array.isArray(args.allowed)?!args.allowed.includes(topic):phase<(release[topic]||0);
+    if(purchased.includes(topic)||gated)continue;
     const alreadyMain=used.has("ad-main-"+topic);
     const recentEnough=adSpacing(topic,args)>=6;
     const interest=model.affinity(args.profile,topic,phase);

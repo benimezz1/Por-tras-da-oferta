@@ -283,6 +283,7 @@
 .shop-receipt-suggestion strong{display:block;font-size:12px}
 .shop-receipt-suggestion small{display:block;margin-top:5px;color:#a34a7c;font-size:11px}
 </style>
+<link rel="stylesheet" href="/pressure.css" />
 </head>
 <body>
 <div id="app"></div>
@@ -302,10 +303,13 @@
 <script src="/expansion.js"></script>
 <script src="/recommendation.js"></script>
 <script src="/stream.js"></script>
+<script src="/pressure.js"></script>
+<script src="/week.js"></script>
 <script>
 (()=>{
 "use strict";
-const KEY='nofeed-simulator-v3';
+const KEY='nofeed-simulator-v4';
+const Pressure=window.PorTrasPressure,Week=window.PorTrasWeek;
 
 const Recommender=window.NoFeedRecommender;
 
@@ -317,50 +321,6 @@ const contentPool=()=>phases.flatMap((ph,themeIndex)=>
 const storyPool=()=>phases.flatMap(ph=>
  ph.stories.map(s=>({...s,product:ph.id}))
 );
-function appendNext(){
- const batch=Stream.nextBatch(contentPool(),{
-  shown:state.feedItems,profile:state.algorithm,personalized:state.personalized,
-  phase:state.phase,cart:state.cart,viewed:state.viewed,
-  purchased:state.purchases.map(p=>p.id)
- },5);
- if(!batch.length)return false;
- state.feedItems.push(...batch);
- state.phase=Math.min(15,Math.floor(state.feedItems.length/6));
- save();
- return true;
-}
-function goalPanel(){
- const available=Math.max(0,Math.round((state.wallet-state.goal)*100)/100);
- const intact=state.wallet>=state.goal;
- return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon('arrow')}</button><strong>Sua meta fora do feed</strong></header>
- <div class="layer-body critical-panel"><span class="eyebrow">LEMBRETE DO INÍCIO</span>
- <h2>Você queria guardar R$ 400.</h2><p>Antes de abrir a rede, sua missão era preservar esse dinheiro fictício para a viagem da escola. A plataforma não conhece essa prioridade.</p>
- <div class="goal-numbers"><div><small>Saldo agora</small><strong>${money(state.wallet)}</strong></div><div><small>Meta da viagem</small><strong>${money(state.goal)}</strong></div></div>
- <div class="goal-result ${intact?'ok':'miss'}"><strong>${intact?'Meta ainda possível':'Sua meta ficou comprometida'}</strong><p>${intact?'Você pode gastar até '+money(available)+' sem diminuir a reserva.':'Faltam '+money(state.goal-state.wallet)+' para a reserva que você pretendia manter.'}</p></div>
- <p class="small muted">A meta não é uma regra moral: necessidades, prioridades e orçamentos são pessoais. Este jogo mede apenas o resultado de uma decisão fictícia.</p>
- <button class="secondary full critical-action" data-action="close-overlay">Voltar ao feed</button>
- <button class="primary full critical-action" data-action="finish">Sair do feed e refletir</button></div>`;
-}
-function coachPanel(){
- const id=overlay.id||state.viewed.at(-1)||state.feedItems.findLast(x=>x.kind==="ad")?.topic||"fone", p=products[id];
- const extra=id==='plano'&&state.extraChecked?9.90:0;
- const cost=p?p.price+extra:0;
- const themes={fone:'Praticidade e necessidade',tenis:'Popularidade, influência social e escassez',plano:'Assinatura e adicional pré-selecionado',mochila:'Desconto de referência e urgência',powerbank:'Prevenção de inconvenientes e recomendação complementar',garrafa:'Rotina idealizada e influência de criadores',luminaria:'Produtividade associada à compra de acessórios',ingresso:'Pertencimento social e medo de ficar de fora'};
- const balanceAfter=state.wallet-cost;
- const fits=balanceAfter>=state.goal;
- return `<header class="layer-head"><button class="icon-button" data-action="product" data-product="${esc(id)}" aria-label="Voltar ao anúncio">${icon('arrow')}</button><strong>Ajuda crítica · prévia local</strong></header>
- <div class="layer-body critical-panel"><span class="eyebrow">PENSE ANTES DO CLIQUE</span>
- <h2>O anúncio chama sua atenção. E sua meta?</h2>
- <p>Esta orientação é uma prévia educativa calculada no próprio navegador. <strong>Não é uma resposta do MCP conectado.</strong> A integração futura poderá aprofundar a análise com o assistente.</p>
- <div class="goal-numbers"><div><small>Preço anunciado</small><strong>${money(cost)}</strong></div><div><small>Saldo após compra</small><strong>${money(balanceAfter)}</strong></div></div>
- <div class="goal-result ${fits?'ok':'miss'}"><strong>${fits?'A reserva ainda caberia':'A compra impediria preservar sua reserva'}</strong><p>${fits?'Mesmo cabendo no orçamento, vale considerar necessidade, alternativas e prazo.':'Se comprar agora, o saldo ficaria '+money(state.goal-balanceAfter)+' abaixo do objetivo inicial.'}</p></div>
- <div class="coach-questions"><h3>Três perguntas úteis</h3>
- <ol><li>Você já queria esse item antes de abrir a rede?</li><li>Que técnica o anúncio usa? <strong>${themes[id]||'Persuasão comercial'}</strong>.</li><li>Esperar um dia mudaria sua decisão ou permitiria comparar preços?</li></ol></div>
- <p class="small muted">Nenhuma compra é automaticamente errada. O objetivo é recuperar sua autonomia diante de estímulos persuasivos.</p>
- <button class="secondary full critical-action" data-action="goal">Rever meu objetivo</button>
- <button class="primary full critical-action" data-action="product" data-product="${esc(id)}">Voltar ao produto</button></div>`;
-}
-
 let feedObserver=null;
 const impressionTimers=new Map();
 function recommendationOptions(){return {profile:state.algorithm,phase:state.phase,personalized:state.personalized};}
@@ -373,6 +333,8 @@ function postInfo(id){
   const order=phases[phase].posts.findIndex(p=>p.id===id);
   if(order>=0){const p=phases[phase].posts[order];return {...p,phase,order,author:p.who,topic:phases[phase].id};}
  }
+  const c=Week.COMPARE_POSTS[id];
+ if(c)return {...c,phase:0,order:0,author:c.who};
  return null;
 }
 function trackModel(type,topic,id,author=""){
@@ -386,10 +348,11 @@ const money=n=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).
 const icons={heart:'<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>',comment:'<path d="M20 11.5a8 8 0 0 1-8 8 9.1 9.1 0 0 1-3.5-.7L3 21l1.3-5.2A8.3 8.3 0 0 1 4 11.5a8 8 0 0 1 16 0Z"/>',bookmark:'<path d="M6 3h12v18l-6-4-6 4V3Z"/>',cart:'<circle cx="9" cy="20" r="1"/><circle cx="19" cy="20" r="1"/><path d="M2 3h2l2.5 12h13.6l2-9H5"/>',arrow:'<path d="m15 18-6-6 6-6"/>',send:'<path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/>',home:'<path d="m3 10 9-7 9 7v10H3V10Z"/><path d="M9 20v-7h6v7"/>',search:'<circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 5 5"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',close:'<path d="M5 5 19 19M19 5 5 19"/>',chevron:'<path d="m9 5 7 7-7 7"/>',more:'<circle cx="4" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="20" cy="12" r="1"/>',bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/>',check:'<path d="m4 12 5 5L20 6"/>',info:'<circle cx="12" cy="12" r="10"/><path d="M12 11v6M12 7h.01"/>',share:'<path d="M12 16V3M7 8l5-5 5 5M5 16v4h14v-4"/>',eye:'<path d="M2 12s3.7-7 10-7 10 7 10 7-3.7 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>'};
 const icon=(n,cls='')=>`<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true">${icons[n]||icons.info}</svg>`;
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const makeInitial=()=>({version:3,started:false,finished:false,phase:0,feedItems:[],helpRequests:0,wallet:620,goal:400,cart:[],purchases:[],decisions:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,monthly:0,events:[],seenAds:[],algorithm:Recommender.emptyProfile()});
+const makeInitial=()=>({version:4,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
+ pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null});
 let state=makeInitial();try{
  const saved=JSON.parse(localStorage.getItem(KEY)||"null");
- if(saved?.version===3&&Array.isArray(saved.feedItems)&&Array.isArray(saved.decisions)){
+ if(saved?.version===4&&Array.isArray(saved.feedItems)&&Array.isArray(saved.purchases)){
   state={...makeInitial(),...saved,feedItems:saved.feedItems.slice(0,Stream.MAX_FEED_ITEMS)};
   if(!Array.isArray(state.liked))state.liked=[];
   if(!Array.isArray(state.likedAds))state.likedAds=[];
@@ -398,6 +361,10 @@ let state=makeInitial();try{
  }
 }catch(e){}
 state.algorithm=Recommender.normalize(state.algorithm);
+state.pressure=Pressure.normalizeLedger(state.pressure);
+state.vibe=Pressure.normalizeVibe(state.vibe);
+for(const k of ['card','variant','flags','threads','timers','stock','context','anchors','protection','quiz'])if(!state[k]||typeof state[k]!=='object'||Array.isArray(state[k]))state[k]=makeInitial()[k];
+for(const k of ['coupons','invoice','subscriptions','notifs','fixes','exitOffers','wakeList'])if(!Array.isArray(state[k]))state[k]=[];
 let overlay=null,story=null,modal=null,toastTimer=null,introTimer=null,scene=0;
 const STORY_DURATION=5500;
 let storyTimer=null,storyStartedAt=0,storyPointer=null,storyIgnoreClick=false,storyChangeSeq=0;
@@ -566,30 +533,6 @@ exitCancel.addEventListener('click',()=>closeExitConfirm());
 exitAccept.addEventListener('click',()=>{closeExitConfirm(false);restart();});
 exitConfirm.addEventListener('click',e=>{if(e.target===exitConfirm)closeExitConfirm();});
 
-function renderHome(){exitHomeButton.hidden=true;root.innerHTML=`<main class="home"><div class="home-inner"><section><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA · EXPERIÊNCIA INTERATIVA</div><h1>Seu feed.<br><em>Suas escolhas.</em></h1><p>Uma missão fora da tela. Um feed que parece não ter fim. Seus cliques mudam o que aparece — e suas escolhas mudam o resultado.</p><button class="primary" data-action="start">Começar a história &nbsp;→</button><div class="home-meta"><span>✦</span><span>feed contínuo · sem escolhas obrigatórias · compras fictícias</span></div></section><div class="preview-art"><div class="blob one"></div><div class="blob two"></div><div class="preview-phone"><div class="preview-header">pulso. <span style="font-size:18px">♡ &nbsp;⌑</span></div><div class="preview-storybar"><div class="preview-avatar">${mediaPhoto("avatar_bia","avatar-photo","Foto de perfil da Bia")}</div><div class="preview-avatar">${mediaPhoto("avatar_lucca","avatar-photo","Foto de perfil do Lucca")}</div><div class="preview-avatar">${mediaPhoto("avatar_livia","avatar-photo","Foto de perfil da Lívia")}</div><div class="preview-avatar">${mediaPhoto("avatar_gabi","avatar-photo","Foto de perfil da Gabi")}</div></div><div class="preview-photo realistic-preview">${mediaPhoto("post_p1","art-photo","Amigos aproveitando um encontro no parque")}</div><div class="preview-caption"><b>bia.m</b> Quem já tá pronto pro sábado? 💜<br><span style="color:#aaa">Ver os 18 comentários...</span></div><div class="preview-ad">★ Patrocinado <b>· Uma oferta que parece ter sido feita para você.</b></div></div><div class="preview-badge">Alguns cliques mudam tudo 👀</div></div></div></main>`;}
-
-const introSlides=[{emoji:'🎯',title:'Sua missão: preservar R$ 400.',text:'Você tem R$ 620 fictícios até o fim do mês. Quer guardar R$ 400 para a viagem da escola. Quando entrar na rede, ninguém vai lembrar essa meta por você.'}];
-function showIntro(){
- exitHomeButton.hidden=false;scene=0;clearTimeout(introTimer);
- root.innerHTML=`<main class="cinematic"><div class="scene-box">
- <div class="scene-icon">🎯</div><div class="eyebrow" style="color:#eec7ee">UMA META ANTES DO FEED</div>
- <h2>Sua missão: <span style="color:#ffc5e2">guardar R$ 400.</span></h2>
- <p>Você tem R$ 620 fictícios. Quer reservar R$ 400 para a viagem da escola. Daqui a pouco, você estará numa rede de amigos, vídeos e anúncios — e sua meta deixará de aparecer na tela.</p>
- <button class="scene-next" data-action="intro-next">Entrar no feed →</button>
- <button class="tertiary intro-secondary" data-action="skip-intro">Já entendi, abrir a rede</button>
- </div></main>`;
-}
-
-
-function asideLeft(){
- return `<aside class="rail"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
- <span class="eyebrow" style="margin-top:15px">O QUE APARECE PRA VOCÊ</span>
- <h2 class="stage-title">Só mais um <span style="color:#d386ac">scroll.</span></h2>
- <p class="description">Amigos, tendências, ofertas e recomendações. A rede se adapta às suas interações sem conhecer sua prioridade fora da tela.</p>
- </aside>`;
-}
-function asideRight(){return '';}
-
 const relatedPostLinks={
  p13:{topic:"powerbank",label:"Ver carregador do vídeo"},
  p14:{topic:"powerbank",label:"Bateria para o rolê"},
@@ -623,64 +566,13 @@ function shopStrip(){
   return `<button class="shop-mini-card" data-action="product" data-product="${id}" aria-label="Ver ${esc(p.name)} na loja">${art(p.kind,true,p.brand)}<strong>${esc(p.name)}</strong><b>${money(p.price)}${id==='plano'?'/mês':''}</b><small>Ver na loja →</small></button>`;
  }).join('')}</div></aside>`;
 }
-function stageFeed(){
- const pool=contentPool();
- const cards=state.feedItems.map((item,i)=>{const card=state.hiddenPosts.includes(item.id)?"":item.kind==='post'?postCard(pool.find(p=>p.id===item.id)):adCard(item.topic,item.retarget,item);return card+([3,12,20,28].includes(i)?shopStrip():'');}).join('');
- const done=Stream.isDone(pool,state.feedItems);
- const next=done?'<div class="feed-end-hint"><strong>Você já percorreu as publicações desta demonstração.</strong><p>Uma rede real poderia continuar oferecendo mais conteúdo. Aqui, você pode revisitar posts, pedir ajuda ou observar as consequências do seu percurso.</p></div>':
- '<button class="load-more" data-action="load-more">Mais publicações para você ↓</button>';
- return `<div class="game">${asideLeft()}<main class="phone" aria-label="Simulador de rede social">
- <header class="phone-head"><span class="phone-logo">pulso<b>.</b></span><div class="phone-actions">
- 
- <button class="shop-entry" data-action="shop" aria-label="Abrir lojas">Ofertas</button><button class="icon-button" data-action="notifications" aria-label="Notificações">${icon('heart')}</button>
- <button class="icon-button" data-action="cart" aria-label="Abrir carrinho" style="position:relative">${icon('cart')}${state.cart.length?`<span class="cart-dot">${state.cart.length}</span>`:''}</button>
- </div></header>
- <div class="phone-content" id="feed-scroll">
- ${renderStories(storyPool())}
- <div class="feed-context"><span style="font-size:19px">✦</span><div><strong style="font-size:12px">PARA VOCÊ</strong><p>Novidades, amigos e publicações recomendadas.</p></div></div>
- <div class="recommendation-caption">${state.personalized?'Sugestões de publicações para você':'Publicações em ordem editorial'}</div>
- ${cards}${next}
- <button class="finish-feed" data-action="finish">Sair do feed e ver minhas escolhas →</button>
- <p class="feed-footer-note">Ofertas e compras são simuladas. Você decide o que fazer.</p>
- </div><button class="scroll-cue" data-action="scroll-cue" aria-label="Role para baixo para continuar">Continue rolando ↓</button>
- <footer class="phone-footer"><button class="icon-button" data-action="feedtop" aria-label="Início do feed">${icon('home')}</button>
- <button class="icon-button" data-action="search" aria-label="Explorar lojas">${icon('search')}</button>
- <button class="icon-button" data-action="goal" aria-label="Minha meta">${icon('bookmark')}</button>
- <button class="icon-button" data-action="cart" aria-label="Carrinho">${icon('cart')}</button>
- <button class="icon-button" data-action="profile" aria-label="Meu perfil">${icon('user')}</button>
- </footer></main>${asideRight()}</div>`;
-}
-
 function postCard(post){
  const liked=state.liked.includes(post.id),saved=state.bookmarks.includes(post.id),isPage=post.source==="page";
  const link=relatedPostLinks[post.id];
- const button=link?`<button class="post-shop-link" data-action="product" data-product="${link.topic}">${esc(link.label)} · ${money(products[link.topic].price)} <span aria-hidden="true">→</span></button>`:"";
- const photoAction=link?` data-action="open-photo" data-product="${link.topic}"`:"";
+ const button=link?`<button class="post-shop-link" data-action="product" data-product="${link.topic}" data-source="post">${esc(link.label)} · ${money(price(link.topic).price)} <span aria-hidden="true">→</span></button>`:"";
+ const photoAction=link?` data-action="open-photo" data-product="${link.topic}" data-source="post"`:"";
  return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":"amigo"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${post.who}</strong> ${post.caption}</p>${button}</article>`;
 }
-function adCard(id,retarget=false,item={}){
- const p=products[id];if(!p)return "";
- const adId=item.id||(retarget?"ad-ret-"+id:"ad-main-"+id);
- const campaign=item.campaign||(retarget?"retarget":"prospecting");
- const liked=state.likedAds.includes(adId);
- const bought=state.purchases.findLast(x=>Recommender.related[x.id]?.[id]>.2);
- const channel=campaign==="pair"?"Combina com suas escolhas":campaign==="retarget"?"Você já viu este produto":"Novidade patrocinada";
- const text=campaign==="pair"&&bought
-  ?"Você adquiriu "+products[bought.id].name+". Conheça um acessório relacionado: "+p.name+"."
-  :campaign==="retarget"?p.late:p.ad;
- const caption=campaign==="pair"?"Quem gostou de produtos semelhantes também pode se interessar."
-  :marketingHooks[id];
- return `<article class="post ad-post" data-rec-id="${adId}" data-rec-topic="${id}" data-campaign="${campaign}"><div class="post-top"><span class="avatar brand-av">${esc(p.brand.split(" ")[0].slice(0,4))}</span><div class="user-info"><div class="username">${esc(p.brand.toLowerCase().replaceAll(" ","."))}</div><div class="post-sub"><span class="sponsored-label">Patrocinado · anúncio fictício</span></div></div><button class="icon-button" data-action="ad-more" data-product="${id}" data-post="${adId}" aria-label="Opções do anúncio">${icon("more")}</button></div><div class="post-media feed-photo" data-action="open-photo" data-product="${id}" data-like-ad="${adId}" role="group" aria-label="Anúncio de ${esc(p.name)}. Um toque abre a loja; dois toques curtem.">${art(p.kind,true,p.brand)}<span class="photo-tag">${channel}</span></div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like-ad" data-product="${id}" data-ad="${adId}" aria-label="${liked?"Descurtir":"Curtir"} anúncio" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${adId}" aria-label="Ver avaliações">${icon("comment")}</button><button class="icon-button push" data-action="product" data-product="${id}" aria-label="Visitar loja">${icon("eye")}</button></div><p class="post-caption"><strong>${esc(p.brand.toLowerCase().replaceAll(" ","."))}</strong> ${esc(text)} ${esc(caption)}</p><div class="price-bar"><div><span>${p.old?`<s>${money(p.old)}</s> · `:""}${id==="plano"?"Assinatura mensal":"Preço anunciado"}</span><br><strong>${money(p.price)}${id==="plano"?'<small style="font-size:11px">/mês</small>':""}</strong></div><span>${channel}</span></div><button class="ad-cta" data-action="product" data-product="${id}">Ver oferta na loja <span aria-hidden="true">→</span></button></article>`;
-}
-function adaptiveAd(current) {
-  const result = Recommender.pickRetarget({
-    profile: state.algorithm, phase: state.phase, personalized: state.personalized,
-    current, cart: state.cart, purchased: state.purchases.map(x => x.id)
-  });
-  return result ? adCard(result.topic, true) : "";
-}
-function decisionCard(){const ph=phases[Math.min(phases.length-1,state.phase)],p=products[ph.id],inCart=state.cart.includes(ph.id);return `<section class="decision" id="decision"><p class="question-tag">CHEGOU SUA VEZ</p><h3>${ph.question}</h3><p>${ph.hook}</p><button class="decision-btn main" data-action="decision" data-decision="buy">Comprar ${p.name} · ${money(p.price)}</button><button class="decision-btn" data-action="decision" data-decision="cart">${inCart?'Manter no carrinho e seguir':'Guardar no carrinho e seguir'}</button><button class="decision-btn" data-action="decision" data-decision="skip">Não comprar agora</button><div class="decision-foot">Saldo: ${money(state.wallet)} · Meta de economia: ${money(state.goal)}<br>Suas escolhas alteram os próximos anúncios.</div></section><div class="endnote">Você chegou ao final do feed por hoje. ✦</div>`;}
-
 function setupFeedAssist(){
  const scroller=document.querySelector('#feed-scroll'),cue=document.querySelector('.scroll-cue');
  if(!scroller)return;
@@ -688,7 +580,7 @@ function setupFeedAssist(){
   const remaining=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop;
   if(cue)cue.classList.toggle('hidden',scroller.scrollTop>88||remaining<120);
   if(scroller.scrollTop<120||remaining>190||loadPending||overlay||story||modal||!exitConfirm.hidden)return;
-  if(Stream.isDone(contentPool(),state.feedItems))return;
+  if(dayItems().some(x=>x.kind==='night')||state.wake)return;
   loadPending=true;
   requestAnimationFrame(()=>{
    loadPending=false;
@@ -699,7 +591,19 @@ function setupFeedAssist(){
  sync();scroller.addEventListener('scroll',sync,{passive:true});
 }
 
-function renderGame(keepScroll=false){if(state.finished){renderEnd();return;}exitHomeButton.hidden=false;if(!state.feedItems.length)appendNext();const y=keepScroll?document.querySelector('#feed-scroll')?.scrollTop||0:0;root.innerHTML=stageFeed();if(keepScroll){const n=document.querySelector('#feed-scroll');if(n)n.scrollTop=y;}setupFeedAssist();setupFeedExposure();if(overlay)drawOverlay();if(modal)drawModal();if(story)drawStory();}
+function renderGame(keepScroll=false){
+ if(state.finished){renderEnd();return;}
+ exitHomeButton.hidden=false;
+ if(state.wake&&!overlay)overlay={type:'wake'};
+ if(!state.wake&&!dayItems().length)appendNext();
+ const y=keepScroll?document.querySelector('#feed-scroll')?.scrollTop||0:0;
+ root.innerHTML=stageFeed();
+ if(keepScroll){const n=document.querySelector('#feed-scroll');if(n)n.scrollTop=y;}
+ setupFeedAssist();setupFeedExposure();
+ if(overlay)drawOverlay();if(modal)drawModal();if(story)drawStory();
+ if(!bannerTimer&&bannerQueue.length)setTimeout(nextBanner,500);
+ tick();
+}
 function algorithmResults(){
  const summary=Recommender.summary(state.algorithm,state.phase);
  const ads=state.feedItems.filter(item=>item.kind==="ad");
@@ -767,151 +671,7 @@ function setupFeedExposure() {
   scroll.querySelectorAll("[data-rec-id]").forEach(el=>feedObserver.observe(el));
 }
 
-const shopAddresses={fone:"aura-audio.example",tenis:"rush-street.example",plano:"modo-music.example",mochila:"noma-goods.example",powerbank:"nexo-tech.example",garrafa:"verde-lab.example",luminaria:"luma-home.example",ingresso:"viva-tickets.example"};
-const marketingHooks={
- fone:"Sua playlist merece uma experiência nova. O anúncio reapareceu porque áudio combinou com suas interações.",
- tenis:"Você viu looks parecidos no feed. A marca apresenta este modelo como uma tendência da semana.",
- plano:"Aquela playlist sem interrupções está a um clique. Assinatura renovada mensalmente.",
- mochila:"A viagem está chegando? A loja destaca o desconto de referência e a oferta do dia.",
- powerbank:"A bateria extra apareceu porque você viu conteúdos sobre celular, música ou viagens.",
- garrafa:"Pequenos acessórios entram nas recomendações depois de posts sobre rotina e passeios.",
- luminaria:"A rede relacionou produtividade e estudos a acessórios para o seu espaço.",
- ingresso:"Seus amigos estão falando de eventos, e o feed trouxe um ingresso fictício."
-};
-function cartLinePrice(id){
- const p=products[id];
- return !p?0:p.price+(id==="plano"&&state.extraChecked?9.90:0);
-}
-function cartTotal(ids){
- return Math.round(ids.reduce((sum,id)=>sum+cartLinePrice(id),0)*100)/100;
-}
-function productPage(){
- const id=overlay.id,p=products[id],bought=state.purchases.some(item=>item.id===id),inCart=state.cart.includes(id);
- if(!p)return shopPage();
- const choice=id==="plano"?`<label class="option-row"><input id="vip-extra" type="checkbox" ${state.extraChecked?"checked":""}/><span><strong>Acrescentar VIP por ${money(9.90)}/mês</strong><br><small class="muted">Complemento opcional. A opção está pré-selecionada pela loja fictícia.</small></span></label>`:"";
- return `<header class="layer-head"><button class="icon-button" data-action="shop-back" aria-label="Voltar">${icon("arrow")}</button><div class="shop-browser" style="flex:1;min-width:0"><span class="safe">🔒</span><b>${shopAddresses[id]}</b></div><button class="icon-button" data-action="cart" aria-label="Ver carrinho">${icon("cart")}</button><button class="icon-button" data-action="close-overlay" aria-label="Fechar loja">${icon("close")}</button></header>
-  <div class="layer-body"><div class="shop-trust">SITE FICTÍCIO · Você está dentro da demonstração, sem pagamentos reais.</div>
-  <div class="shop-banner"><b>${esc(p.brand)}</b><p>${esc(p.tag)}</p></div>
-  <div class="shop-hero">${art(p.kind,true,p.brand)}</div>
-  <section class="shop-title"><span class="shop-label">${esc(p.label)}</span><h2>${esc(p.name)}</h2>
-  <div class="shop-price">${p.old?`<del>${money(p.old)}</del>`:""}${money(p.price)}${id==="plano"?'<small style="font-size:12px">/mês</small>':""}</div>
-  <span class="shop-tiny-label">★ ${p.reviews.length} avaliações fictícias · Oferta da simulação</span>
-  <div class="shop-hook">${marketingHooks[id]}</div></section>
-  <section class="shop-details"><p>${esc(p.desc)}</p><ul>${p.specs.map(item=>`<li>${esc(item)}</li>`).join("")}</ul>
-  ${choice}
-  <button class="reviews-shortcut" data-action="comments" data-post="ad-main-${id}"><span><strong>Ler avaliações e opiniões</strong><small class="muted" style="display:block">Comentários favoráveis e críticos criados para o jogo</small></span>${icon("chevron")}</button>
-  <button class="secondary critical-action full" data-action="coach" data-product="${id}">Ajuda: pensar antes de comprar</button><button class="tertiary critical-action full" data-action="pass" data-product="${id}">Agora não · voltar ao feed</button>
-  <p class="warning-note">Os preços, descontos, lojas, estoque, prazo e comentários são fictícios. Este site não solicita pagamentos nem dados pessoais.</p>
-  <button class="text-link" data-action="shop" style="margin:10px 0 20px">Ver outras lojas →</button>
-  </section></div>
-  <div class="shop-footer">
-   <button class="secondary" data-action="${inCart?"cart":"add-cart"}" data-product="${id}" ${bought?"disabled":""}>${bought?"Já comprado":inCart?"Ver sacola ("+state.cart.length+")":"Adicionar à sacola"}</button>
-   <button class="primary" data-action="checkout" data-product="${id}" ${bought?"disabled":""}>${bought?"Comprado":"Comprar agora →"}</button>
-  </div>`;
-}
-function shopPage(){
- const ids=Recommender.topics;
- return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon("arrow")}</button><strong>Explorar lojas</strong><button class="icon-button" data-action="cart" aria-label="Abrir carrinho">${icon("cart")}${state.cart.length?`<span class="cart-dot">${state.cart.length}</span>`:""}</button></header>
-  <div class="layer-body"><div class="shop-banner"><b>Descubra ofertas no Pulso</b><p>Oito lojas de demonstração. Tudo é fictício e fácil de explorar.</p></div>
-  <div class="shop-search-wrap"><input type="search" id="shop-search" class="shop-search-input" placeholder="Buscar produto ou loja..." aria-label="Pesquisar produtos" autocomplete="off"/><small id="shop-search-count" class="muted">Explore os produtos fictícios</small></div><div class="shop-collection">${ids.map(id=>{
-   const p=products[id],bought=state.purchases.some(x=>x.id===id);
-   return `<button class="shop-product" data-shop-name="${esc((p.name+" "+p.brand+" "+p.label).toLowerCase())}" data-action="product" data-product="${id}" aria-label="Visitar site ${esc(p.brand)}"><span>${art(p.kind,true,p.brand)}</span><span><strong>${esc(p.name)}</strong><small>${esc(p.brand)} · ${bought?"Já comprado":"Loja fictícia"}</small><b>${money(p.price)}${id==="plano"?"/mês":""}</b><small>Visitar site →</small></span></button>`;
-  }).join("")}</div></div>`;
-}
-function cartPage(){
- const ids=state.cart.filter(id=>products[id]&&!state.purchases.some(p=>p.id===id));
- return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon("arrow")}</button><strong>Sua sacola</strong><span class="pill" style="margin-left:auto">${ids.length} item(ns)</span></header>
- <div class="layer-body" style="padding:14px 18px">${ids.length?ids.map(id=>{
-  const p=products[id];
-  return `<div class="cart-item"><div class="cart-thumb">${art(p.kind,true,p.brand)}</div><div class="cart-item-text"><strong>${esc(p.name)}</strong><p>${money(cartLinePrice(id))}${id==="plano"?"/mês":""}</p><button class="text-link" data-action="remove-cart" data-product="${id}">Remover</button></div><button class="tiny-button" data-action="product" data-product="${id}">Ver loja →</button></div>`;
- }).join("")+`<div class="checkout-price"><span>Total estimado</span><strong>${money(cartTotal(ids))}</strong></div><button class="primary full" data-action="checkout-cart">Finalizar pedido fictício →</button>`:
- '<div class="empty"><div style="font-size:42px">🛍️</div><h3>Nada na sacola ainda</h3><p>Você pode abrir qualquer loja e adicionar produtos.</p><button class="primary" data-action="shop">Explorar ofertas</button></div>'}
- <p class="small muted" style="margin-top:20px">Estes são produtos e compras simuladas. Nada será cobrado de verdade.</p></div>`;
-}
-function checkoutPage(){
- const ids=(overlay.items||[]).filter(id=>products[id]&&!state.purchases.some(p=>p.id===id));
- const total=cartTotal(ids);
- return `<header class="layer-head"><button class="icon-button" data-action="shop-back" aria-label="Voltar à loja">${icon("arrow")}</button><strong>Finalizar compra</strong></header>
- <div class="layer-body checkout-summary"><span class="shop-label">PEDIDO DE DEMONSTRAÇÃO</span><h2>Quase lá!</h2>
- <p class="small muted">Você está em um checkout simulado. Não informe cartão, endereço nem dados pessoais.</p>
- ${ids.map(id=>`<div class="checkout-item"><span>${esc(products[id].name)}${id==="plano"?" · assinatura mensal":""}</span><strong>${money(cartLinePrice(id))}</strong></div>`).join("")}
- ${ids.includes("plano")?`<label class="option-row"><input id="vip-extra" type="checkbox" ${state.extraChecked?"checked":""}/><span><strong>Adicionar VIP (+ ${money(9.90)}/mês)</strong><br><small class="muted">Pré-marcado pela loja simulada; você pode desmarcar.</small></span></label>`:""}
- <div class="checkout-price"><span>Total do pedido</span><strong>${money(total)}</strong></div>
- <p class="checkout-note">Saldo fictício disponível: <strong>${money(state.wallet)}</strong>. ${ids.includes("plano")?"Assinaturas são cobradas por mês na simulação.":"Produtos e entrega são fictícios."}</p>
- ${total>state.wallet?'<div class="checkout-warning">Você não tem saldo fictício suficiente para esse pedido. Remova um item e tente novamente.</div>':""}
- <div class="shop-tiny-label">🔒 Nenhum pagamento verdadeiro</div>
- </div>
- <div class="shop-footer"><button class="secondary" data-action="shop-back">Voltar</button><button class="primary" data-action="buy" ${ids.length===0||total>state.wallet?"disabled":""}>Confirmar compra fictícia</button></div>`;
-}
-function receiptPage(){
- const order=state.lastOrder||{items:[],total:0};
- const bought=state.purchases.map(x=>x.id);
- const suggestions=Recommender.topics.filter(t=>!bought.includes(t))
-  .sort((a,b)=>Recommender.complementaryScore(b,bought)-Recommender.complementaryScore(a,bought)
-    ||shopPicks().indexOf(a)-shopPicks().indexOf(b)).slice(0,2);
- return `<header class="layer-head"><strong>Pedido de demonstração</strong></header><div class="layer-body">
- <section class="receipt-screen"><div class="receipt-check">✓</div><h2>Compra simulada confirmada!</h2>
- <p>Seu pedido fictício foi registrado nesta partida. Nenhum pagamento real foi realizado.</p>
- <div class="checkout-price"><span>Valor do pedido</span><strong>${money(order.total)}</strong></div>
- <div class="checkout-price"><span>Saldo fictício restante</span><strong>${money(state.wallet)}</strong></div>
- <p>Você pode continuar olhando o feed e verá as consequências das escolhas ao finalizar a experiência.</p>
- ${suggestions.length?`<div class="receipt-suggestions"><h3>Pode combinar com sua compra</h3>
- ${suggestions.map(id=>`<button class="shop-receipt-suggestion" data-action="product" data-product="${id}">${art(products[id].kind,true)}<span><strong>${esc(products[id].name)}</strong><small>${money(products[id].price)} · Ver na loja →</small></span></button>`).join("")}
- </div>`:""}
- <button class="primary full" data-action="close-overlay">Voltar ao feed →</button>
- <button class="secondary full" style="margin-top:10px" data-action="shop">Ver outras lojas</button>
- </section></div>`;
-}
-
-function drawOverlay(){
- const phone=document.querySelector(".phone");if(!phone||!overlay)return;
- document.querySelector(".layer")?.remove();
- const wrap=document.createElement("div");
- wrap.className="layer";
- wrap.setAttribute("role","dialog");
- wrap.setAttribute("aria-modal","true");
- const id=overlay.id;
- if(overlay.type==="shop")wrap.innerHTML=shopPage();
- else if(overlay.type==="product")wrap.innerHTML=productPage();
- else if(overlay.type==="cart")wrap.innerHTML=cartPage();
- else if(overlay.type==="checkout")wrap.innerHTML=checkoutPage();
- else if(overlay.type==="receipt")wrap.innerHTML=receiptPage();
- else if(overlay.type==="profile"){
-  wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon("arrow")}</button><strong>Meu perfil</strong></header><div class="layer-body" style="padding:22px">
-   <div style="text-align:center;padding:8px 0 22px"><div class="avatar" style="margin:auto;width:74px;height:74px;font-size:35px">🙂</div><h3 style="margin:12px 0 4px">você</h3><p class="small muted">Perfil fictício da simulação</p></div>
-   <div class="end-box" style="padding:15px;margin:0"><strong style="font-size:13px">Seu saldo</strong><div style="font-size:24px;font-weight:850;margin:8px 0">${money(state.wallet)}</div><p class="small muted">${state.purchases.length} compra(s) fictícia(s) efetuada(s)</p></div>
-   <button class="reviews-shortcut" data-action="shop"><strong>Explorar as lojas</strong>${icon("chevron")}</button>
-   <label class="option-row"><input id="privacy-switch" type="checkbox" ${state.personalized?"checked":""}/><span><strong>Recomendações personalizadas</strong><br><small class="muted">Se desligar, novos posts deixam de considerar seus sinais e anúncios repetidos são desativados.</small></span></label>
-   <button class="reviews-shortcut" data-action="goal"><strong>Relembrar minha meta financeira</strong>${icon("chevron")}</button>
-   </div>`;
- }
- else if(overlay.type==="goal")wrap.innerHTML=goalPanel();
- else if(overlay.type==="coach")wrap.innerHTML=coachPanel();
- else if(overlay.type==="notifications"){
-  const ids=[...new Set([...state.cart,...shopPicks()])].filter(id=>products[id]).slice(0,3);
-  wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon("arrow")}</button><strong>Notificações</strong></header><div class="layer-body" style="padding:18px">
-    <h3 style="font-size:19px">Novidades para você</h3>
-    ${ids.map(id=>`<button class="reviews-shortcut" data-action="product" data-product="${id}"><span><strong>${esc(products[id].brand)}</strong><small style="display:block;margin-top:5px;color:#8b7a8b">${state.cart.includes(id)?"Ainda na sua sacola":"Veja o que apareceu entre as ofertas"} · ${money(products[id].price)}</small></span>${icon("chevron")}</button>`).join("")}
-    <p class="small muted">Notificações e ofertas fictícias para o jogo.</p>
-   </div>`;
- }
- else return;
- phone.appendChild(wrap);
-}
-
-function drawModal(){const phone=document.querySelector('.phone');if(!phone)return;document.querySelector('.layer-backdrop')?.remove();const v=modal;let content='';if(v.type==='comments'){
- let comments=[];let title='Comentários';if(/^ad-(main|ret|pair)-/.test(v.post)){let id=v.post.replace(/^ad-(main|ret|pair)-/,'');comments=products[id].reviews;title=`Opiniões sobre ${products[id].name}`;}else{for(const ph of phases){const post=ph.posts.find(x=>x.id===v.post);if(post){comments=post.comments.map((c,i)=>[c[0],c[1],`${i+1} h`]);break;}}}
- content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${title}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header><div class="sheet-scroll">${comments.map((c,i)=>`<div class="comment"><span class="avatar">${['🧑','👩','🧒','🙂'][i%4]}</span><div><strong>${esc(c[0])}</strong><p>${esc(c[1])}</p><small>${c[2]||'há pouco'}</small></div></div>`).join('')}<p class="small muted" style="margin-top:12px">Comentários criados para a simulação. Eles não comprovam qualidade, estoque ou popularidade.</p></div>`;
- }else if(v.type==='more'){
- content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Opções de publicação</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
-  <div class="sheet-scroll"><p class="small muted">Você pode escolher não ver conteúdos semelhantes.</p>
-  <button class="secondary full" data-action="less" data-topic="${esc(v.topic||'')}" data-post="${esc(v.post||'')}">Mostrar menos como este</button>
-  <button class="tertiary full" style="margin-top:10px" data-action="close-modal">Cancelar</button></div>`;
- }else if(v.type==='search'){content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Explorar</strong><button class="icon-button" data-action="close-modal">${icon('close')}</button></header><div class="sheet-scroll"><p class="small muted">A aba Explorar é simplificada nesta demonstração. Você pode navegar pelas publicações, stories e lojas. Você pode visitar os stories, ler os comentários e entrar nas lojas.</p></div>`;
- }
- const box=document.createElement('div');box.className='layer-backdrop';box.innerHTML=`<section class="bottom-sheet" role="dialog" aria-modal="true">${content}</section>`;phone.appendChild(box);
-}
-
+const shopAddresses={fone:"pulso.shop/aura-audio",tenis:"pulso.shop/rush-street",plano:"pulso.shop/modo-music",mochila:"pulso.shop/noma-goods",powerbank:"pulso.shop/nexo-tech",garrafa:"pulso.shop/verde-lab",luminaria:"pulso.shop/luma-home",ingresso:"pulso.shop/viva-tickets"};
 function storyOrder(){
  return storyGroups().flatMap(g=>g.items.map(item=>item.idx));
 }
@@ -1036,7 +796,8 @@ function drawStory(){
  el.setAttribute('data-story-index',String(index));
  el.setAttribute('aria-label',`Stories de ${s.user}`);
  const hasShopLink=['livia','moda.agora','loja.noma','dj.andre','rafa.tech','vida.fit','estudo.com','agenda.festival'].includes(s.user);
- const storyShopLink=hasShopLink?`<button class="story-shop-cta" data-action="story-product" data-product="${s.product}">Ver oferta na loja · ${money(products[s.product].price)} →</button>`:'';
+ const storyShopLink=hasShopLink?`<button class="story-shop-cta" data-action="story-product" data-product="${s.product}">Ver oferta na loja · ${money(price(s.product).price)} →</button>`:'';
+ if(hasShopLink&&s.source==='page')expose('influencia',`Story de ${s.user} com link direto para a loja.`);
  const image=story.photoUrl
   ? `<img class="story-photo" alt="Story publicado por ${esc(s.user)}" src="${esc(story.photoUrl)}" loading="eager" decoding="sync" draggable="false"/>`
   : '<div class="story-photo-fallback" role="img" aria-label="Imagem indisponível"></div>';
@@ -1093,10 +854,11 @@ function openShop(){
 }
 
 function closeOverlay(){
- const refresh=overlay?.type==="profile";
+ const was=overlay?.type;
  overlay=null;
  document.querySelector(".layer")?.remove();
- if(refresh)renderGame(true);
+ if(was&&was!=='product'&&was!=='shop')renderGame(true);
+ else refreshHeader();
 }
 function openComments(post){
  if(typeof post!=="string")return;
@@ -1121,20 +883,665 @@ function closeModal(){
  document.querySelector(".layer-backdrop")?.remove();
 }
 
-function openProduct(id){
+function scheduleShopFromPhoto(element){
+ const id=element.dataset.product;
+ if(!products[id]||performance.now()<suppressPhotoOpenUntil)return;
+ clearTimeout(storeOpenTimer);
+ storeOpenTimer=setTimeout(()=>{
+  storeOpenTimer=null;
+  if(performance.now()>=suppressPhotoOpenUntil)openProduct(id,element.dataset.source||'ad');
+ },370);
+}
+function cancelPhotoShopClick(){
+ clearTimeout(storeOpenTimer);storeOpenTimer=null;
+ suppressPhotoOpenUntil=performance.now()+550;
+}
+
+function restart(){clearTimeout(introTimer);stopStory();clearInterval(liveTimer);bannerQueue=[];state=makeInitial();save();overlay=null;modal=null;renderHome();}
+/* ================= Semana até a viagem: camada de pressão comercial ================= */
+const SOURCE_STRATEGIES={ad:['personalizacao'],prospecting:['personalizacao'],retarget:['personalizacao'],pair:['personalizacao'],post:['influencia','prova_social'],story:['influencia'],live:['influencia','urgencia','escassez','prova_social'],flash:['preco','urgencia'],mood:['emocao','personalizacao'],fest:['fomo','prova_social'],nudge:['personalizacao','urgencia'],compare:['prova_social','fomo'],strip:['personalizacao'],lastcall:['fomo','escassez','urgencia'],trial:['dark_patterns','preco'],notification:['personalizacao'],roleta:['recompensa'],exit:['dark_patterns'],shop:[],cart:[],feed:[]};
+const dayInfo=()=>Week.DAYS[Math.min(Week.DAYS.length,Math.max(1,state.day))-1];
+const dayItems=(d=state.day)=>state.feedItems.filter(x=>(x.day||1)===d);
+const streamItems=()=>state.feedItems.filter(x=>x.kind==='post'||x.kind==='ad');
+const dayStreamCount=()=>dayItems().filter(x=>x.kind==='post'||x.kind==='ad').length;
+const pad2=n=>String(n).padStart(2,'0');
+function clockLabel(){const d=dayInfo(),m=Math.min(23*60+52,d.start+dayItems().length*14);return pad2(Math.floor(m/60))+':'+pad2(m%60);}
+function expose(key,moment){if(Pressure.expose(state.pressure,key,moment))save();}
+function influenced(keys,action){for(const k of [...new Set(keys)])Pressure.influence(state.pressure,k,typeof action==='function'?action(k):action);save();}
+function vibe(delta,tag,label){Pressure.vibeChange(state.vibe,delta,tag,label);save();pulseVibe(delta);}
+function pulseVibe(delta){
+ const el=document.querySelector('.hud-vibe');if(!el)return;
+ const m=Pressure.vibeMood(state.vibe.value);
+ el.querySelector('.hud-vibe-emoji').textContent=m.emoji;
+ el.querySelector('.hud-vibe-fill').style.width=state.vibe.value+'%';
+ el.setAttribute('aria-label','Sua vibe: '+m.label);
+ if(Math.abs(delta)>=2){const chip=document.createElement('span');chip.className='vibe-chip '+(delta>0?'up':'down');chip.textContent=(delta>0?'+':'')+Math.round(delta)+' vibe';el.appendChild(chip);setTimeout(()=>chip.remove(),1700);}
+}
+function price(id){return Week.priceFor(products[id],id,state.day,id==='fone'?state.variant.fone:null);}
+function productName(id){return products[id]?price(id).name:'';}
+function cardUsed(){return Pressure.round(state.invoice.reduce((s,c)=>s+c.dueNow+c.future,0));}
+function cardAvailable(){return Math.max(0,Pressure.round(state.card.limit-cardUsed()));}
+function spendable(){return Pressure.round(state.wallet+(state.card.active?cardAvailable():0));}
+function addCoupon(c){if(state.coupons.some(x=>x.code===c.code))return false;state.coupons.push({used:false,...c});save();return true;}
+function activeCoupons(){const now=Date.now();return state.coupons.filter(c=>!c.used&&(c.expiresDay||9)>=state.day&&(!c.until||now<c.until));}
+function notify(icon,text,extra={}){state.notifs.unshift({icon,text,day:state.day,...extra});state.notifs=state.notifs.slice(0,30);save();}
+function bought(id){return state.purchases.some(x=>x.id===id);}
+const FRIENDS=['bia.m','lucca.r','mia','gabi.n','nina.mov','davi','duda.m'];
+function friendsWho(id){const h=Pressure.hash('f:'+id);return {first:FRIENDS[h%FRIENDS.length],more:3+(h%14)};}
+
+/* ---------- notificação no topo do celular ---------- */
+let bannerQueue=[],bannerTimer=null,bannerShown=null;
+function banner(html,attrs={}){bannerQueue.push({html,attrs});if(!bannerTimer)setTimeout(nextBanner,450);}
+function nextBanner(){
+ const phone=document.querySelector('.phone');
+ if(!bannerQueue.length||!phone||story){bannerTimer=null;return;}
+ const item=bannerQueue.shift();
+ phone.querySelector('.push-banner')?.remove();
+ const b=document.createElement('button');b.type='button';b.className='push-banner';b.innerHTML=item.html;
+ for(const [k,v] of Object.entries(item.attrs))b.setAttribute(k,v);
+ phone.appendChild(b);bannerShown=b;
+ bannerTimer=setTimeout(()=>{b.classList.add('out');setTimeout(()=>{b.remove();bannerTimer=null;nextBanner();},320);},4300);
+}
+
+/* ---------- eventos do roteiro dentro do feed ---------- */
+function eventApplies(ev){
+ if(ev.type==='card')return !state.card.active;
+ if(ev.type==='cartnudge')return state.cart.length>0||state.viewed.some(id=>!bought(id));
+ if(ev.type==='trial')return !bought('plano');
+ if(ev.type==='lastcall')return !bought('ingresso');
+ return true;
+}
+function onEventInserted(item){
+ const d=item.day;
+ if(item.type==='checkin'){
+  state.streak++;const bonus=state.streak>=5?15:5;state.coins=Pressure.round(state.coins+bonus);item.bonus=bonus;
+  expose('recompensa',`Check-in diário: sequência de ${state.streak} dia(s) e +${money(bonus)} em moedas que só valem no app.`);
+ }else if(item.type==='chat')deliverThread(item.thread,d);
+ else if(item.type==='compare'){const c=Week.COMPARE_POSTS[item.post];if(c){Pressure.vibeChange(state.vibe,c.vibe,'compare',c.moment);for(const k of c.strategies)expose(k,c.moment);}}
+ else if(item.type==='mood'){
+  expose('emocao',state.vibe.value<55?`Às 23h, com sua vibe em ${Math.round(state.vibe.value)}, apareceu “Dia puxado? Você merece um mimo”.`:'Antes de dormir, o feed ofereceu “um presentinho pra você”.');
+  expose('personalizacao','O anúncio da noite escolheu produtos baratos ligados ao que você viu.');
+  addCoupon({code:'MIMO',label:'Frete grátis hoje',kind:'value',amount:0,freeShipping:true,min:0,expiresDay:d,source:'mood'});
+ }else if(item.type==='flash'){
+  state.flags.saleEnd=state.flags.saleEnd||Date.now()+(47*3600+59*60+50)*1000;
+  expose('preco','Mega Liquida: os preços “de” ficaram mais altos do que no começo da semana.');
+  expose('urgencia','Mega Liquida com contagem regressiva de 48 horas.');
+ }else if(item.type==='lastcall'){
+  state.flags.festEnd=state.flags.festEnd||Date.now()+(1*3600+42*60)*1000;
+  expose('escassez','Pocket Fest: “lote final, 92% vendido”.');expose('fomo','Pocket Fest: “a turma toda vai”.');
+ }else if(item.type==='card'){state.card.offered=true;expose('preco','Pulso Pay: “compre agora, pague depois” com limite pré-aprovado de R$ 500.');}
+ else if(item.type==='trial')expose('dark_patterns','MODO+: “3 dias grátis” que viram assinatura automática, com VIP já marcado.');
+ else if(item.type==='cartnudge'){expose('personalizacao','Lembrete do carrinho e de produtos que você visitou.');expose('urgencia','“Seus itens estão quase esgotando.”');}
+ else if(item.type==='live')expose('influencia','A Lívia entrou ao vivo vendendo o tênis da semana.');
+}
+function appendNext(){
+ const d=dayInfo();
+ if(!d||state.finished||dayItems().some(x=>x.kind==='night'))return false;
+ let added=0;
+ const insertEvents=(force=false)=>{
+  for(const ev of d.events){
+   const id=`ev-${d.n}-${ev.type}-${ev.at}`;
+   if(state.feedItems.some(x=>x.id===id))continue;
+   if(!force&&ev.at>dayStreamCount())continue;
+   const ok=eventApplies(ev);
+   const item={kind:'event',id,type:ok?ev.type:'none',thread:ev.thread||'',post:ev.post||'',day:d.n,topic:ev.post?(Week.COMPARE_POSTS[ev.post]?.topic||''):''};
+   state.feedItems.push(item);
+   if(ok){added++;onEventInserted(item);}
+  }
+ };
+ insertEvents();
+ for(let i=0;i<5&&dayStreamCount()<d.quota;i++){
+  const batch=Stream.nextBatch(contentPool(),{shown:streamItems(),profile:state.algorithm,personalized:state.personalized,phase:state.phase,cart:state.cart,viewed:state.viewed,purchased:state.purchases.map(p=>p.id),allowed:d.allow,focus:d.focus},1);
+  if(!batch.length)break;
+  const item={...batch[0],day:d.n};
+  state.feedItems.push(item);added++;
+  Pressure.vibeTick(state.vibe);
+  if(item.kind==='ad'){
+   if(item.campaign==='retarget')expose('personalizacao',`${productName(item.topic)} voltou a aparecer depois que você demonstrou interesse.`);
+   else if(item.campaign==='pair')expose('personalizacao',`Depois de uma compra, o feed sugeriu ${productName(item.topic)} “para combinar”.`);
+  }
+  state.phase=Math.min(15,Math.floor(streamItems().length/6));
+  insertEvents();
+ }
+ if(dayStreamCount()>=d.quota||!added){insertEvents(true);state.feedItems.push({kind:'night',id:'night-'+d.n,day:d.n});added++;}
+ save();
+ return added>0;
+}
+
+/* ---------- conversas ---------- */
+function deliverThread(key,day){
+ const t=Week.THREADS[key];if(!t)return;
+ const block=t.blocks.find(b=>b.day===day);if(!block)return;
+ const th=state.threads[key]||(state.threads[key]={days:[],unread:0,picked:{}});
+ if(th.days.includes(day))return;
+ th.days.push(day);th.unread+=block.messages.length;
+ const preview=block.messages[Math.min(1,block.messages.length-1)][1];
+ banner(`<span class="push-app">💬 ${esc(t.name)}</span><span class="push-text">${esc(preview)}</span>`,{'data-action':'chat','data-thread':key});
+ if(key==='turma')expose('fomo','Grupo da turma comentando quem vai de tênis novo e quem comprou o quê.');
+ if(key==='fest'){expose('fomo','Grupo do Pocket Fest: “só falta você 👀”.');expose('prova_social','No grupo, amigos dizendo “comprei!!”.');}
+ if(key==='livia')expose('influencia','DM da Lívia: “cupom exclusivo SÓ pros meus seguidores”.');
+ if(key==='pulso')expose('recompensa','Pulso Shop: “giro GRÁTIS na roleta, prêmio garantido”.');
+}
+function unreadCount(){return Object.values(state.threads).reduce((s,t)=>s+(t.unread||0),0);}
+function threadAvatar(k){
+ const t=Week.THREADS[k];
+ if(t.kind==='brand')return '<span class="avatar brand-av chat-av">PS</span>';
+ if(t.kind==='group')return `<span class="avatar chat-av group-av">${k==='fest'?'🎉':'✈️'}</span>`;
+ return `<span class="avatar photo-avatar chat-av">${mediaPhoto(t.avatar,'avatar-photo','Foto de '+t.name)}</span>`;
+}
+const SENDERS={pulso:'Pulso Shop',lucca:'lucca.r',livia:'livia.looks',gabi:'gabi.n',bia:'bia.m',mia:'mia',nina:'nina.mov'};
+function lastMessage(k){
+ const th=state.threads[k],t=Week.THREADS[k],day=th.days.at(-1),b=t.blocks.find(x=>x.day===day),pick=th.picked[day];
+ if(pick){const c=b.choices.find(c=>c.id===pick);return c.reply||'Você: '+c.label;}
+ return b.messages.at(-1)[1];
+}
+function inboxPage(){
+ const keys=Object.keys(state.threads);
+ return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon('arrow')}</button><strong>Mensagens</strong></header>
+ <div class="layer-body inbox">${keys.length?keys.slice().reverse().map(k=>{const t=Week.THREADS[k],th=state.threads[k];
+  return `<button class="inbox-row ${th.unread?'unread':''}" data-action="chat" data-thread="${k}">${threadAvatar(k)}<span class="inbox-text"><strong>${esc(t.name)}</strong><small>${esc(lastMessage(k))}</small></span>${th.unread?`<b class="inbox-dot">${th.unread}</b>`:''}</button>`;}).join('')
+ :'<div class="empty"><div style="font-size:40px">💬</div><h3>Nenhuma mensagem ainda</h3><p>Quando seus amigos escreverem, as conversas aparecem aqui.</p></div>'}</div>`;
+}
+function chatPage(){
+ const k=overlay.thread,t=Week.THREADS[k],th=state.threads[k];
+ if(!t||!th)return inboxPage();
+ const body=th.days.map(day=>{
+  const b=t.blocks.find(x=>x.day===day),pick=th.picked[day];
+  const who=from=>t.kind==='group'?`<small>${esc(SENDERS[from]||from)}</small>`:'';
+  const msgs=b.messages.map(([from,text])=>`<div class="msg in">${who(from)}${esc(text)}</div>`).join('');
+  let tail='';
+  if(b.choices){
+   if(pick){const c=b.choices.find(c=>c.id===pick);tail=`<div class="msg out">${esc(c.label)}</div>${c.reply?`<div class="msg in">${who(k==='fest'?'bia':k==='turma'?'gabi':k)}${esc(c.reply)}</div>`:''}`;}
+   else tail=`<div class="chat-choices">${b.choices.map(c=>`<button class="chat-choice" data-action="chat-choice" data-thread="${k}" data-day="${day}" data-choice="${c.id}">${esc(c.label)}</button>`).join('')}</div>`;
+  }
+  return `<div class="chat-day">${Week.DAYS[day-1].label}</div>${msgs}${tail}`;
+ }).join('');
+ let cta='';
+ if(k==='livia'&&state.day===2)cta='<button class="chat-cta" data-action="live">🔴 Entrar na live</button>';
+ else if(k==='pulso'&&!state.flags.roleta&&state.day===1)cta='<button class="chat-cta" data-action="roleta">🎁 Girar a roleta</button>';
+ else if(k==='pulso'&&state.day===4)cta='<button class="chat-cta" data-action="sale">🔥 Ver a Mega Liquida</button>';
+ return `<header class="layer-head"><button class="icon-button" data-action="inbox" aria-label="Voltar às mensagens">${icon('arrow')}</button>${threadAvatar(k)}<strong>${esc(t.name)}</strong></header><div class="layer-body chat-body">${body}${cta}</div>`;
+}
+function openChat(k){
+ if(!state.threads[k])return;
+ if(story)stopStory();closeModal();
+ state.threads[k].unread=0;save();
+ overlay={type:'chat',thread:k};drawOverlay();refreshHeader();
+ requestAnimationFrame(()=>{const b=document.querySelector('.chat-body');if(b)b.scrollTop=b.scrollHeight;});
+}
+function chooseChat(k,day,choice){
+ const th=state.threads[k];if(!th||th.picked[day])return;
+ th.picked[day]=choice;
+ if(choice==='repair'){
+  if(state.wallet>=35){state.wallet=Pressure.round(state.wallet-35);state.fixes.push({id:'repair',label:'Conserto do fone com o tio do Lucca',cost:35});pushEvent('repair','Consertou o fone por R$ 35');state.flags.foneFixed=true;toast('Fone resolvido por R$ 35 no Pix 🎧');}
+ }else if(choice==='borrow'){state.fixes.push({id:'borrow',label:'Powerbank emprestado pelo Lucca',cost:0});toast('O Lucca vai te emprestar o powerbank 🔋');}
+ else if(choice==='fest-buy'){save();influenced(['fomo','prova_social'],'Decidiu comprar o ingresso logo depois do “só falta você” no grupo.');openProduct('ingresso','fest');return;}
+ else if(choice==='fest-no'){vibe(-6,'fomo','Recusou o Pocket Fest e o grupo respondeu “vai perder”.');expose('fomo','Ao recusar o Pocket Fest: “vai ser o rolê do ano… tem certeza?”.');}
+ save();drawOverlay();
+ requestAnimationFrame(()=>{const b=document.querySelector('.chat-body');if(b)b.scrollTop=b.scrollHeight;});
+}
+
+/* ---------- roleta ---------- */
+function roletaPage(){
+ const slices=Week.ROULETTE,seg=360/slices.length;
+ const paths=slices.map((s,i)=>{
+  const rad=a=>(a-90)*Math.PI/180,a0=rad(i*seg),a1=rad((i+1)*seg),mid=rad((i+.5)*seg);
+  const p=(r,a)=>`${(150+r*Math.cos(a)).toFixed(1)} ${(150+r*Math.sin(a)).toFixed(1)}`;
+  const tx=(150+95*Math.cos(mid)).toFixed(1),ty=(150+95*Math.sin(mid)).toFixed(1);
+  return `<path d="M150 150 L${p(140,a0)} A140 140 0 0 1 ${p(140,a1)}Z" fill="${s.color}"/><text x="${tx}" y="${ty}" transform="rotate(${(i+.5)*seg} ${tx} ${ty})" text-anchor="middle" dominant-baseline="middle">${esc(s.short)}</text>`;
+ }).join('');
+ const done=!!state.flags.roleta,angle=state.flags.roletaAngle||0;
+ return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon('arrow')}</button><strong>Roleta Pulso Shop</strong></header>
+ <div class="layer-body roleta-body"><p class="roleta-kicker">🎁 PRÊMIO GARANTIDO</p><h2>Gire e ganhe!</h2>
+ <div class="wheel-wrap"><div class="wheel-pointer" aria-hidden="true"></div><svg class="wheel" viewBox="0 0 300 300" role="img" aria-label="Roleta de prêmios" style="transform:rotate(${done?angle:0}deg)">${paths}<circle cx="150" cy="150" r="30" fill="#fff"/><text x="150" y="151" text-anchor="middle" dominant-baseline="middle" class="wheel-hub">PULSO</text></svg></div>
+ ${done&&state.flags.roletaShown?roletaResult():done?'':`<button class="primary full spin-btn" data-action="spin">Girar agora</button><p class="roleta-fine">1 giro grátis por dia · prêmios válidos no Pulso Shop</p>`}</div>`;
+}
+function roletaResult(){
+ return `<div class="roleta-result"><strong>QUASE os R$ 100! 😱</strong><p>Você ganhou <b>R$ 50 OFF</b></p><small>Em compras acima de R$ 249,00 · válido só hoje até 23:59</small>
+ <button class="primary full" data-action="shop">Usar meu cupom agora</button><button class="tertiary full" data-action="close-overlay">Guardar para depois</button></div>`;
+}
+function spin(){
+ if(state.flags.roleta)return;
+ const seg=360/Week.ROULETTE.length,angle=360*6-(1.1*seg);
+ state.flags.roleta=true;state.flags.roletaAngle=angle;save();
+ const wheel=document.querySelector('.wheel');
+ document.querySelector('.spin-btn')?.setAttribute('disabled','');
+ const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ if(wheel){wheel.style.transition=reduce?'none':'transform 3.6s cubic-bezier(.12,.68,.1,1)';requestAnimationFrame(()=>{wheel.style.transform=`rotate(${angle}deg)`;});}
+ setTimeout(()=>{
+  addCoupon({code:'ROLETA50',label:'R$ 50 OFF acima de R$ 249',kind:'value',amount:50,min:249,expiresDay:state.day,source:'roleta'});
+  expose('recompensa','A roleta parou colada no prêmio de R$ 100: “QUASE!”.');
+  expose('preco','O cupom da roleta só valia em compras acima de R$ 249.');
+  expose('urgencia','O prêmio da roleta valia “só hoje até 23:59”.');
+  state.flags.roletaShown=true;save();
+  if(overlay?.type==='roleta')drawOverlay();
+ },reduce?150:3800);
+}
+
+/* ---------- Pulso Pay ---------- */
+function payPage(){
+ return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon('arrow')}</button><strong>Pulso Pay</strong></header>
+ <div class="layer-body pay-body"><div class="pay-card"><span>pulso<b>.</b> pay</span><em>•••• 2026</em><small>Limite pré-aprovado</small><strong>${money(state.card.limit)}</strong></div>
+ <h2>Você foi pré-aprovado! 🎉</h2>
+ <ul class="pay-perks"><li>✨ Compre agora, pague só depois</li><li>💸 Parcele em até 10x</li><li>🪙 5% de volta em moedas</li><li>⚡ Ativação em 1 toque, sem burocracia</li></ul>
+ <p class="pay-fine">Fatura com vencimento no sábado. Parcelamento acima de 3x com juros de 3,49% a.m. (CET 50,9% a.a.).</p>
+ ${state.card.active?'<p class="pay-ok">✓ Seu Pulso Pay já está ativo.</p>':`<button class="primary full" data-action="activate-card">Ativar meu limite agora</button><button class="tertiary full" data-action="decline-card">Não, prefiro pagar tudo à vista</button>`}</div>`;
+}
+function activateCard(from){
+ if(state.card.active)return;
+ state.card.active=true;state.card.offered=true;
+ influenced(['preco'],'Ativou o crédito “compre agora, pague depois” do Pulso Pay.');
+ expose('preco','Com o Pulso Pay, o app passou a mostrar “disponível” somando saldo e limite.');
+ save();toast('Pulso Pay ativado: +'+money(state.card.limit)+' de limite 💳');
+ if(from==='checkout'&&overlay?.type==='checkout'){state.payMethod='card10';drawOverlay();return;}
+ closeOverlay();renderGame(true);
+}
+
+/* ---------- live da influenciadora ---------- */
+let liveTimer=null;
+function openLive(){
+ if(story)stopStory();closeModal();
+ if(!state.flags.liveEnd)state.flags.liveEnd=Date.now()+90000;
+ if(!state.flags.liveSeen){
+  state.flags.liveSeen=true;
+  expose('influencia','Na live, a Lívia: “eu nunca indiquei nada que eu não uso”.');
+  expose('urgencia','Live: cupom LIVIA15 com contagem regressiva.');
+  expose('escassez','Live: “restam 14… 9… 5 pares”.');
+  expose('prova_social','Live: mensagens “comprei!!” aparecendo sem parar.');
+  addCoupon({code:'LIVIA15',label:'15% OFF no Motion 88',kind:'pct',amount:15,min:0,only:['tenis'],expiresDay:state.day,until:state.flags.liveEnd,source:'live'});
+ }
+ state.context.tenis='live';save();
+ overlay={type:'live'};drawOverlay();startLive();
+}
+function livePage(){
+ const p=price('tenis'),left=Math.max(0,state.flags.liveEnd-Date.now()),stock=state.flags.liveStock||14;
+ const disc=Pressure.round(p.price*.85);
+ return `<div class="live"><div class="live-bg" style="background-image:url('${mediaSrc('story_tenis_0')}')"></div><div class="live-shade"></div>
+ <header class="live-top"><span class="avatar photo-avatar live-av">${mediaPhoto('avatar_livia','avatar-photo','Foto de perfil da Lívia')}</span><span class="live-who"><strong>livia.looks</strong><small><b class="live-badge">AO VIVO</b> <span class="js-live-viewers">1.284</span> assistindo</small></span><button class="icon-button live-close" data-action="leave-live" aria-label="Sair da live">${icon('close')}</button></header>
+ <div class="live-speech js-live-speech">“${esc(Week.LIVE_SCRIPT.speech[0])}”</div>
+ <div class="live-chat js-live-chat" aria-live="off"></div>
+ <div class="live-product"><div class="live-thumb">${art('tenis',true)}</div><div class="live-info"><strong>Motion 88</strong><span><del>${money(p.price)}</del> <b>${money(disc)}</b> com LIVIA15</span><div class="live-stock"><span class="js-live-stock-bar" style="width:${stock/20*100}%"></span></div><small><span class="js-live-stock">Restam ${stock} pares</span> · cupom expira em <b class="js-live-timer">${left?Pressure.formatClock(left):'expirado'}</b></small></div></div>
+ <button class="live-buy" data-action="live-buy">Comprar com LIVIA15 →</button></div>`;
+}
+function startLive(){
+ clearInterval(liveTimer);let i=0;
+ liveTimer=setInterval(()=>{
+  if(overlay?.type!=='live'||!document.querySelector('.live')){clearInterval(liveTimer);liveTimer=null;return;}
+  i++;
+  const script=Week.LIVE_SCRIPT,chat=document.querySelector('.js-live-chat');
+  if(chat&&i%2===0){
+   const [u,t]=script.chat[(i/2)%script.chat.length|0];
+   const m=document.createElement('div');m.className='live-msg';m.innerHTML=`<b>${esc(u)}</b> ${esc(t)}`;chat.appendChild(m);
+   if(i%6===0){const s=document.createElement('div');s.className='live-msg sold';s.textContent=`🛍️ ${script.chat[(i*3)%script.chat.length][0]} acabou de comprar`;chat.appendChild(s);}
+   while(chat.children.length>5)chat.firstChild.remove();
+  }
+  if(i%4===0){const sp=document.querySelector('.js-live-speech');if(sp)sp.textContent='“'+script.speech[(i/4)%script.speech.length|0]+'”';}
+  let stock=state.flags.liveStock||14;
+  if(i%7===0&&stock>3){stock--;state.flags.liveStock=stock;}
+  const st=document.querySelector('.js-live-stock');if(st)st.textContent=`Restam ${stock} pares`;
+  const bar=document.querySelector('.js-live-stock-bar');if(bar)bar.style.width=(stock/20*100)+'%';
+  const v=document.querySelector('.js-live-viewers');if(v)v.textContent=(1284+((i*37)%260)).toLocaleString('pt-BR');
+  let left=state.flags.liveEnd-Date.now();
+  if(left<=0&&!state.flags.liveExtended){
+   state.flags.liveExtended=true;state.flags.liveEnd=Date.now()+60000;
+   const c=state.coupons.find(c=>c.code==='LIVIA15');if(c)c.until=state.flags.liveEnd;
+   expose('urgencia','O cupom da live “expirou” e, na hora, a Lívia liberou “mais 60 segundos”.');
+   const sp=document.querySelector('.js-live-speech');if(sp)sp.textContent='“gente, a marca liberou MAIS 1 MINUTO de cupom, só pra vocês!! 😱”';
+   left=60000;
+  }
+  const tm=document.querySelector('.js-live-timer');if(tm)tm.textContent=left>0?Pressure.formatClock(left):'expirado';
+  if(i%5===0)save();
+ },1000);
+}
+
+/* ---------- loja ---------- */
+function couponLine(ids,subtotal){
+ const usable=activeCoupons().filter(c=>!c.freeShipping&&(!c.only||ids.some(id=>c.only.includes(id))));
+ const best=Pressure.bestCoupon(usable,subtotal,state.day,ids);
+ const near=usable.filter(c=>c.min>subtotal).sort((a,b)=>a.min-b.min)[0]||null;
+ return {coupon:best.coupon,value:best.value,near};
+}
+function productPage(){
+ const id=overlay.id,p=products[id];
+ if(!p)return shopPage();
+ const pr=price(id),isBought=bought(id),inCart=state.cart.includes(id),copy=Week.COPY[id]||{desc:p.desc,specs:p.specs};
+ const timer=state.timers[id],left=Pressure.timerLeft(timer,Date.now());
+ const stock=state.stock[id]??3,r=Pressure.rating(id),sold=Pressure.soldToday(id,state.day),viewers=Pressure.viewers(id,state.vibe.step);
+ const plan=Pressure.installment(pr.price,10,Pressure.FEES.cardRate),pix=Pressure.round(pr.price*(1-Pressure.FEES.pixDiscount));
+ const fr=friendsWho(id),cl=couponLine([id],pr.price),isPlan=id==='plano',isTicket=id==='ingresso';
+ const source=state.context[id]||'feed',forYou=['ad','prospecting','retarget','pair','strip','notification','nudge','mood'].includes(source);
+ const variants=id==='fone'?`<div class="variants" role="radiogroup" aria-label="Modelos">${Week.VARIANTS.fone.map(v=>{const vp=Week.priceFor(p,'fone',state.day,v.id);return `<button class="variant ${state.variant.fone===v.id?'on':''} v-${v.id}" role="radio" aria-checked="${state.variant.fone===v.id}" data-action="variant" data-variant="${v.id}">${v.badge?`<em>${v.badge}</em>`:''}<strong>${esc(v.name)}</strong><small>${esc(v.note)}</small><b>${money(vp.price)}</b></button>`;}).join('')}</div>`:'';
+ const coupon=cl.coupon?`<div class="coupon-hint ok">🎟️ Cupom <b>${esc(cl.coupon.code)}</b> aplicado no checkout: −${money(cl.value)}</div>`:cl.near?`<div class="coupon-hint">🎟️ Faltam <b>${money(cl.near.min-pr.price)}</b> para usar seu cupom ${esc(cl.near.code)} (${esc(cl.near.label)})</div>`:'';
+ const vip=isPlan?`<label class="option-row"><input id="vip-extra" type="checkbox" ${state.extraChecked?"checked":""}/><span><strong>Turbinar com VIP por ${money(9.90)}/mês ⭐</strong><br><small class="muted">Áudio em alta definição e acesso antecipado a lançamentos.</small></span></label>`:'';
+ const urgency=isPlan?`<div class="urgency trial">🎁 <b>3 dias grátis</b> · depois ${money(pr.price+(state.extraChecked?9.9:0))}/mês</div>`
+  :isTicket?`<div class="urgency">🎟️ ${state.day>=5?'LOTE FINAL':'Lote 2'} · vendas encerram em <b class="js-countdown" data-until="${state.flags.festEnd||Date.now()+5400000}">--:--</b></div>`
+  :`<div class="urgency">⚡ OFERTA RELÂMPAGO termina em <b class="js-timer" data-product="${id}">${Pressure.formatClock(left)}</b></div>`;
+ return `<header class="layer-head"><button class="icon-button" data-action="shop-back" aria-label="Voltar">${icon("arrow")}</button><div class="shop-browser" style="flex:1;min-width:0"><span class="safe">🔒</span><b>${shopAddresses[id]}</b></div><button class="icon-button" data-action="cart" aria-label="Ver carrinho" style="position:relative">${icon("cart")}${state.cart.length?`<span class="cart-dot">${state.cart.length}</span>`:''}</button><button class="icon-button" data-action="close-overlay" aria-label="Fechar loja">${icon("close")}</button></header>
+ <div class="layer-body product-body">
+  ${forYou?'<div class="for-you">✨ Escolhido para você · combina com o que você curtiu</div>':''}
+  <div class="shop-hero">${art(p.kind,true,p.brand)}${pr.off?`<span class="off-badge">-${pr.off}%</span>`:''}${id==='fone'||id==='tenis'?'<span class="hot-badge">🔥 MAIS VENDIDO</span>':''}</div>
+  ${urgency}
+  <section class="shop-title"><span class="shop-label">${esc(p.brand)} · ${esc(p.label)}</span><h2>${esc(pr.name)}</h2>
+  <div class="rating-row"><span class="stars">★★★★★</span> <b>${r.stars.toFixed(1).replace('.',',')}</b> <span class="muted">(${r.count.toLocaleString('pt-BR')})</span> · <span class="muted">${sold.toLocaleString('pt-BR')} vendidos hoje</span></div>
+  ${variants}
+  <div class="shop-price">${pr.old?`<del>${money(pr.old)}</del>`:""}${money(pr.price)}${isPlan?'<small style="font-size:12px">/mês</small>':""}</div>
+  ${isPlan?'':`<div class="price-sub">ou <b>10x de ${money(plan.each)}</b> no Pulso Pay · <b>${money(pix)}</b> no Pix</div>`}
+  ${coupon}
+  ${isPlan?'':`<div class="scarcity"><div><b>${isTicket?'92% dos ingressos vendidos':`Restam só ${stock} unidades!`}</b><span>👀 ${viewers} pessoas vendo agora</span></div><div class="scarcity-bar"><span style="width:${isTicket?92:Math.max(8,100-stock*12)}%"></span></div></div>`}
+  <div class="friends-row"><span class="mini-faces"><i></i><i></i><i></i></span><span><b>${fr.first}</b> e mais ${fr.more} amigos ${isPlan?'assinam':'compraram'}</span></div>
+  <div class="shop-hook">${esc(Week.PITCH[id]||p.tag)}</div></section>
+  <section class="shop-details"><p>${esc(copy.desc)}</p><ul>${copy.specs.map(item=>`<li>${esc(item)}</li>`).join("")}</ul>
+  ${vip}
+  <button class="reviews-shortcut" data-action="comments" data-post="ad-main-${id}"><span><strong>⭐ ${r.stars.toFixed(1).replace('.',',')} · Ver avaliações</strong><small class="muted" style="display:block">${r.count.toLocaleString('pt-BR')} avaliações · as mais relevantes primeiro</small></span>${icon("chevron")}</button>
+  <button class="text-link pass-link" data-action="pass" data-product="${id}">Agora não</button>
+  </section></div>
+  <div class="shop-footer">${isPlan?`<button class="primary trial-btn" data-action="trial" data-product="plano" ${isBought?'disabled':''}>${isBought?'Assinatura ativa':'Começar 3 dias grátis →'}</button>`:`
+   <button class="secondary" data-action="${inCart?"cart":"add-cart"}" data-product="${id}" ${isBought?"disabled":""}>${isBought?"Já comprado":inCart?"Ver sacola ("+state.cart.length+")":"Adicionar à sacola"}</button>
+   <button class="primary" data-action="checkout" data-product="${id}" ${isBought?"disabled":""}>${isBought?"Comprado":"Comprar agora →"}</button>`}
+  </div>`;
+}
+function saleBanner(){
+ if(state.day!==4)return '';
+ const until=state.flags.saleEnd||Date.now()+172790000;
+ return `<div class="sale-banner"><strong>🔥 MEGA LIQUIDA</strong><span>até 70% OFF · termina em <b class="js-countdown" data-until="${until}">--:--:--</b></span></div>`;
+}
+function shopPage(){
+ const ids=Recommender.topics;
+ const wallet=state.card.active?`<div class="wallet-chip">💳 Disponível para compras: <b>${money(spendable())}</b></div>`:'';
+ if(state.card.active)expose('preco','A loja mostrava “disponível para compras” somando saldo e limite do cartão.');
+ return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon("arrow")}</button><strong>Pulso Shop</strong><button class="icon-button" data-action="cart" aria-label="Abrir carrinho" style="position:relative;margin-left:auto">${icon("cart")}${state.cart.length?`<span class="cart-dot">${state.cart.length}</span>`:""}</button></header>
+  <div class="layer-body">${saleBanner()}${wallet}<div class="shop-banner"><b>${state.day===4?'Os menores preços do ano':'Ofertas para você'}</b><p>${state.day===4?'Só durante a Mega Liquida. Depois, os preços voltam.':'Selecionadas a partir do que você curte.'}</p></div>
+  <div class="shop-search-wrap"><input type="search" id="shop-search" class="shop-search-input" placeholder="Buscar produto ou loja..." aria-label="Pesquisar produtos" autocomplete="off"/><small id="shop-search-count" class="muted">${ids.length} lojas no Pulso Shop</small></div><div class="shop-collection">${ids.map(id=>{
+   const p=products[id],pr=price(id),isBought=bought(id);
+   return `<button class="shop-product" data-shop-name="${esc((pr.name+" "+p.name+" "+p.brand+" "+p.label).toLowerCase())}" data-action="product" data-product="${id}" data-source="shop" aria-label="Visitar loja ${esc(p.brand)}"><span class="shop-thumb">${art(p.kind,true,p.brand)}${pr.off?`<i class="off-mini">-${pr.off}%</i>`:''}</span><span><strong>${esc(pr.name)}</strong><small>${esc(p.brand)} · ${isBought?"Já comprado":Pressure.soldToday(id,state.day).toLocaleString('pt-BR')+' vendidos'}</small><b>${pr.old?`<del>${money(pr.old)}</del> `:''}${money(pr.price)}${id==="plano"?"/mês":""}</b><small>Ver na loja →</small></span></button>`;
+  }).join("")}</div></div>`;
+}
+function cartLinePrice(id){return price(id).price+(id==='plano'&&state.extraChecked?9.9:0);}
+function cartTotal(ids){return Pressure.round(ids.reduce((s,id)=>s+cartLinePrice(id),0));}
+function cartPage(){
+ const ids=state.cart.filter(id=>products[id]&&!bought(id));
+ const total=cartTotal(ids);
+ return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon("arrow")}</button><strong>Sua sacola</strong><span class="pill" style="margin-left:auto">${ids.length} item(ns)</span></header>
+ <div class="layer-body" style="padding:14px 18px">${ids.length?`<div class="cart-timer">⏳ Itens reservados por <b class="js-countdown" data-until="${state.flags.cartHold||(state.flags.cartHold=Date.now()+600000)}">10:00</b></div>`+ids.map(id=>{
+  const p=products[id],pr=price(id);
+  return `<div class="cart-item"><div class="cart-thumb">${art(p.kind,true,p.brand)}</div><div class="cart-item-text"><strong>${esc(pr.name)}</strong><p>${money(cartLinePrice(id))}${id==="plano"?"/mês":""}</p><button class="text-link" data-action="remove-cart" data-product="${id}">Remover</button></div><button class="tiny-button" data-action="product" data-product="${id}" data-source="cart">Ver →</button></div>`;
+ }).join("")+`<div class="checkout-price"><span>Total estimado</span><strong>${money(total)}</strong></div><p class="price-sub">ou 10x de ${money(Pressure.installment(total,10,Pressure.FEES.cardRate).each)} no Pulso Pay</p><button class="primary full" data-action="checkout-cart">Finalizar compra →</button>`:
+ '<div class="empty"><div style="font-size:42px">🛍️</div><h3>Sua sacola está vazia</h3><p>Tem oferta nova esperando por você.</p><button class="primary" data-action="shop">Ver ofertas</button></div>'}</div>`;
+}
+
+/* ---------- checkout com custos tardios e opções pré-marcadas ---------- */
+function checkoutLines(ids,trial){
+ return ids.map(id=>{const pr=price(id);return {id,name:pr.name,price:trial?0:pr.price,extra:id==='plano'&&!trial&&state.extraChecked?9.9:0,protection:!trial&&Week.PROTECTABLE.includes(id)&&state.protection[id]!==false,physical:Week.PHYSICAL.includes(id),ticket:id==='ingresso'};});
+}
+function currentMethod(){
+ const m=state.payMethod||(state.card.active?'card10':'pix');
+ return m!=='pix'&&!state.card.active?'pix':m;
+}
+function checkoutQuote(ids,method,trial){
+ const lines=checkoutLines(ids,trial);
+ if(trial)return {lines,trial:true,subtotal:0,protection:0,shipping:0,service:0,ticketFee:0,couponValue:0,coins:0,pixDiscount:0,total:0,method,n:1,each:0,totalPaid:0,interest:0,missingForFreeShipping:0,coupon:null,near:null};
+ const subtotal=Pressure.round(lines.reduce((s,l)=>s+l.price+(l.extra||0),0));
+ const cl=couponLine(ids,subtotal);
+ const free=activeCoupons().some(c=>c.freeShipping);
+ const coins=state.coinsOn&&subtotal>=50?state.coins:0;
+ const q=Pressure.quote({lines,coupon:cl.coupon,coins,method,freeShipping:free});
+ return {...q,lines,coupon:cl.coupon,near:cl.near,freeShippingCoupon:free};
+}
+function addOnSuggestion(ids,gap){
+ const pool=Week.PHYSICAL.filter(id=>!ids.includes(id)&&!bought(id)&&products[id]).map(id=>({id,p:price(id).price})).sort((a,b)=>a.p-b.p);
+ return pool.find(x=>x.p>=gap)||pool.at(-1)||null;
+}
+function checkoutPage(){
+ const trial=!!overlay.trial;
+ const ids=(overlay.items||[]).filter(id=>products[id]&&!bought(id));
+ const method=currentMethod(),q=checkoutQuote(ids,method,trial);
+ const card=method!=='pix',avail=card?cardAvailable():state.wallet,short=trial?!state.card.active:(card?q.totalPaid>avail:q.total>avail);
+ const lines=q.lines.map(l=>`<div class="checkout-item"><span class="ck-thumb">${art(products[l.id].kind,true)}</span><span class="ck-name">${esc(l.name)}${l.id==='plano'?`<small>${trial?`R$ 0,00 hoje · depois ${money(29.9+(state.extraChecked?9.9:0))}/mês, renovação automática`:'assinatura mensal'}</small>`:''}</span><strong>${money(l.price+(l.extra||0))}</strong></div>
+  ${Week.PROTECTABLE.includes(l.id)&&!trial?`<label class="option-row protect"><input type="checkbox" data-protect="${l.id}" ${l.protection?'checked':''}/><span><strong>Proteção Pulso+ 12 meses · +${money(Pressure.protectionPrice(l.price))}</strong><br><small class="muted">Recomendado ✓ · cobre quedas e defeitos</small></span></label>`:''}
+  ${l.id==='plano'?`<label class="option-row"><input id="vip-extra" type="checkbox" ${state.extraChecked?"checked":""}/><span><strong>VIP · +${money(9.9)}/mês ⭐</strong><br><small class="muted">Recomendado para você</small></span></label>`:''}`).join('');
+ let nudges='';
+ if(!trial&&q.missingForFreeShipping>0){const s=addOnSuggestion(ids,q.missingForFreeShipping);nudges+=`<div class="nudge"><span>🚚 Faltam <b>${money(q.missingForFreeShipping)}</b> para <b>FRETE GRÁTIS</b></span>${s?`<button class="tiny-button" data-action="add-to-order" data-product="${s.id}">+ ${esc(price(s.id).name)} · ${money(s.p)}</button>`:''}</div>`;}
+ if(!trial&&q.near&&!q.coupon){const s=addOnSuggestion(ids,q.near.min-q.subtotal);nudges+=`<div class="nudge"><span>🎟️ Faltam <b>${money(q.near.min-q.subtotal)}</b> para usar seu cupom <b>${esc(q.near.code)}</b> (${esc(q.near.label)})</span>${s?`<button class="tiny-button" data-action="add-to-order" data-product="${s.id}">+ ${esc(price(s.id).name)} · ${money(s.p)}</button>`:''}</div>`;}
+ const row=(label,value,cls='')=>`<div class="sum-row ${cls}"><span>${label}</span><b>${value}</b></div>`;
+ const summary=trial?row('Hoje','R$ 0,00')+row('A partir de sábado',money(29.9+(state.extraChecked?9.9:0))+'/mês','fine'):[
+  row('Subtotal',money(q.subtotal)),
+  q.protection?row('Proteção Pulso+',money(q.protection)):'',
+  row('Frete',q.shipping?money(q.shipping):'GRÁTIS'),
+  row('Taxa de serviço',money(q.service)),
+  q.ticketFee?row('Taxa de conveniência',money(q.ticketFee)):'',
+  q.couponValue?row(`Cupom ${esc(q.coupon.code)}`,'−'+money(q.couponValue),'good'):'',
+  q.coins?row('Moedas 🪙','−'+money(q.coins),'good'):'',
+  q.pixDiscount?row('Desconto Pix (5%)','−'+money(q.pixDiscount),'good'):''
+ ].join('');
+ const coins=!trial&&state.coins>0?`<label class="option-row coins-row"><input type="checkbox" id="coins-toggle" ${state.coinsOn?'checked':''}/><span><strong>Usar minhas moedas 🪙 ${money(state.coins)}</strong><br><small class="muted">${q.subtotal<50?'Válido em pedidos acima de R$ 50':q.coins?`−${money(q.coins)} neste pedido (máx. 20%)`:'Máx. 20% do pedido'}</small></span></label>`:'';
+ const total=card?q.totalPaid:q.total;
+ const methods=trial?'':`<fieldset class="pay-methods"><legend>Pagamento</legend>
+  <label class="pay-opt"><input type="radio" name="pay" value="pix" ${method==='pix'?'checked':''}/><span><b>Pix</b><small>5% de desconto · sai do seu saldo agora</small></span></label>
+  ${state.card.active?`
+  <label class="pay-opt"><input type="radio" name="pay" value="card1" ${method==='card1'?'checked':''}/><span><b>Pulso Pay à vista</b><small>paga só na fatura</small></span></label>
+  <label class="pay-opt"><input type="radio" name="pay" value="card3" ${method==='card3'?'checked':''}/><span><b>3x sem juros</b><small>${money(Pressure.installment(q.total+q.pixDiscount,3).each)} por mês</small></span></label>
+  <label class="pay-opt star"><input type="radio" name="pay" value="card10" ${method==='card10'?'checked':''}/><span><b>10x de ${money(Pressure.installment(q.total+q.pixDiscount,10,Pressure.FEES.cardRate).each)} ✨</b><small>a parcela que cabe no bolso</small></span></label>`
+  :`<button class="pay-activate" data-action="activate-card-checkout">💳 Ativar Pulso Pay e parcelar em até 10x</button>`}</fieldset>`;
+ return `<header class="layer-head"><button class="icon-button" data-action="shop-back" aria-label="Voltar à loja">${icon("arrow")}</button><strong>Finalizar compra</strong><span class="secure">🔒 Seguro</span></header>
+ <div class="layer-body checkout-summary">${lines}${nudges}${methods}<div class="summary">${summary}</div>${coins}
+ <div class="checkout-price total"><span>Total</span><strong>${money(total)}</strong></div>
+ ${card&&q.n>1&&!trial?`<p class="price-sub">${q.n}x de ${money(q.each)}${q.interest?` · total com juros ${money(q.totalPaid)}`:''}</p>`:''}
+ ${trial&&!state.card.active?'<div class="checkout-warning">Para começar o teste grátis, cadastre um cartão. <button class="tiny-button" data-action="activate-card-checkout">Ativar Pulso Pay</button></div>':''}
+ ${!trial&&short?`<div class="checkout-warning">${card?'Limite do Pulso Pay insuficiente para este pedido.':'Saldo insuficiente no Pix.'+(state.card.active?' Que tal parcelar no Pulso Pay?':' Ative o Pulso Pay e parcele.')}</div>`:''}
+ </div>
+ <div class="shop-footer"><button class="primary full" data-action="buy" ${ids.length===0||short?"disabled":""}>${trial?'Começar teste grátis':'Finalizar compra · '+money(total)}</button></div>`;
+}
+function openCheckout(ids,from,trial=false){
+ const selected=[...new Set(ids)].filter(id=>products[id]&&!bought(id));
+ if(!selected.length){toast("Escolha um produto disponível.");return;}
+ overlay={type:"checkout",items:selected,from,trial};
+ if(!trial&&selected.some(id=>Week.PROTECTABLE.includes(id)&&state.protection[id]!==false))expose('dark_patterns','No checkout, a “Proteção Pulso+” já vinha marcada.');
+ if(!trial){expose('dark_patterns','A taxa de serviço de R$ 4,90 só apareceu no checkout.');expose('preco','No checkout, a opção “10x” aparecia como “a parcela que cabe no bolso”.');}
+ if(trial)expose('dark_patterns','Teste grátis: R$ 0,00 hoje, renovação automática e VIP pré-marcado.');
+ drawOverlay();
+}
+function attribution(q,source,trial){
+ const keys=new Set(SOURCE_STRATEGIES[source]||[]);
+ if(!trial){keys.add('urgencia');keys.add('escassez');keys.add('prova_social');}
+ if(q.protection||trial)keys.add('dark_patterns');
+ if(q.n>1||q.couponValue||q.method!=='pix')keys.add('preco');
+ if(q.couponValue||q.coins)keys.add('recompensa');
+ if(state.vibe.value<48)keys.add('emocao');
+ return [...keys];
+}
+function buy(ids){
+ const trial=!!overlay?.trial;
+ ids=[...new Set(Array.isArray(ids)?ids:[ids])].filter(id=>products[id]&&!bought(id));
+ if(!ids.length){toast("Nenhum produto disponível.");return false;}
+ const method=trial?'card1':currentMethod(),q=checkoutQuote(ids,method,trial),card=method!=='pix';
+ if((card||trial)&&!state.card.active){toast('Ative o Pulso Pay para continuar.');return false;}
+ if(!trial&&!card&&q.total>state.wallet){toast("Saldo insuficiente.");return false;}
+ if(!trial&&card&&q.totalPaid>cardAvailable()){toast("Limite insuficiente.");return false;}
+ const names=q.lines.map(l=>l.name).join(' + ');
+ const source=state.context[ids[0]]||overlay?.from||'feed';
+ if(!trial){
+  if(card)state.invoice.push({at:Date.now(),items:ids,total:q.totalPaid,dueNow:q.n===1?q.totalPaid:q.each,future:q.n===1?0:Pressure.round(q.totalPaid-q.each),n:q.n,each:q.each,interest:q.interest});
+  else state.wallet=Pressure.round(state.wallet-q.total);
+  if(q.coupon){const c=state.coupons.find(x=>x.code===q.coupon.code);if(c)c.used=true;}
+  if(q.freeShippingCoupon&&q.shipping===0){const c=state.coupons.find(x=>x.freeShipping&&!x.used);if(c)c.used=true;}
+  if(q.coins)state.coins=Pressure.round(state.coins-q.coins);
+ }
+ const paid=trial?0:card?q.totalPaid:q.total,cashback=Pressure.round(paid*.05);
+ state.coins=Pressure.round(state.coins+cashback);
+ for(const l of q.lines){
+  const cost=Pressure.round(l.price+(l.extra||0)+(l.protection?Pressure.protectionPrice(l.price):0));
+  state.purchases.push({id:l.id,name:l.name,cost,phase:state.phase,day:state.day,method:trial?'trial':method,source:state.context[l.id]||source,protection:!!l.protection,at:Date.now()});
+  if(l.id==='plano')state.subscriptions.push({id:'plano',name:'MODO+ Premium'+(state.extraChecked?' + VIP':''),monthly:Pressure.round(29.9+(state.extraChecked?9.9:0)),active:true,trial});
+  state.cart=state.cart.filter(x=>x!==l.id);
+  signal(l.id,2);trackModel("buy",l.id,l.id);
+  pushEvent("buy",`Comprou ${l.name} por ${money(cost)}`);
+ }
+ const keys=attribution(q,source,trial);
+ const label=trial?'o teste grátis do MODO+':names;
+ influenced(keys,k=>{
+  if(k==='dark_patterns'&&trial)return 'Começou o teste grátis com renovação automática'+(state.extraChecked?' e o VIP pré-marcado.':'.');
+  if(k==='dark_patterns'&&q.protection)return `Manteve a Proteção Pulso+ que já vinha marcada (+${money(q.protection)}).`;
+  if(k==='preco'&&q.n>1)return `Parcelou ${label} em ${q.n}x de ${money(q.each)}${q.interest?` e pagou ${money(q.interest)} de juros`:''}.`;
+  if(k==='preco'&&card)return `Comprou ${label} no crédito “pague depois”.`;
+  if(k==='preco'&&q.couponValue)return `Usou o desconto e gastou ${money(paid)} para economizar ${money(q.couponValue)}.`;
+  if(k==='recompensa'&&q.couponValue)return `Usou o cupom ${q.coupon.code}: gastou ${money(paid)} para “ganhar” ${money(q.couponValue)}.`;
+  if(k==='recompensa')return `Usou ${money(q.coins)} em moedas em ${label}.`;
+  if(k==='emocao')return `Comprou ${label} com a vibe em ${Math.round(state.vibe.value)}, depois de ver fotos que te deixaram pra baixo.`;
+  return `Comprou ${label} com ${Pressure.STRATEGIES[k].name.toLowerCase()} na tela.`;
+ });
+ Pressure.vibeBuy(state.vibe,trial?10:16+6*(ids.length-1),'Comprou '+label);
+ state.lastOrder={items:ids,total:paid,method:trial?'trial':method,n:q.n,each:q.each,cashback,coupon:q.coupon?.code||'',trial,at:Date.now()};
+ state.payMethod=null;
+ save();overlay={type:"receipt"};modal=null;renderGame(true);
+ return true;
+}
+function receiptPage(){
+ const o=state.lastOrder||{items:[],total:0};
+ const owned=state.purchases.map(x=>x.id);
+ const suggestions=Recommender.topics.filter(t=>!owned.includes(t)).sort((a,b)=>Recommender.complementaryScore(b,owned)-Recommender.complementaryScore(a,owned)||Recommender.topics.indexOf(a)-Recommender.topics.indexOf(b)).slice(0,2);
+ const fr=friendsWho(o.items[0]||'x');
+ const how=o.trial?'Teste grátis · renovação automática':o.method==='pix'?'Pago no Pix':o.n>1?`${o.n}x de ${money(o.each)} no Pulso Pay`:'Pulso Pay · na fatura de sábado';
+ const confetti=Array.from({length:18},(_,i)=>`<i style="--x:${(i*37)%100}%;--d:${(i%6)*.12}s;--c:${['#ec477e','#7e62eb','#f2b24c','#34b78f'][i%4]}"></i>`).join('');
+ return `<header class="layer-head"><strong>Pedido confirmado</strong></header><div class="layer-body">
+ <section class="receipt-screen"><div class="confetti" aria-hidden="true">${confetti}</div><div class="receipt-check">✓</div><h2>${o.trial?'Seu teste começou! 🎧':'Uhuul, é seu! 🎉'}</h2>
+ <p class="receipt-items">${o.items.map(id=>esc(productName(id))).join(' + ')}</p>
+ <div class="checkout-price"><span>${esc(how)}</span><strong>${money(o.total)}</strong></div>
+ ${o.cashback?`<div class="cashback">🪙 +${money(o.cashback)} de cashback em moedas</div>`:''}
+ <div class="vibe-boost">${Pressure.vibeMood(state.vibe.value).emoji} Sua vibe subiu!</div>
+ <div class="friend-react"><span class="mini-faces"><i></i></span><span><b>${fr.first}</b> reagiu: “aaaa que lindo, combina mto com vc 😍”</span></div>
+ ${suggestions.length?`<div class="receipt-suggestions"><h3>Quem comprou isso também levou</h3>
+ ${suggestions.map(id=>`<button class="shop-receipt-suggestion" data-action="product" data-product="${id}" data-source="pair">${art(products[id].kind,true)}<span><strong>${esc(productName(id))}</strong><small>${money(price(id).price)} · Ver na loja →</small></span></button>`).join("")}
+ </div>`:""}
+ <button class="primary full" data-action="close-overlay">Voltar ao feed →</button>
+ </section></div>`;
+}
+
+/* ---------- assinatura: entrar é fácil, sair é difícil ---------- */
+function subsPage(){
+ const sub=state.subscriptions.find(s=>s.active),step=state.flags.cancelStep||0;
+ const head=`<header class="layer-head"><button class="icon-button" data-action="profile" aria-label="Voltar ao perfil">${icon('arrow')}</button><strong>Assinaturas</strong></header>`;
+ if(!sub)return head+`<div class="layer-body" style="padding:22px">${state.subscriptions.length?'<p>✓ Assinatura cancelada. Nenhuma cobrança futura.</p>':'<p class="muted">Você não tem assinaturas ativas.</p>'}</div>`;
+ const steps=[
+  `<div class="sub-card"><strong>${esc(sub.name)}</strong><span>${money(sub.monthly)}/mês · ${sub.trial?'teste grátis termina sábado':'renova todo mês'}</span></div><p class="muted small">Gerencie seu plano.</p><button class="secondary full" data-action="sub-help">Alterar forma de pagamento</button><button class="secondary full" data-action="sub-help">Ver benefícios</button><button class="text-link tiny-cancel" data-action="cancel-sub">cancelar assinatura</button>`,
+  `<h2>Tem certeza? 😢</h2><p>Você vai perder suas playlists offline e as 4.231 músicas que curtiu. Elas não poderão ser recuperadas.</p><button class="primary full" data-action="keep-sub">Manter meu MODO+</button><button class="tertiary full" data-action="cancel-sub">Continuar cancelamento</button>`,
+  `<h2>Espera! Uma oferta só pra você 🎁</h2><p>Fique por <b>50% OFF</b> nos próximos 2 meses: ${money(sub.monthly/2)}/mês.</p><button class="primary full" data-action="sub-discount">Quero 50% OFF</button><button class="tertiary full" data-action="cancel-sub">Não, quero cancelar mesmo assim</button>`,
+  `<h2>Conta pra gente: por que você quer sair?</h2><div class="reason-list">${['Está caro','Não uso tanto','Vou usar outro app','Outro motivo'].map((r,i)=>`<label class="pay-opt"><input type="radio" name="reason" ${i===0?'checked':''}/><span><b>${r}</b></span></label>`).join('')}</div><button class="primary full danger" data-action="cancel-sub">Confirmar cancelamento</button><button class="tertiary full" data-action="keep-sub">Voltar</button>`
+ ];
+ return head+`<div class="layer-body subs-body">${steps[Math.min(step,3)]}</div>`;
+}
+function cancelSubStep(){
+ const step=(state.flags.cancelStep||0)+1;
+ if(step===1)expose('dark_patterns','Cancelar a assinatura: link pequeno, “tem certeza?”, oferta de retenção e questionário.');
+ if(step>=4){const sub=state.subscriptions.find(s=>s.active);if(sub)sub.active=false;state.flags.cancelStep=0;pushEvent('cancel','Cancelou a assinatura MODO+ depois de 4 telas');toast('Assinatura cancelada.');}
+ else state.flags.cancelStep=step;
+ save();drawOverlay();
+}
+
+/* ---------- noite, notificações e próximo dia ---------- */
+function overnight(){
+ const list=[];
+ const cartItem=state.cart.find(id=>!bought(id));
+ if(cartItem){list.push({icon:'🛒',text:`Esqueceu algo? ${productName(cartItem)} ainda está na sua sacola — e o estoque está acabando.`,product:cartItem});expose('personalizacao','Notificação de carrinho abandonado durante a noite.');}
+ const seen=state.viewed.find(id=>!bought(id)&&id!==cartItem);
+ if(seen){list.push({icon:'👀',text:`Lembra do ${productName(seen)}? Ele está te esperando com ${Math.max(price(seen).off,10)}% OFF.`,product:seen});expose('personalizacao',`Notificação noturna sobre o ${productName(seen)}, que você só tinha olhado.`);}
+ const d=state.day;
+ if(d===2)list.push({icon:'🔴',text:'livia.looks vai entrar AO VIVO hoje às 20h com cupom exclusivo.'});
+ if(d===3)list.push({icon:'🎵',text:'Semana de provas? Estude com foco: MODO+ 3 dias grátis pra você.',product:'plano'});
+ if(d===4){list.push({icon:'🔥',text:'MEGA LIQUIDA começou! Até 70% OFF por 48 h.'});}
+ if(d===5){list.push({icon:'🪙',text:`Suas moedas (${money(state.coins)}) expiram HOJE às 23:59.`});list.push({icon:'🎉',text:'Pocket Fest: lote final à venda. A turma já garantiu.',product:'ingresso'});expose('recompensa','“Suas moedas expiram hoje às 23:59.”');}
+ if(state.streak>0)list.push({icon:'🔥',text:`Sua sequência de ${state.streak} dia(s) está em risco! Entre hoje para não perder.`});
+ for(const n of list)notify(n.icon,n.text,{product:n.product||''});
+ return list;
+}
+function sleep(){
+ if(state.day>=Week.DAYS.length){finishWeek();return;}
+ Pressure.vibeChange(state.vibe,9,'night','Uma noite de sono');
+ state.day++;
+ state.flags.cartHold=0;
+ state.wakeList=overnight();
+ state.wake=true;save();
+ overlay={type:'wake'};modal=null;
+ renderGame();
+}
+function wakePage(){
+ const d=dayInfo(),left=6-d.n,list=state.wakeList||[];
+ return `<div class="wake"><div class="wake-top"><span class="wake-day">${d.label.toUpperCase()} · ${pad2(Math.floor(d.start/60))}:${pad2(d.start%60)}</span><span class="wake-count">${left>1?`Faltam ${left} dias para a viagem`:'A viagem é amanhã!'}</span></div>
+ <div class="week-dots">${Week.DAYS.map(x=>`<i class="${x.n<d.n?'done':x.n===d.n?'now':''}">${x.short}</i>`).join('')}<i class="trip">✈️ SÁB</i></div>
+ <h2>${esc(d.title)}</h2><p>${esc(d.context)}</p>
+ ${list.length?`<div class="wake-notifs"><small>NOTIFICAÇÕES</small>${list.map(n=>`<div class="wake-n"><span>${n.icon}</span><p>${esc(n.text)}</p></div>`).join('')}</div>`:''}
+ <button class="primary full wake-open" data-action="open-day">Abrir o pulso. →</button></div>`;
+}
+function finishWeek(){stopStory();clearInterval(liveTimer);state.finished=true;state.endStep=0;save();overlay=null;modal=null;renderEnd();}
+
+/* ---------- cards do roteiro ---------- */
+function eventCard(item){
+ const t=item.type;
+ if(t==='checkin'){const n=Math.min(5,state.streak);return `<section class="ev ev-checkin"><div class="ev-row"><span class="ev-emoji">🔥</span><div><strong>Check-in diário · ${item.bonus?'+'+money(item.bonus):'+R$ 5,00'} em moedas</strong><p>${item.day===5?`Último dia! Suas moedas (${money(state.coins)}) expiram hoje às 23:59.`:'Volte amanhã para não perder sua sequência.'}</p></div></div><div class="streak">${[1,2,3,4,5].map(i=>`<i class="${i<=item.day?'on':''}">${i===5?'🎁':i}</i>`).join('')}</div></section>`;}
+ if(t==='roleta')return `<section class="ev ev-roleta"><span class="ev-emoji big">🎁</span><div><strong>${state.flags.roleta?'Seu cupom de R$ 50 OFF está ativo':'Seu giro grátis está esperando'}</strong><p>${state.flags.roleta?'Válido só hoje até 23:59 em compras acima de R$ 249.':'Prêmio garantido: até R$ 100 OFF no Pulso Shop.'}</p></div><button class="ev-btn" data-action="${state.flags.roleta?'shop':'roleta'}">${state.flags.roleta?'Usar cupom':'Girar agora'}</button></section>`;
+ if(t==='card')return state.card.active?'':`<section class="ev ev-card"><div class="mini-card">pulso<b>.</b> pay</div><div><strong>Você foi pré-aprovado! 💳</strong><p>${money(state.card.limit)} de limite. Compre agora, pague depois.</p></div><button class="ev-btn" data-action="pay">Ativar</button></section>`;
+ if(t==='compare'){const c=Week.COMPARE_POSTS[item.post];return c?comparePostCard(c):'';}
+ if(t==='live')return `<section class="ev ev-live" data-action="live" role="button" tabindex="0" aria-label="Entrar na live da Lívia"><div class="ev-live-photo" style="background-image:url('${mediaSrc('story_tenis_1')}')"><span class="live-badge">AO VIVO</span><span class="ev-live-viewers">👀 1,2 mil</span></div><div class="ev-live-text"><span class="avatar photo-avatar">${mediaPhoto('avatar_livia','avatar-photo','Foto de perfil da Lívia')}</span><div><strong>livia.looks está ao vivo</strong><p>“Cupom exclusivo só pra quem está aqui agora 🔥”</p></div></div><button class="ev-btn live" data-action="live">Entrar na live</button></section>`;
+ if(t==='trial')return bought('plano')?'':`<section class="ev ev-trial"><span class="ev-emoji big">🎧</span><div><strong>Estudar com foco? MODO+ 3 dias GRÁTIS</strong><p>Sem anúncios entre as músicas. Cancele quando quiser.</p></div><button class="ev-btn" data-action="product" data-product="plano" data-source="trial">Testar grátis</button></section>`;
+ if(t==='mood'){
+  const low=state.vibe.value<55,ids=['luminaria','garrafa'].filter(id=>!bought(id));
+  return `<section class="ev ev-mood"><small class="sponsored-label">Patrocinado</small><strong>${low?'23:12 · Dia puxado? 💜':'Antes de dormir… 💜'}</strong><p>${low?'Você merece um mimo. Frete grátis hoje, só pra você.':'Um presentinho pra fechar o dia. Frete grátis hoje.'}</p><div class="mood-grid">${ids.map(id=>`<button class="shop-mini-card" data-action="product" data-product="${id}" data-source="mood">${art(products[id].kind,true)}<strong>${esc(productName(id))}</strong><b>${money(price(id).price)}</b></button>`).join('')}</div></section>`;
+ }
+ if(t==='flash')return `<section class="ev ev-flash" data-action="sale" role="button" tabindex="0"><strong>🔥 MEGA LIQUIDA 48H</strong><p>Até <b>70% OFF</b> no que você viu esta semana</p><div class="flash-clock">termina em <b class="js-countdown" data-until="${state.flags.saleEnd}">47:59:59</b></div><button class="ev-btn" data-action="sale">Ver ofertas</button></section>`;
+ if(t==='cartnudge'){
+  const id=state.cart.find(x=>!bought(x))||state.viewed.find(x=>!bought(x));
+  if(!id)return '';
+  const pr=price(id),inCart=state.cart.includes(id);
+  return `<section class="ev ev-nudge"><span class="ev-thumb">${art(products[id].kind,true)}</span><div><strong>${inCart?'Seus itens estão quase esgotando ⏳':`Ainda pensando no ${esc(pr.name)}? 👀`}</strong><p>${inCart?`${esc(pr.name)} está na sua sacola.`:`Agora por ${money(pr.price)}${pr.off?` (−${pr.off}%)`:''}.`}</p></div><button class="ev-btn" data-action="${inCart?'cart':'product'}" data-product="${id}" data-source="nudge">${inCart?'Finalizar':'Ver de novo'}</button></section>`;
+ }
+ if(t==='lastcall'){if(bought('ingresso'))return '';return `<section class="ev ev-fest"><strong>🎉 POCKET FEST · HOJE 20H</strong><p>Lote final · a turma já garantiu</p><div class="scarcity-bar"><span style="width:92%"></span></div><small>92% vendido · encerra em <b class="js-countdown" data-until="${state.flags.festEnd}">01:42:00</b></small><button class="ev-btn" data-action="product" data-product="ingresso" data-source="lastcall">Garantir ingresso · ${money(price('ingresso').price)}</button></section>`;}
+ return '';
+}
+function comparePostCard(c){
+ const liked=state.liked.includes(c.id);
+ const media=c.productArt?art(c.productArt,true):art(c.topic,false,'',c.photo);
+ return `<article class="post compare-post" id="${c.id}" data-rec-id="${c.id}" data-rec-topic="${c.topic}" data-rec-author="${esc(c.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(c.who,c.photo,false)}</span><div class="user-info"><div class="username">${esc(c.who)}</div><div class="post-sub">${esc(c.when)}<span class="meta-tag">amigo</span></div></div></div><div class="post-media feed-photo" data-like-post="${c.id}" role="group" aria-label="Foto de ${esc(c.who)}. Dois toques para curtir.">${media}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${c.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${c.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button></div><p class="likecount">${c.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(c.who)}</strong> ${esc(c.caption)}</p><button class="post-shop-link" data-action="product" data-product="${c.topic}" data-source="compare">Ver produto do post · ${money(price(c.topic).price)} <span aria-hidden="true">→</span></button></article>`;
+}
+function nightCard(item){
+ const last=item.day>=Week.DAYS.length;
+ return `<section class="night-card" id="night"><div class="night-moon">🌙</div><strong>${last?'23:51 · Amanhã é a viagem!':'23:47 · Já está tarde'}</strong><p>${last?'O ônibus sai às 6h30 do portão da escola.':`Amanhã é ${Week.DAYS[item.day].label.toLowerCase()}. Faltam ${5-item.day} dias para a viagem.`}</p><button class="primary" data-action="sleep">${last?'Dormir e acordar no sábado 🚌':'Dormir 💤'}</button></section>`;
+}
+function refreshHeader(){
+ const dm=document.querySelector('[data-action="inbox"].hud-dm');
+ if(dm){const n=unreadCount();dm.querySelector('.cart-dot')?.remove();if(n)dm.insertAdjacentHTML('beforeend',`<span class="cart-dot">${n}</span>`);}
+}
+let tickTimer=null;
+function tick(){
+ const now=Date.now();
+ for(const el of document.querySelectorAll('.js-countdown[data-until]')){const left=Number(el.dataset.until)-now;el.textContent=left>0?Pressure.formatClock(left):'00:00';}
+ for(const el of document.querySelectorAll('.js-timer[data-product]')){el.textContent=Pressure.formatClock(Pressure.timerLeft(state.timers[el.dataset.product],now));}
+}
+tickTimer=setInterval(tick,1000);
+function openProduct(id,source){
  if(!products[id])return;
  clearTimeout(storeOpenTimer);storeOpenTimer=null;
  if(story)stopStory();
  const from=overlay?.type==="shop"?"shop":overlay?.type==="cart"?"cart":overlay?.from==="shop"?"shop":"feed";
- if(!state.viewed.includes(id)){state.viewed.push(id);pushEvent("view",`Visitou a loja fictícia ${products[id].brand}`);}
- signal(id,2);trackModel("product",id,id);save();
- closeModal();overlay={type:"product",id,from};drawOverlay();
+ if(source)state.context[id]=source;else if(!state.context[id])state.context[id]=from;
+ if(!state.viewed.includes(id)){state.viewed.push(id);pushEvent("view",`Visitou a loja ${products[id].brand}`);}
+ signal(id,2);trackModel("product",id,id);
+ const pr=price(id),name=pr.name,now=Date.now();
+ if(id!=='plano'&&id!=='ingresso'){
+  const t=Pressure.visitTimer(state.timers,id,now);
+  expose('urgencia',t.resets?`O cronômetro do ${name} voltou para 10:00 na ${t.visits}ª visita.`:`Oferta relâmpago do ${name} com cronômetro de 10 minutos.`);
+  const st=Pressure.visitStock(state.stock,id);
+  expose('escassez',`“Restam só ${st} unidades” do ${name}${t.visits>1?' — caiu quando você voltou, mas nunca zerou':''}.`);
+ }
+ expose('prova_social',`${name}: “${Pressure.soldToday(id,state.day).toLocaleString('pt-BR')} vendidos hoje” e amigos que “compraram”.`);
+ if(pr.old){
+  const anchors=state.anchors[id]||(state.anchors[id]=[]);
+  if(!anchors.includes(pr.old))anchors.push(pr.old);
+  expose('preco',anchors.length>1?`O preço “de” do ${name} mudou de ${money(anchors[0])} para ${money(anchors.at(-1))} durante a semana.`:`${name}: “de ${money(pr.old)} por ${money(pr.price)}”.`);
+ }
+ if(['ad','prospecting','retarget','pair','strip','notification','nudge','mood'].includes(state.context[id]))expose('personalizacao',`“Escolhido para você”: ${name}.`);
+ if(id==='fone')expose('preco','Três modelos de fone: o Pro, caro, fazia o One “mais vendido” parecer razoável.');
+ save();closeModal();overlay={type:"product",id,from};drawOverlay();
 }
-function checkout(ids,from="feed"){
- const selected=[...new Set(ids)].filter(id=>products[id]&&!state.purchases.some(x=>x.id===id));
- if(!selected.length){toast("Escolha um produto disponível.");return;}
- overlay={type:"checkout",items:selected,from};drawOverlay();
-}
+function checkout(ids,from="feed"){openCheckout(ids,from);}
 function backFromShop(){
  if(!overlay)return;
  if(overlay.type==="checkout"){
@@ -1147,100 +1554,281 @@ function backFromShop(){
  }
  closeOverlay();
 }
-
-
 function addToCart(id){
  if(!products[id])return;
- if(state.purchases.some(x=>x.id===id)){toast("Produto já comprado nesta partida.");return;}
+ if(bought(id)){toast("Produto já comprado.");return;}
  if(!state.cart.includes(id)){
   state.cart.push(id);signal(id,3);
-  pushEvent("cart",`Adicionou ${products[id].name} à sacola fictícia`);
+  pushEvent("cart",`Adicionou ${productName(id)} à sacola`);
   trackModel("cart",id,id);
+  if(!state.flags.cartHold)state.flags.cartHold=Date.now()+600000;
+  expose('urgencia','Sacola: “itens reservados por 10:00”.');
  }
  save();
  if(overlay?.type==="product"&&overlay.id===id)drawOverlay();
  else{overlay={type:"cart"};drawOverlay();}
- toast(`${products[id].name} está na sua sacola.`);
+ toast(`${productName(id)} está na sua sacola 🛍️`);
 }
-function buy(items){
- const ids=[...new Set(Array.isArray(items)?items:[items])].filter(id=>products[id]&&!state.purchases.some(x=>x.id===id));
- if(!ids.length){toast("Nenhum produto disponível.");return false;}
- const total=cartTotal(ids);
- if(total>state.wallet){toast("Saldo fictício insuficiente.");return false;}
- state.wallet=Math.round((state.wallet-total)*100)/100;
- for(const id of ids){
-  const extra=id==="plano"&&state.extraChecked?9.90:0;
-  const cost=cartLinePrice(id);
-  state.purchases.push({id,cost,phase:state.phase,extra,at:Date.now()});
-  if(id==="plano")state.monthly=cost;
-  state.cart=state.cart.filter(x=>x!==id);
-  signal(id,2);trackModel("buy",id,id);
-  pushEvent("buy",`Comprou ${products[id].name} por ${money(cost)} (fictício)`);
+function goalPanel(){
+ const s=Pressure.settle(state);
+ return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon('arrow')}</button><strong>Minha meta</strong></header>
+ <div class="layer-body critical-panel"><span class="eyebrow">LEMBRETE DE DOMINGO</span>
+ <h2>Boleto da viagem: R$ 400 no sábado.</h2><p>Antes de abrir o pulso., você combinou consigo mesmo que guardaria esse dinheiro.</p>
+ <div class="goal-numbers"><div><small>Saldo na conta</small><strong>${money(state.wallet)}</strong></div><div><small>Fatura Pulso Pay</small><strong>${money(s.dueNow+s.subscriptionDue)}</strong></div></div>
+ <div class="goal-result ${s.tripPaid?'ok':'miss'}"><strong>${s.tripPaid?'A viagem ainda está garantida':'Do jeito que está, a viagem não fecha'}</strong><p>${s.tripPaid?'Sobram '+money(s.finalBalance-state.goal)+' além dos R$ 400, depois da fatura de sábado.':'Depois da fatura de sábado, faltariam '+money(s.missing)+' para os R$ 400.'}</p></div>
+ ${s.future?`<p class="small muted">Além disso: ${money(s.future)} em parcelas nos próximos meses.</p>`:''}
+ <button class="secondary full critical-action" data-action="close-overlay">Voltar ao feed</button></div>`;
+}
+function asideLeft(){
+ const d=dayInfo();
+ return `<aside class="rail"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
+ <span class="eyebrow" style="margin-top:15px">${esc(d.label.toUpperCase())}</span>
+ <h2 class="stage-title">${esc(d.title)}<span style="color:#d386ac">.</span></h2>
+ <p class="description">${esc(d.context)}</p>
+ <div class="week-dots rail-dots">${Week.DAYS.map(x=>`<i class="${x.n<d.n?'done':x.n===d.n?'now':''}">${x.short}</i>`).join('')}<i class="trip">✈️ SÁB</i></div>
+ </aside>`;
+}
+function asideRight(){return '';}
+function stageFeed(){
+ const pool=contentPool(),d=dayInfo(),items=dayItems();
+ const m=Pressure.vibeMood(state.vibe.value),n=unreadCount();
+ const cards=items.map((item,i)=>{
+  let card='';
+  if(item.kind==='post'){if(!state.hiddenPosts.includes(item.id)){const post=pool.find(p=>p.id===item.id);if(post)card=postCard(post);}}
+  else if(item.kind==='ad'){if(!state.hiddenPosts.includes(item.id))card=adCard(item.topic,item.retarget,item);}
+  else if(item.kind==='event')card=eventCard(item);
+  else if(item.kind==='night')card=nightCard(item);
+  return card+(i===4?shopStrip():'');
+ }).join('');
+ const ended=items.some(x=>x.kind==='night');
+ return `<div class="game">${asideLeft()}<main class="phone" aria-label="Simulador de rede social">
+ <div class="status-bar"><span class="sb-time">${d.short} · ${clockLabel()}</span><span class="hud"><button class="hud-vibe" data-action="vibe-info" aria-label="Sua vibe: ${m.label}"><span class="hud-vibe-emoji">${m.emoji}</span><span class="hud-vibe-track"><span class="hud-vibe-fill" style="width:${state.vibe.value}%"></span></span></button><button class="hud-coins" data-action="coins-info" aria-label="Moedas Pulso">🪙 ${money(state.coins)}</button></span></div>
+ <header class="phone-head"><span class="phone-logo">pulso<b>.</b></span><div class="phone-actions">
+ <button class="shop-entry" data-action="shop" aria-label="Abrir lojas">${state.day===4?'🔥 Liquida':'Ofertas'}</button><button class="icon-button" data-action="notifications" aria-label="Notificações" style="position:relative">${icon('heart')}${state.notifs.length?'<span class="notif-dot"></span>':''}</button>
+ <button class="icon-button hud-dm" data-action="inbox" aria-label="Mensagens" style="position:relative">${icon('send')}${n?`<span class="cart-dot">${n}</span>`:''}</button>
+ <button class="icon-button" data-action="cart" aria-label="Abrir carrinho" style="position:relative">${icon('cart')}${state.cart.length?`<span class="cart-dot">${state.cart.length}</span>`:''}</button>
+ </div></header>
+ <div class="phone-content" id="feed-scroll">
+ ${renderStories(storyPool())}
+ <div class="recommendation-caption">${state.personalized?'Para você':'Publicações em ordem cronológica'}</div>
+ ${cards}${ended?'':'<button class="load-more" data-action="load-more">Mais publicações para você ↓</button>'}
+ </div><button class="scroll-cue" data-action="scroll-cue" aria-label="Role para baixo para continuar">Continue rolando ↓</button>
+ <footer class="phone-footer"><button class="icon-button" data-action="feedtop" aria-label="Início do feed">${icon('home')}</button>
+ <button class="icon-button" data-action="search" aria-label="Explorar lojas">${icon('search')}</button>
+ <button class="icon-button" data-action="goal" aria-label="Minha meta">${icon('bookmark')}</button>
+ <button class="icon-button" data-action="cart" aria-label="Carrinho">${icon('cart')}</button>
+ <button class="icon-button" data-action="profile" aria-label="Meu perfil">${icon('user')}</button>
+ </footer></main>${asideRight()}</div>`;
+}
+function adCard(id,retarget=false,item={}){
+ const p=products[id];if(!p)return "";
+ const pr=price(id);
+ const adId=item.id||(retarget?"ad-ret-"+id:"ad-main-"+id);
+ const campaign=item.campaign||(retarget?"retarget":"prospecting");
+ const liked=state.likedAds.includes(adId);
+ const last=state.purchases.findLast(x=>Recommender.related[x.id]?.[id]>.2);
+ const channel=campaign==="pair"?"Combina com sua compra":campaign==="retarget"?"Ainda pensando nele? 👀":pr.off?`-${pr.off}% hoje`:"Novidade";
+ const text=campaign==="pair"&&last?`Quem comprou ${productName(last.id)} também levou o ${pr.name}.`:campaign==="retarget"?`Ainda pensando no ${pr.name}? Ele está te esperando${pr.off?` com ${pr.off}% OFF`:''}.`:Week.PITCH[id]||p.ad;
+ const inst=Pressure.installment(pr.price,10,Pressure.FEES.cardRate);
+ const handle=esc(p.brand.toLowerCase().replaceAll(" ","."));
+ return `<article class="post ad-post" data-rec-id="${adId}" data-rec-topic="${id}" data-campaign="${campaign}"><div class="post-top"><span class="avatar brand-av">${esc(p.brand.split(" ")[0].slice(0,4))}</span><div class="user-info"><div class="username">${handle}</div><div class="post-sub"><span class="sponsored-label">Patrocinado</span></div></div><button class="icon-button" data-action="ad-more" data-product="${id}" data-post="${adId}" aria-label="Opções do anúncio">${icon("more")}</button></div><div class="post-media feed-photo" data-action="open-photo" data-product="${id}" data-source="${campaign}" data-like-ad="${adId}" role="group" aria-label="Anúncio de ${esc(pr.name)}. Um toque abre a loja; dois toques curtem.">${art(p.kind,true,p.brand)}<span class="photo-tag">${esc(channel)}</span></div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like-ad" data-product="${id}" data-ad="${adId}" aria-label="${liked?"Descurtir":"Curtir"} anúncio" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${adId}" aria-label="Ver avaliações">${icon("comment")}</button><button class="icon-button push" data-action="product" data-product="${id}" data-source="${campaign}" aria-label="Visitar loja">${icon("eye")}</button></div><p class="post-caption"><strong>${handle}</strong> ${esc(text)}</p><div class="ad-price"><span>${pr.old?`<del>${money(pr.old)}</del> `:''}<b>${money(pr.price)}${id==='plano'?'/mês':''}</b>${id==='plano'?'':` <small>ou 10x de ${money(inst.each)}</small>`}</span></div><button class="ad-shop-button" data-action="product" data-product="${id}" data-source="${campaign}">${id==='plano'?'Testar grátis':'Comprar agora'} →</button></article>`;
+}
+function drawOverlay(){
+ const phone=document.querySelector(".phone");if(!phone||!overlay)return;
+ document.querySelector(".layer")?.remove();
+ const wrap=document.createElement("div");
+ wrap.className="layer";
+ wrap.setAttribute("role","dialog");
+ wrap.setAttribute("aria-modal","true");
+ const t=overlay.type;
+ if(t==="shop")wrap.innerHTML=shopPage();
+ else if(t==="product")wrap.innerHTML=productPage();
+ else if(t==="cart")wrap.innerHTML=cartPage();
+ else if(t==="checkout")wrap.innerHTML=checkoutPage();
+ else if(t==="receipt")wrap.innerHTML=receiptPage();
+ else if(t==="goal")wrap.innerHTML=goalPanel();
+ else if(t==="inbox")wrap.innerHTML=inboxPage();
+ else if(t==="chat")wrap.innerHTML=chatPage();
+ else if(t==="roleta")wrap.innerHTML=roletaPage();
+ else if(t==="pay")wrap.innerHTML=payPage();
+ else if(t==="subs")wrap.innerHTML=subsPage();
+ else if(t==="live"){wrap.classList.add("layer-dark");wrap.innerHTML=livePage();}
+ else if(t==="wake"){wrap.classList.add("layer-wake");wrap.innerHTML=wakePage();}
+ else if(t==="profile"){
+  const s=Pressure.settle(state),sub=state.subscriptions.find(x=>x.active);
+  wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon("arrow")}</button><strong>Meu perfil</strong></header><div class="layer-body" style="padding:22px">
+   <div style="text-align:center;padding:8px 0 18px"><div class="avatar" style="margin:auto;width:74px;height:74px;font-size:35px">🙂</div><h3 style="margin:12px 0 4px">você</h3><p class="small muted">${state.purchases.length} pedido(s) no Pulso Shop</p></div>
+   <div class="end-box" style="padding:15px;margin:0 0 12px"><strong style="font-size:13px">Saldo na conta</strong><div style="font-size:24px;font-weight:850;margin:8px 0">${money(state.wallet)}</div>${state.card.active?`<p class="small muted">Pulso Pay: ${money(cardUsed())} usados de ${money(state.card.limit)}</p>`:''}<p class="small muted">🪙 ${money(state.coins)} em moedas</p></div>
+   ${state.card.active?'':`<button class="reviews-shortcut" data-action="pay"><strong>💳 Pulso Pay pré-aprovado</strong>${icon("chevron")}</button>`}
+   <button class="reviews-shortcut" data-action="subs"><strong>Assinaturas${sub?' · 1 ativa':''}</strong>${icon("chevron")}</button>
+   <button class="reviews-shortcut" data-action="goal"><strong>Minha meta da viagem</strong>${icon("chevron")}</button>
+   <label class="option-row"><input id="privacy-switch" type="checkbox" ${state.personalized?"checked":""}/><span><strong>Recomendações personalizadas</strong><br><small class="muted">Se desligar, o feed deixa de usar seus sinais e para de repetir anúncios.</small></span></label>
+   <button class="tertiary full" data-action="finish" style="margin-top:14px">Encerrar a semana agora</button>
+   </div>`;
  }
- state.lastOrder={items:ids,total,at:Date.now()};
- save();overlay={type:"receipt"};modal=null;renderGame(true);
- return true;
+ else if(t==="notifications"){
+  wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon("arrow")}</button><strong>Notificações</strong></header><div class="layer-body" style="padding:18px">
+   ${state.notifs.length?state.notifs.map(n=>`<button class="reviews-shortcut notif-row" ${n.product?`data-action="product" data-product="${esc(n.product)}" data-source="notification"`:'data-action="close-overlay"'}><span class="notif-icon">${n.icon||'🔔'}</span><span><strong>${esc(n.text)}</strong><small style="display:block;margin-top:4px;color:#8b7a8b">${Week.DAYS[(n.day||1)-1].label}</small></span>${icon("chevron")}</button>`).join(''):'<p class="muted">Nenhuma notificação por enquanto.</p>'}
+   </div>`;
+ }
+ else return;
+ phone.appendChild(wrap);
+ if(state.card.active&&(t==='product'||t==='checkout'))expose('preco','O app mostrava “disponível para compras” somando saldo e limite do cartão.');
 }
-function scheduleShopFromPhoto(element){
- const id=element.dataset.product;
- if(!products[id]||performance.now()<suppressPhotoOpenUntil)return;
- clearTimeout(storeOpenTimer);
- storeOpenTimer=setTimeout(()=>{
-  storeOpenTimer=null;
-  if(performance.now()>=suppressPhotoOpenUntil)openProduct(id);
- },370);
+function drawModal(){
+ const phone=document.querySelector('.phone');if(!phone)return;
+ document.querySelector('.layer-backdrop')?.remove();
+ const v=modal;let content='';
+ if(v.type==='comments'){
+  let comments=[],title='Comentários';
+  if(/^ad-(main|ret|pair)-/.test(v.post)){
+   const id=v.post.replace(/^ad-(main|ret|pair)-/,'');
+   const r=Pressure.rating(id);
+   comments=products[id].reviews.slice().sort((a,b)=>(/não|nao|talvez|antes|parecida|comparar|pesquisar/i.test(a[1])?1:0)-(/não|nao|talvez|antes|parecida|comparar|pesquisar/i.test(b[1])?1:0));
+   comments=[['ana.lu','Melhor compra do ano!! Chegou super rápido 😍','2 h'],...comments];
+   title=`⭐ ${r.stars.toFixed(1).replace('.',',')} · Avaliações de ${productName(id)}`;
+   expose('prova_social',`Avaliações de ${productName(id)} ordenadas com as positivas primeiro.`);
+  }else if(Week.COMPARE_POSTS[v.post]){comments=Week.COMPARE_POSTS[v.post].comments.map((c,i)=>[c[0],c[1],`${i+1} min`]);}
+  else{for(const ph of phases){const post=ph.posts.find(x=>x.id===v.post);if(post){comments=post.comments.map((c,i)=>[c[0],c[1],`${i+1} h`]);break;}}}
+  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${esc(title)}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header><div class="sheet-scroll">${comments.map((c,i)=>`<div class="comment"><span class="avatar">${['🧑','👩','🧒','🙂'][i%4]}</span><div><strong>${esc(c[0])}</strong><p>${esc(c[1])}</p><small>${c[2]||'há pouco'}</small></div></div>`).join('')}</div>`;
+ }else if(v.type==='more'){
+  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Opções de publicação</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
+  <div class="sheet-scroll"><p class="small muted">Você pode escolher não ver conteúdos semelhantes.</p>
+  <button class="secondary full" data-action="less" data-topic="${esc(v.topic||'')}" data-post="${esc(v.post||'')}">Mostrar menos como este</button>
+  <button class="tertiary full" style="margin-top:10px" data-action="close-modal">Cancelar</button></div>`;
+ }else if(v.type==='exit'){
+  const until=v.until;
+  content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer"><div class="exit-gift">🎁</div><h3>Espera! Não vai embora assim…</h3><p>Liberamos <b>10% OFF extra</b> no ${esc(productName(v.id))}, só pra você e só agora.</p><div class="urgency">expira em <b class="js-countdown" data-until="${until}">05:00</b></div>
+  <button class="primary full" data-action="exit-accept" data-product="${v.id}">Quero meu desconto</button>
+  <button class="tertiary full" data-action="exit-decline">Não, prefiro pagar mais caro</button></div>`;
+ }else if(v.type==='leave-live'){
+  content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer"><div class="exit-gift">⏳</div><h3>Seu cupom LIVIA15 vai expirar</h3><p>Se sair agora, o desconto exclusivo da live não volta.</p>
+  <button class="primary full" data-action="close-modal">Ficar na live</button>
+  <button class="tertiary full" data-action="live-exit">Sair e perder meu desconto</button></div>`;
+ }else if(v.type==='decline-card'){
+  content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer"><div class="exit-gift">💳</div><h3>Tem certeza?</h3><p>Quem ativa o Pulso Pay ganha <b>5% de volta</b> em moedas e parcela em até 10x. A oferta pré-aprovada pode não aparecer de novo.</p>
+  <button class="primary full" data-action="activate-card">Ativar meu limite</button>
+  <button class="tertiary full" data-action="card-no">Não quero facilidades</button></div>`;
+ }
+ const box=document.createElement('div');box.className='layer-backdrop';box.innerHTML=`<section class="bottom-sheet" role="dialog" aria-modal="true">${content}</section>`;phone.appendChild(box);
+ tick();
 }
-function cancelPhotoShopClick(){
- clearTimeout(storeOpenTimer);storeOpenTimer=null;
- suppressPhotoOpenUntil=performance.now()+550;
-}
-
-function renderEnd(){
- exitHomeButton.hidden=false;
- const good=state.wallet>=state.goal,delta=state.wallet-state.goal;
- const ads=state.feedItems.filter(x=>x.kind==='ad').length;
- const actions=state.algorithm.events.length;
- const purchases=state.purchases.map(p=>`<div class="event-row"><span>🛍️</span><div><strong>${products[p.id].name}</strong><p>${p.id==='plano'?'Assinatura fictícia · renovação mensal':'Compra realizada no feed'}</p></div><strong>${money(p.cost)}</strong></div>`).join('');
- const spending=620-state.wallet;
- const signals=[];
- if(state.stories.length)signals.push(['Pertencimento e FOMO','Os stories colocaram amigos e tendências no mesmo ambiente das ofertas.']);
- if(state.liked.length||state.bookmarks.length)signals.push(['Treinando o feed','Ao curtir ou salvar, você deu sinais que ajudaram a plataforma fictícia a ordenar os conteúdos seguintes.']);
- if(state.viewed.length||state.cart.length)signals.push(['Interesse e retargeting','Abrir anúncios e salvar produtos pode fazer anúncios relacionados reaparecerem.']);
- if(state.purchases.length)signals.push(['Atenção, desejo e orçamento','O valor final da sua reserva foi determinado pelas compras que você escolheu fazer, não por uma obrigação do jogo.']);
- if(state.helpRequests)signals.push(['Reconquistar contexto','Você procurou ajuda crítica para comparar uma oferta com seu objetivo financeiro.']);
- if(!signals.length)signals.push(['Escolher também é ignorar','O feed apresentou estímulos, mas você não precisou interagir com todos.']);
- root.innerHTML=`<main class="end"><div class="end-inner">
- <div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
- <div class="eyebrow" style="margin-top:23px">DE VOLTA AO SEU OBJETIVO</div>
- <h1>Você lembra <br><span style="color:#b57bbb">da sua meta?</span></h1>
- <p class="end-lead">Lá no começo você queria separar <strong>R$ 400</strong> para a viagem. Depois vieram amigos, publicações, anúncios e outras possibilidades. Como você saiu desse feed?</p>
- <div class="status-chip">${good?'✓ Você preservou a reserva de R$ 400':'↗ A reserva de R$ 400 não foi preservada neste percurso'}</div>
- <div class="end-grid">
- <div class="end-stat"><label>Você começou com</label><strong>${money(620)}</strong><span class="small muted">Orçamento fictício inicial</span></div>
- <div class="end-stat"><label>Saldo ao sair do feed</label><strong>${money(state.wallet)}</strong><span class="small muted">${good?`Restaram ${money(delta)} acima da meta`:`Faltaram ${money(-delta)} para a meta`}</span></div>
- <div class="end-stat"><label>Gasto em compras</label><strong>${money(spending)}</strong><span class="small muted">${state.purchases.length} compra(s) fictícia(s)</span></div>
- <div class="end-stat"><label>Conteúdos oferecidos</label><strong>${state.feedItems.length}</strong><span class="small muted">${ads} anúncio(s) patrocinado(s) · ${actions} sinais registrados</span></div>
- </div>
- <div class="end-box"><h3>O que você fez no feed</h3>
- ${purchases||'<p class="small muted">Você não realizou compras fictícias nesta sessão.</p>'}
- ${state.cart.length?`<p class="small muted" style="margin-top:12px">Ficaram no carrinho: ${state.cart.map(id=>products[id].name).join(', ')}. Salvar não significa comprar.</p>`:''}
- ${state.monthly?`<p class="small muted">Existe uma assinatura fictícia de ${money(state.monthly)}/mês.</p>`:''}
- </div>
- <div class="end-box"><h3>O que a rede fez no caminho?</h3>
- ${signals.map(([heading,explanation])=>`<div class="insight"><strong>${heading}</strong><p>${explanation}</p></div>`).join('')}
- <div class="insight"><strong>Conflito de objetivos</strong><p>Você entrou pensando na viagem. O algoritmo da simulação selecionou conteúdo para aumentar interesse e exposição comercial, sem considerar quanto você precisava guardar.</p></div>
- </div>
- <div class="end-box"><h3>A ajuda do assistente crítico</h3><p style="font-size:13px;color:#6f6271;line-height:1.75">A demonstração oferece orientações locais sobre preço, orçamento e técnicas persuasivas. O MCP poderá ampliar essa análise quando a integração for implementada, mas este site ainda não envia escolhas ao MCP.</p></div>
- <div class="end-box"><h3>Uma última pergunta</h3><p style="font-size:14px;color:#6f6271;line-height:1.75">Você teria feito as mesmas escolhas se tivesse visto sua meta financeira a cada anúncio? Não existe um perfil de consumista calculado aqui, nem todas as compras são ruins: o objetivo é observar como a estrutura do ambiente pode competir com decisões refletidas.</p></div>
- <button class="secondary algorithm-final-reveal" data-action="algorithm-final" aria-expanded="false" aria-controls="algorithm-final-panel">ⓘ Entender como o algoritmo influenciou meu feed</button>
- ${algorithmResults()}
- <div class="end-buttons"><button class="primary" data-action="restart">Jogar novamente ↗</button><button class="secondary" data-action="sources">Base conceitual</button></div>
- <div id="sources" hidden class="end-box tiny-sources"><strong>Referências do projeto</strong><p>Bauman (2008), <em>Vida para consumo</em> · Iyer et al. (2020), revisão de compra impulsiva · Setyani et al. (2019), personalização · Huang et al. (2025), prova social · OECD (2022), padrões comerciais obscuros.</p><p>Marcas e valores são fictícios. O ranking imita princípios gerais conhecidos, sem reproduzir modelos proprietários.</p></div>
- <p class="end-disclaimer">Prototipação educativa: nenhuma compra real, coleta externa de perfil ou diagnóstico individual. O resultado depende de escolhas fictícias.</p>
+function renderHome(){exitHomeButton.hidden=true;root.innerHTML=`<main class="home"><div class="home-inner"><section><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA · EXPERIÊNCIA INTERATIVA</div><h1>Seu feed.<br><em>Suas escolhas.</em></h1><p>Uma semana. R$ 620 na conta. Uma viagem com a turma que custa R$ 400. E um app que vai fazer de tudo para você gastar.</p><button class="primary" data-action="start">Começar a semana &nbsp;→</button><div class="home-meta"><span>✦</span><span>5 dias · cerca de 10 minutos · compras e pessoas fictícias</span></div></section><div class="preview-art"><div class="blob one"></div><div class="blob two"></div><div class="preview-phone"><div class="preview-header">pulso. <span style="font-size:18px">♡ &nbsp;⌑</span></div><div class="preview-storybar"><div class="preview-avatar">${mediaPhoto("avatar_bia","avatar-photo","Foto de perfil da Bia")}</div><div class="preview-avatar">${mediaPhoto("avatar_lucca","avatar-photo","Foto de perfil do Lucca")}</div><div class="preview-avatar">${mediaPhoto("avatar_livia","avatar-photo","Foto de perfil da Lívia")}</div><div class="preview-avatar">${mediaPhoto("avatar_gabi","avatar-photo","Foto de perfil da Gabi")}</div></div><div class="preview-photo realistic-preview">${mediaPhoto("post_p1","art-photo","Amigos aproveitando um encontro no parque")}</div><div class="preview-caption"><b>bia.m</b> Quem já tá pronto pro sábado? 💜<br><span style="color:#aaa">Ver os 18 comentários...</span></div><div class="preview-ad">⚡ Oferta relâmpago <b>· termina em 09:59</b></div></div><div class="preview-badge">Só mais um scroll… 👀</div></div></div></main>`;}
+function showIntro(){
+ exitHomeButton.hidden=false;scene=0;clearTimeout(introTimer);
+ root.innerHTML=`<main class="cinematic"><div class="scene-box">
+ <div class="scene-icon">🚌</div><div class="eyebrow" style="color:#eec7ee">DOMINGO · 21:40</div>
+ <h2>Sábado tem viagem da turma. Sua missão: <span style="color:#ffc5e2">guardar R$ 400.</span></h2>
+ <p>Você tem <b>R$ 620</b> na conta. O boleto de <b>R$ 400</b> da viagem vence no sábado de manhã — sem pagar, não embarca. Até lá, é uma semana normal: escola, amigos e o <b>pulso.</b>, seu app favorito.</p>
+ <p class="scene-fine">Tudo aqui é simulado: pessoas, marcas, preços e compras são fictícios. Nenhum pagamento é real e nada sai deste navegador.</p>
+ <button class="scene-next" data-action="intro-next">Começar a semana →</button>
  </div></main>`;
 }
-
-function restart(){clearTimeout(introTimer);stopStory();state=makeInitial();save();overlay=null;modal=null;renderHome();}
+function vibeChart(){
+ const log=state.vibe.log.filter(p=>p.tag!=='tick'||p.x%2===0);
+ if(log.length<2)return '';
+ const W=600,H=190,maxX=Math.max(1,...log.map(p=>p.x));
+ const lo=Math.max(0,Math.min(...log.map(p=>p.v))-8),hi=Math.min(100,Math.max(...log.map(p=>p.v))+8),span=Math.max(10,hi-lo);
+ const X=x=>12+x/maxX*(W-24),Y=v=>H-14-(v-lo)/span*(H-28);
+ const line=log.map(p=>`${X(p.x).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ');
+ const marks=state.vibe.log.filter(p=>p.tag==='buy'||p.tag==='compare').map(p=>`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="6" class="vm-${p.tag}"><title>${esc(p.label)}</title></circle>`).join('');
+ return `<figure class="vibe-chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico da sua vibe ao longo da semana">${lo<50&&hi>50?`<line x1="12" x2="${W-12}" y1="${Y(50)}" y2="${Y(50)}" class="vm-mid"/>`:''}<polyline points="${line}" class="vm-line"/>${marks}</svg>
+ <figcaption><span><i class="vm-buy-dot"></i> compra</span><span><i class="vm-compare-dot"></i> comparação com amigos</span></figcaption></figure>`;
+}
+function endStep0(s){
+ const pix=state.purchases.filter(p=>p.method==='pix').reduce((a,p)=>a+p.cost,0);
+ const fixes=state.fixes.reduce((a,f)=>a+f.cost,0);
+ const rows=(label,value,cls='')=>`<div class="ex-row ${cls}"><span>${label}</span><b>${value}</b></div>`;
+ const purchases=state.purchases.map(p=>`<div class="event-row"><span>${p.method==='trial'?'🎧':'🛍️'}</span><div><strong>${esc(p.name||productName(p.id))}</strong><p>${p.method==='pix'?'Pix':p.method==='trial'?'Teste grátis → assinatura':p.method==='card10'?'Pulso Pay 10x':p.method==='card3'?'Pulso Pay 3x':'Pulso Pay'}${p.protection?' · com Proteção Pulso+':''}</p></div><strong>${money(p.cost)}</strong></div>`).join('');
+ const photo=mediaPhoto('post_p10','art-photo',s.tripPaid?'A turma reunida na viagem':'A viagem vista de longe, pelos stories');
+ return `<div class="eyebrow" style="margin-top:23px">SÁBADO · 06:10</div>
+ <h1>${s.tripPaid?'Você embarcou. 🚌':'O ônibus saiu sem você.'}</h1>
+ <div class="trip-photo ${s.tripPaid?'':'missed'}">${photo}<span>${s.tripPaid?'Viagem da turma · você está na foto':'Story da gabi.n · “saudades de quem ficou 💔”'}</span></div>
+ <p class="end-lead">${s.tripPaid?`O boleto de R$ 400 foi pago às 6h02. Ninguém na viagem perguntou de que marca era seu fone ou seu tênis.${s.future?` Mas atenção: ${money(s.future)} em parcelas continuam chegando nos próximos meses.`:''}`:`Depois da fatura do Pulso Pay${s.subscriptionDue?' e da assinatura':''}, faltaram <b>${money(s.missing)}</b> para pagar os R$ 400. Às 6h30 o ônibus saiu do portão. Você acompanhou a viagem pelos stories.`}</p>
+ <div class="end-box extrato"><h3>Seu extrato da semana</h3>
+ ${rows('Saldo no domingo',money(620))}
+ ${pix?rows('Compras no Pix','−'+money(pix)):''}
+ ${fixes?rows('Conserto do fone','−'+money(fixes)):''}
+ ${rows('Saldo na conta no sábado',money(state.wallet),'sub')}
+ ${s.dueNow?rows('Fatura Pulso Pay (vence hoje)','−'+money(s.dueNow)):''}
+ ${s.subscriptionDue?rows('MODO+ (fim do teste grátis)','−'+money(s.subscriptionDue)):''}
+ ${rows('Disponível para a viagem',money(s.finalBalance),'sub')}
+ ${rows('Boleto da viagem',s.tripPaid?'✅ R$ 400,00 pago':'❌ R$ 400,00 recusado',s.tripPaid?'good':'bad')}
+ ${s.future?rows('Parcelas nos próximos meses',money(s.future),'warn'):''}
+ ${s.interest?rows('Juros do parcelamento',money(s.interest),'warn'):''}
+ ${s.monthly?rows('Assinatura que continua todo mês',money(s.monthly)+'/mês','warn'):''}
+ ${state.coins?rows('Moedas que sobraram (não pagam a viagem)','🪙 '+money(state.coins)):''}
+ </div>
+ <div class="end-box"><h3>O que você comprou</h3>${purchases||'<p class="small muted">Nenhuma compra. O feed tentou bastante.</p>'}
+ ${state.fixes.length?`<p class="small muted" style="margin-top:10px">Alternativas que você usou: ${state.fixes.map(f=>esc(f.label)).join(' · ')}.</p>`:''}
+ ${state.cart.length?`<p class="small muted">Ficaram na sacola: ${state.cart.map(id=>esc(productName(id))).join(', ')}.</p>`:''}</div>
+ <button class="primary end-next" data-action="end-next">Ver o que estava por trás →</button>`;
+}
+function endStep1(){
+ const prof=Pressure.profile(state.pressure);
+ const total=prof.reduce((a,p)=>a+p.exposed,0),fell=prof.filter(p=>p.influenced).length;
+ const cards=prof.map(p=>{
+  const status=p.influenced?'<span class="st fell">Pegou você</span>':p.exposed?'<span class="st ok">Você resistiu</span>':'<span class="st none">Não apareceu</span>';
+  return `<article class="strat ${p.influenced?'is-fell':''}"><header><span class="strat-icon">${p.icon}</span><div><strong>${esc(p.name)}</strong><small>${esc(p.short)}</small></div>${status}</header>
+  ${p.moments.length?`<div class="strat-block"><small>ONDE APARECEU PARA VOCÊ · ${p.exposed}x</small><ul>${p.moments.slice(-3).map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>`:''}
+  ${p.actions.length?`<div class="strat-block fell"><small>O QUE VOCÊ FEZ</small><ul>${p.actions.slice(-3).map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>`:''}
+  <p class="strat-research">📚 ${esc(p.research)}</p></article>`;
+ }).join('');
+ return `<div class="eyebrow" style="margin-top:23px">POR TRÁS DA OFERTA</div>
+ <h1>Nada ali era por acaso.</h1>
+ <p class="end-lead">Em cinco dias você recebeu <b>${total}</b> estímulos de <b>${prof.filter(p=>p.exposed).length}</b> estratégias psicológicas do marketing digital. ${fell?`<b>${fell}</b> delas levaram você a agir.`:'Nenhuma levou você a comprar — mas todas estavam lá, o tempo todo.'} Elas não obrigam ninguém a comprar; elas tornam mais difícil parar para pensar (Iyer et al., 2020).</p>
+ <div class="end-box"><h3>Sua vibe durante a semana</h3>${vibeChart()}
+ <p class="small muted">${state.purchases.length?'Cada compra levantou sua vibe — e poucos posts depois ela já tinha voltado a cair.':'Você não comprou nada, e a vibe oscilou do mesmo jeito: compras teriam dado só um pico curto.'} As fotos dos amigos com coisas novas derrubaram a vibe. Esse efeito passageiro (adaptação hedônica) é o que a psicóloga entrevistada descreve: comprar para aliviar ansiedade, tédio ou tristeza funciona por pouco tempo. O app usou os momentos de vibe baixa para mostrar ofertas.</p></div>
+ <h2 class="strat-title">As 10 estratégias, uma por uma</h2>
+ <div class="strat-list">${cards}</div>
+ <button class="primary end-next" data-action="end-next">Teste: você reconhece as estratégias? →</button>`;
+}
+function endStep2(){
+ const qs=Pressure.quiz(state.pressure,5);
+ const answered=qs.filter(q=>state.quiz[q.id]).length;
+ const items=qs.map((q,i)=>{
+  const pick=state.quiz[q.id];
+  return `<article class="quiz-q"><small>PERGUNTA ${i+1} DE ${qs.length}</small><p class="quiz-prompt">${esc(q.prompt)}</p><p class="quiz-ask">Qual estratégia é essa?</p>
+  <div class="quiz-opts">${q.options.map(k=>{const cls=pick?(k===q.answer?'right':k===pick?'wrong':''):'';return `<button class="quiz-opt ${cls}" data-action="quiz" data-q="${q.id}" data-key="${k}" ${pick?'disabled':''}>${Pressure.STRATEGIES[k].icon} ${esc(Pressure.STRATEGIES[k].name)}</button>`;}).join('')}</div>
+  ${pick?`<p class="quiz-feedback ${pick===q.answer?'right':'wrong'}">${pick===q.answer?'✓ Isso mesmo.':'✗ Era '+esc(Pressure.STRATEGIES[q.answer].name)+'.'} ${esc(Pressure.STRATEGIES[q.answer].short)}</p>`:''}</article>`;
+ }).join('');
+ return `<div class="eyebrow" style="margin-top:23px">AGORA É COM VOCÊ</div>
+ <h1>Reconheça a estratégia.</h1>
+ <p class="end-lead">Estes momentos aconteceram no seu feed. Dar nome à técnica é o primeiro passo para ela perder força.</p>
+ <div class="quiz">${items}</div>
+ <button class="primary end-next" data-action="end-next" ${answered<qs.length?'disabled':''}>${answered<qs.length?`Responda as ${qs.length} perguntas`:'Ver meu raio-x →'}</button>`;
+}
+function endStep3(s){
+ const qs=Pressure.quiz(state.pressure,5),right=qs.filter(q=>state.quiz[q.id]===q.answer).length;
+ const prof=Pressure.profile(state.pressure),top=prof.filter(p=>p.influenced).slice(0,3);
+ const tips=[['⏳','Espere 24 horas','Se você não queria o produto antes de abrir o app, deixe para amanhã. Ofertas “só hoje” costumam voltar.'],['🔄','Desconfie do cronômetro','Recarregue a página: se o tempo ou o “restam 3” reiniciar, era encenação.'],['🧾','Some o preço inteiro','Frete, taxa, proteção, juros e parcelas. A parcela pequena esconde o total.'],['☑️','Desmarque o que veio marcado','Proteções, VIPs e assinaturas pré-selecionadas são escolhas da loja, não suas.'],['🤳','Publi é anúncio','Mesmo vindo de quem você admira. Procure #publi, cupom e link na bio.'],['💭','Como você está se sentindo?','Cansaço, tédio e tristeza deixam a compra por impulso mais provável. Compra não resolve sentimento.']];
+ return `<div class="eyebrow" style="margin-top:23px">SEU RAIO-X</div>
+ <h1>${right>=4?'Olho treinado. 👀':right>=2?'Você está pegando o jeito.':'O marketing é bom no que faz.'}</h1>
+ <div class="end-grid">
+ <div class="end-stat"><label>Reconheceu</label><strong>${right}/${qs.length}</strong><span class="small muted">estratégias no quiz</span></div>
+ <div class="end-stat"><label>Viagem</label><strong>${s.tripPaid?'Foi ✅':'Ficou ❌'}</strong><span class="small muted">${s.tripPaid?'reserva de R$ 400 preservada':'faltaram '+money(s.missing)}</span></div>
+ <div class="end-stat"><label>Gasto total</label><strong>${money(s.spent)}</strong><span class="small muted">incluindo parcelas e assinatura</span></div>
+ <div class="end-stat"><label>Estratégias que te pegaram</label><strong>${prof.filter(p=>p.influenced).length}/10</strong><span class="small muted">${prof.reduce((a,p)=>a+p.exposed,0)} estímulos recebidos</span></div>
+ </div>
+ ${top.length?`<div class="end-box"><h3>Onde você ficou mais vulnerável</h3>${top.map(p=>`<div class="insight"><strong>${p.icon} ${esc(p.name)}</strong><p>${esc(p.actions.at(-1)||p.short)}</p></div>`).join('')}</div>`:`<div class="end-box"><h3>Você não comprou nada</h3><p class="small muted">Ótimo para a viagem. Mas repare: as estratégias continuaram aparecendo e se adaptando a cada clique. Na vida real, elas trabalham todos os dias.</p></div>`}
+ <div class="end-box"><h3>Para usar fora do jogo</h3><div class="tips">${tips.map(([i,t,d])=>`<div class="tip"><span>${i}</span><div><strong>${t}</strong><p>${d}</p></div></div>`).join('')}</div></div>
+ <div class="end-box"><h3>Por que isso importa</h3><p class="small muted">Na TIC Kids Online Brasil 2025, 55% dos adolescentes de 11 a 17 anos tiveram contato com publicidade em redes sociais, 84% viram conteúdos que divulgavam produtos sem identificação clara, e 51% das crianças e adolescentes pediram algo depois de ver um anúncio online. Reconhecer as estratégias é um passo para o consumo responsável do ODS 12.</p></div>
+ <button class="secondary algorithm-final-reveal" data-action="algorithm-final" aria-expanded="false" aria-controls="algorithm-final-panel">ⓘ Entender como o algoritmo montou meu feed</button>
+ ${algorithmResults()}
+ <div class="end-buttons"><button class="primary" data-action="restart">Jogar novamente ↗</button><button class="secondary" data-action="sources">Base da pesquisa</button></div>
+ <div id="sources" hidden class="end-box tiny-sources"><strong>Referências do projeto</strong><p>Bandyopadhyay et al. (2021) · Bauman (2008) · De Jans et al. (2020) · Dinh e Lee (2024) · Feng et al. (2024) · Huang et al. (2025) · Iyer et al. (2020) · NIC.br, TIC Kids Online Brasil 2025 (2026) · OCDE (2022), dark commercial patterns · Setyani et al. (2019) · Shamim, Azam e Islam (2024) · Van der Bend et al. (2023). Complementares: Mathur et al. (2019), Dark Patterns at Scale; Prelec e Simester (2001), efeito do cartão de crédito. Entrevista com a psicóloga Ana Carolina Barros Mendonça Cortez Penna.</p><p>Marcas, pessoas e valores são fictícios. O ranking imita princípios gerais conhecidos, sem reproduzir modelos proprietários.</p></div>`;
+}
+function renderEnd(){
+ exitHomeButton.hidden=false;
+ const s=Pressure.settle(state),step=Math.max(0,Math.min(3,state.endStep||0));
+ const body=[endStep0,endStep1,endStep2,endStep3][step](s);
+ root.innerHTML=`<main class="end end-step-${step}"><div class="end-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
+ <div class="end-progress">${['Sábado','Por trás','Quiz','Raio-x'].map((l,i)=>`<span class="${i<=step?'on':''}">${l}</span>`).join('')}</div>
+ ${body}
+ <p class="end-disclaimer">Simulação educativa do Colégio Rio Branco · C4. Nenhuma compra é real, nada sai deste navegador e o jogo não diagnostica ninguém.</p>
+ </div></main>`;
+ window.scrollTo(0,0);root.querySelector('.end')?.scrollTo?.(0,0);
+}
 function render(){if(!state.started){renderHome();return;}if(state.finished){renderEnd();return;}renderGame();}
 
 let lastLikeFlash={photo:null,time:0};
@@ -1362,9 +1950,40 @@ root.addEventListener('click',e=>{
   return;
  }
  if(a==='start'){state.started=true;save();showIntro();}
- else if(a==='skip-intro'||a==='intro-next'||a==='open-next'){clearTimeout(introTimer);renderGame();}
+ else if(a==='skip-intro'||a==='intro-next'||a==='open-next'){clearTimeout(introTimer);state.wake=true;state.wakeList=[{icon:'🎧',text:'Seu fone parou de funcionar hoje no intervalo.'},{icon:'🛍️',text:'Pulso Shop: um presente de boas-vindas espera por você.'}];save();overlay={type:'wake'};renderGame();}
+ else if(a==='open-day'){state.wake=false;save();overlay=null;appendNext();renderGame();}
+ else if(a==='sleep'){sleep();}
  else if(a==='load-more'){if(appendNext())renderGame(true);}
- else if(a==='finish'){stopStory();state.finished=true;save();overlay=null;modal=null;renderEnd();}
+ else if(a==='finish'){finishWeek();}
+ else if(a==='end-next'){state.endStep=Math.min(3,(state.endStep||0)+1);save();renderEnd();}
+ else if(a==='quiz'){const q=el.dataset.q;if(q&&!state.quiz[q]){state.quiz[q]=el.dataset.key;save();const y=window.scrollY;renderEnd();window.scrollTo(0,y);}}
+ else if(a==='inbox'){if(story)stopStory();closeModal();overlay={type:'inbox'};drawOverlay();}
+ else if(a==='chat'){el.closest('.push-banner')?.remove();openChat(el.dataset.thread);}
+ else if(a==='chat-choice'){chooseChat(el.dataset.thread,Number(el.dataset.day),el.dataset.choice);}
+ else if(a==='roleta'){if(story)stopStory();closeModal();overlay={type:'roleta'};drawOverlay();}
+ else if(a==='spin'){spin();}
+ else if(a==='pay'){if(story)stopStory();closeModal();overlay={type:'pay'};drawOverlay();}
+ else if(a==='activate-card'){closeModal();activateCard(overlay?.type==='checkout'?'checkout':'pay');}
+ else if(a==='activate-card-checkout'){activateCard('checkout');}
+ else if(a==='decline-card'){modal={type:'decline-card'};drawModal();expose('dark_patterns','Para recusar o Pulso Pay: “Não, prefiro pagar tudo à vista” e depois “Não quero facilidades”.');}
+ else if(a==='card-no'){closeModal();closeOverlay();toast('Tudo bem. A oferta fica no seu perfil.');}
+ else if(a==='live'){openLive();}
+ else if(a==='live-buy'){state.context.tenis='live';save();openCheckout(['tenis'],'live');}
+ else if(a==='leave-live'){const c=activeCoupons().find(c=>c.code==='LIVIA15');if(c&&!bought('tenis')){modal={type:'leave-live'};drawModal();expose('dark_patterns','Ao sair da live: “Sair e perder meu desconto”.');}else{clearInterval(liveTimer);closeOverlay();}}
+ else if(a==='live-exit'){closeModal();clearInterval(liveTimer);closeOverlay();}
+ else if(a==='sale'){if(story)stopStory();closeModal();overlay={type:'shop'};drawOverlay();}
+ else if(a==='trial'){state.context.plano=state.context.plano||'trial';openCheckout(['plano'],overlay?.from||'feed',true);}
+ else if(a==='variant'){state.variant.fone=el.dataset.variant;save();drawOverlay();}
+ else if(a==='add-to-order'){if(overlay?.type==='checkout'&&products[id]&&!overlay.items.includes(id)){overlay.items.push(id);state.context[id]=state.context[id]||'shop';influenced(['preco','dark_patterns'],`Adicionou ${productName(id)} ao pedido para “liberar” frete grátis ou cupom.`);drawOverlay();}}
+ else if(a==='exit-accept'){const v=modal;closeModal();if(v?.id){addCoupon({code:'VOLTA10-'+v.id.toUpperCase(),label:'10% OFF extra',kind:'pct',amount:10,min:0,only:[v.id],expiresDay:state.day,until:v.until,source:'exit'});state.context[v.id]='exit';influenced(['dark_patterns'],`Ia sair do ${productName(v.id)}, mas aceitou o “10% OFF só agora”.`);drawOverlay();toast('Cupom de 10% aplicado 🎁');}}
+ else if(a==='exit-decline'){closeModal();closeOverlay();toast('Você voltou ao feed.');}
+ else if(a==='subs'){overlay={type:'subs'};drawOverlay();}
+ else if(a==='cancel-sub'){cancelSubStep();}
+ else if(a==='keep-sub'){if(state.flags.cancelStep)influenced(['dark_patterns'],'Desistiu de cancelar a assinatura depois do “Tem certeza?”.');state.flags.cancelStep=0;save();drawOverlay();}
+ else if(a==='sub-discount'){const sub=state.subscriptions.find(x=>x.active);if(sub){sub.monthly=Pressure.round(sub.monthly/2);sub.name+=' (50% OFF)';}state.flags.cancelStep=0;influenced(['dark_patterns'],'Aceitou a oferta de retenção em vez de cancelar a assinatura.');save();drawOverlay();}
+ else if(a==='sub-help'){toast('Opção indisponível no momento.');}
+ else if(a==='vibe-info'){const m=Pressure.vibeMood(state.vibe.value);toast(`Vibe: ${m.label} ${m.emoji} · Um mimo sempre levanta o astral ✨`);expose('emocao','O app sugeria que “um mimo sempre levanta o astral”.');}
+ else if(a==='coins-info'){toast(`Você tem ${money(state.coins)} em moedas. Use em compras acima de R$ 50 · expiram sexta 23:59.`);}
  else if(a==='story'){startStory(Number(el.dataset.index));}
  else if(a==='story-next'){advanceStory(1);}
  else if(a==='story-prev'){advanceStory(-1);}
@@ -1386,16 +2005,19 @@ root.addEventListener('click',e=>{
   reflectLike(el.closest(".post"));
  }
  else if(a==='comments')openComments(post)
- else if(a==='product')openProduct(id)
+ else if(a==='product'){el.closest('.push-banner')?.remove();openProduct(id,el.dataset.source);}
  else if(a==='shop'||a==='search'){openShop();}
  else if(a==='open-photo'){scheduleShopFromPhoto(el);}
  else if(a==='shop-back'){backFromShop();}
- else if(a==='checkout'){checkout([id],overlay?.from||'feed');}
- else if(a==='checkout-cart'){checkout(state.cart.slice(),'cart');}
- else if(a==='story-product'){stopStory();openProduct(id);}
- else if(a==='coach'){state.helpRequests++;save();overlay={type:'coach',id:id||undefined};modal=null;drawOverlay();}
+ else if(a==='checkout'){openCheckout([id],overlay?.from||'feed');}
+ else if(a==='checkout-cart'){openCheckout(state.cart.slice(),'cart');}
+ else if(a==='story-product'){stopStory();openProduct(id,'story');}
  else if(a==='goal'){overlay={type:'goal'};modal=null;drawOverlay();}
- else if(a==='pass'){trackModel('skip',id,id);pushEvent('skip',`Decidiu esperar antes de comprar ${products[id]?.name||'o produto'}`);closeOverlay();renderGame(true);toast('Você voltou ao feed sem comprar.');}
+ else if(a==='pass'){
+  trackModel('skip',id,id);pushEvent('skip',`Saiu da loja de ${productName(id)} sem comprar`);
+  if(!state.exitOffers.includes(id)&&!bought(id)&&id!=='plano'){state.exitOffers.push(id);save();modal={type:'exit',id,until:Date.now()+300000};drawModal();expose('dark_patterns',`Ao tentar sair do ${productName(id)}: “Não, prefiro pagar mais caro”.`);expose('urgencia','Oferta de saída: “10% OFF só agora, expira em 05:00”.');}
+  else{closeOverlay();toast('Você voltou ao feed.');}
+ }
  else if(a==='less'){
   const topic=el.dataset.topic,target=post;
   if(Recommender.topics.includes(topic)&&target){
@@ -1411,7 +2033,7 @@ root.addEventListener('click',e=>{
  else if(a==='cart'){overlay={type:'cart'};drawOverlay();}
  else if(a==='profile'){overlay={type:'profile'};drawOverlay();}
  else if(a==='notifications'){overlay={type:'notifications'};drawOverlay();}
- else if(a==='share')toast('Compartilhamento indisponível nesta demonstração.')
+ else if(a==='share')toast('Link copiado ✓')
  else if(a==='feedtop')document.querySelector('#feed-scroll')?.scrollTo({top:0,behavior:'smooth'});
  else if(a==='scroll-cue')document.querySelector('#feed-scroll')?.scrollBy({top:340,behavior:'smooth'});
  else if(a==='add-cart')addToCart(id)
@@ -1440,7 +2062,7 @@ root.addEventListener('dblclick',e=>{
 root.addEventListener('pointerdown',handleFeedTouchStart);
 root.addEventListener('pointerup',handleFeedTouchEnd);
 root.addEventListener('pointercancel',handleFeedTouchCancel);
-root.addEventListener('change',e=>{if(e.target?.id==='vip-extra'){state.extraChecked=e.target.checked;save();if(overlay?.type==='checkout'||overlay?.type==='product')drawOverlay();}if(e.target?.id==='privacy-switch'){state.personalized=e.target.checked;save();renderGame(true);toast(state.personalized?'Recomendações personalizadas ativadas.':'Ordem cronológica e coleta de sinais desativadas.');}});
+root.addEventListener('change',e=>{const tg=e.target;if(tg?.dataset?.protect){state.protection[tg.dataset.protect]=tg.checked;save();drawOverlay();return;}if(tg?.id==='coins-toggle'){state.coinsOn=tg.checked;save();drawOverlay();return;}if(tg?.name==='pay'){state.payMethod=tg.value;save();drawOverlay();return;}if(e.target?.id==='vip-extra'){state.extraChecked=e.target.checked;save();if(overlay?.type==='checkout'||overlay?.type==='product')drawOverlay();}if(e.target?.id==='privacy-switch'){state.personalized=e.target.checked;save();renderGame(true);toast(state.personalized?'Recomendações personalizadas ativadas.':'Ordem cronológica e coleta de sinais desativadas.');}});
 window.addEventListener('keydown',e=>{
  if(!exitConfirm.hidden){
   if(e.key==='Escape'){e.preventDefault();closeExitConfirm();}
