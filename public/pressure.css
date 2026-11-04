@@ -252,13 +252,13 @@
 @media(max-width:570px){.scene-box h2{font-size:30px}.scene-box p{font-size:15px;margin-bottom:18px}.cinematic{place-items:start center;padding-top:40px}}
 
 
-/* Produto por inteiro em todos os quadrados (loja, carrinho, checkout, live
-   e recomendações). Não altera as fotografias de posts e stories. */
+/* Fotos de produto preenchem os cards ate as bordas: sem margem interna,
+   faixas vazias ou fundo desfocado. Posts e stories preservam seu enquadramento. */
 .art.has-photo.is-product-photo {
   display: block;
   position: relative;
   isolation: isolate;
-  background: #f5f2f5;
+  background: transparent;
   overflow: hidden;
 }
 .art.has-photo.is-product-photo::before {
@@ -275,8 +275,9 @@
   min-height: 0;
   max-width: 100%;
   max-height: 100%;
-  padding: 4px;
-  object-fit: contain;
+  padding: 0;
+  border: 0;
+  object-fit: cover;
   object-position: center;
   background: transparent;
 }
