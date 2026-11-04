@@ -1,10 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
+import { mockC4Service } from "./c4-mock";
 
-const KEY = "nofeed-simulator-v4";
+const KEY = "nofeed-simulator-v4:user:player-e2e";
 test.use({ reducedMotion: "reduce" });
 
 test.beforeEach(async ({ page }) => {
+  await mockC4Service(page);
   await page.addInitScript(() => {
     if (!sessionStorage.getItem("week-e2e-initialized")) {
       localStorage.clear();
@@ -15,6 +17,11 @@ test.beforeEach(async ({ page }) => {
 
 async function enter(page: Page) {
   await page.goto("/");
+  await expect(page.locator(".account-screen")).toBeVisible();
+  await page.locator('input[name="username"]').fill("aluno_teste");
+  await page.locator('input[name="password"]').fill("senha-teste-12345");
+  await page.locator('#c4-account-form button[value="signup"]').click();
+  await expect(page.locator(".home")).toBeVisible();
   await page.locator('[data-action="start"]').click();
   await expect(page.locator(".cinematic")).toContainText("guardar R$ 400");
   await expect(page.locator(".cinematic")).toContainText("Nenhum pagamento é real");
@@ -244,7 +251,7 @@ test("as fotos dos produtos preenchem os quadrados sem margens internas ou faixa
   await expect(hero).toHaveCSS("padding", "0px");
 });
 
-test("exporta JSON da semana pelo perfil sem enviar dados automaticamente", async ({ page }) => {
+test("baixa cópia JSON pelo perfil, além do envio automático final", async ({ page }) => {
   await enter(page);
   await page.locator('.phone-footer [data-action="profile"]').click();
   const downloadPromise = page.waitForEvent("download");
