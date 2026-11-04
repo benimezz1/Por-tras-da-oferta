@@ -193,7 +193,7 @@ test("comprar no Pix além da folga faz perder a viagem", async ({ page }) => {
 });
 
 
-test("as fotos dos produtos cabem inteiras nos quadrados da loja e da página de detalhe", async ({ page }) => {
+test("as fotos dos produtos preenchem os quadrados sem margens internas ou faixas vazias", async ({ page }) => {
   await enter(page);
   await page.locator('[data-action="shop"]').first().click();
   for (const id of ["fone", "tenis", "plano", "mochila", "powerbank", "garrafa", "luminaria", "ingresso"]) {
@@ -207,13 +207,15 @@ test("as fotos dos produtos cabem inteiras nos quadrados da loja e da página de
       const bounds = image.getBoundingClientRect();
       const square = tile.getBoundingClientRect();
       return {
-        fitsWidth: bounds.width <= square.width + 1,
-        fitsHeight: bounds.height <= square.height + 1,
+        fillsWidth: Math.abs(bounds.width - square.width) <= 1,
+        fillsHeight: Math.abs(bounds.height - square.height) <= 1,
+        loaded: (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0,
         backdrop: getComputedStyle(tile, "::before").content,
       };
     });
-    expect(layout.fitsWidth).toBe(true);
-    expect(layout.fitsHeight).toBe(true);
+    expect(layout.fillsWidth).toBe(true);
+    expect(layout.fillsHeight).toBe(true);
+    expect(layout.loaded).toBe(true);
     expect(layout.backdrop).toBe("none");
   }
 
