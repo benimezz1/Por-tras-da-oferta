@@ -1,7 +1,9 @@
 
 import { test, expect } from "@playwright/test";
+import { mockC4Service } from "./c4-mock";
 
 test.beforeEach(async ({ page }) => {
+  await mockC4Service(page);
   await page.addInitScript(() => {
     if (!sessionStorage.getItem("nofeed-e2e-initialized")) {
       localStorage.removeItem("nofeed-simulator-v3");
@@ -14,6 +16,10 @@ test.beforeEach(async ({ page }) => {
 
 async function enter(page) {
   await page.goto("/");
+  await expect(page.locator(".account-screen")).toBeVisible();
+  await page.locator('input[name="username"]').fill("aluno_teste");
+  await page.locator('input[name="password"]').fill("senha-teste-12345");
+  await page.locator('#c4-account-form button[value="signup"]').click();
   await expect(page.locator(".home h1")).toContainText("Seu feed.");
   await page.locator('[data-action="start"]').click();
   await expect(page.locator(".cinematic")).toContainText("guardar R$ 400");
@@ -239,7 +245,7 @@ test("foto do feed: clique simples não abre comentários e duplo clique curte c
   expect(await card.locator(".likecount").textContent()).not.toEqual(initial);
   await photo.dblclick();
   await expect(heart).toHaveAttribute("aria-pressed","true");
-  expect(await page.evaluate((id)=>JSON.parse(localStorage.getItem("nofeed-simulator-v4")).liked.filter(x=>x===id).length,id)).toBe(1);
+  expect(await page.evaluate((id)=>JSON.parse(localStorage.getItem("nofeed-simulator-v4:user:player-e2e")).liked.filter(x=>x===id).length,id)).toBe(1);
   await heart.click();
   await expect(heart).toHaveAttribute("aria-pressed","false");
   await expect(icon).not.toHaveClass(/heart-filled/);
@@ -259,7 +265,7 @@ test("um clique na foto do anúncio abre o site e dois cliques curtem sem sair",
   await expect(heart).toHaveAttribute("aria-pressed","true");
   await expect(heart.locator("svg")).toHaveCSS("fill","rgb(236, 71, 126)");
   await expect(page.locator(".layer")).toHaveCount(0);
-  expect(await page.evaluate(id=>JSON.parse(localStorage.getItem("nofeed-simulator-v4")).likedAds.includes(id),adId)).toBe(true);
+  expect(await page.evaluate(id=>JSON.parse(localStorage.getItem("nofeed-simulator-v4:user:player-e2e")).likedAds.includes(id),adId)).toBe(true);
   await page.reload();
   const again=page.locator('.ad-post[data-rec-id="'+adId+'"]');
   await expect(again.locator('[data-action="like-ad"]')).toHaveAttribute("aria-pressed","true");
