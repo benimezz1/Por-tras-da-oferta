@@ -56,3 +56,40 @@ Adaptador testado com transporte simulado para cookie, erro 401 e fallback HTML.
 ## Vínculo por conversa
 
 O fluxo novo autentica o participante no site e devolve um código de uso único para confirmar o vínculo no chat. Senha permanece somente no site; a credencial temporária retornada não deve aparecer no chat, na interface do jogo, em URLs ou no armazenamento do frontend. O jogo não tenta criar esse vínculo por conta própria. Ao incorporar os arquivos estáticos ao Worker, as páginas `/vincular` e `/vincular/*` precisam continuar no backend; um fallback genérico para `index.html` quebraria esse fluxo.
+
+
+## Exportação JSON da campanha atual (Semana até a viagem)
+
+O jogo principal (`/`) exporta o **percurso C4 de cinco dias** como arquivo JSON
+versionado (`formato: "por-tras-da-oferta/c4-semana"`, `versao: 1`).
+Use o botão **Exportar JSON da semana** no Perfil (inclusive durante a partida)
+ou no **Raio-x final**. O arquivo inclui o estado local da partida: conteúdos
+e interações vistos, algoritmo e personalização, sinais de pressão e estratégias,
+compras fictícias, faturas e assinaturas, vibe, conversas, notificações, quiz,
+meta financeira e indicadores de fechamento. A campanha clássica de seis capítulos
+continua com seu exportador legado, mas **não é compatível** com o novo importador.
+
+**Como enviar ao MCP:** o download não envia nada automaticamente. O participante
+deve abrir o portal do MCP, criar/entrar em sua conta com apelido fictício e código
+de inscrição da apresentação, selecionar o JSON e clicar em **Importar percurso**.
+O portal usa `POST /api/c4/import`, com cookie de sessão e validação do formato;
+a importação mais recente substitui a anterior da mesma conta, e pode ser apagada
+em **Excluir meu percurso importado**. O MCP oferece `consultar_progresso` para
+o resumo C4 e `consultar_percurso_c4` para seções detalhadas; a autenticação
+via OAuth ou vínculo por conversa continua obrigatória.
+
+A nova API e o frontend pertencem a **repositórios separados**. Publicar/mesclar
+somente um deles não completa a integração; o servidor MCP precisa ser
+reimplantado/reiniciado em seu ambiente próprio. Dados fictícios enviados pelo
+jogador não constituem prova de autoria ou histórico real. Nenhuma compra é real,
+não se faz diagnóstico psicológico e não se deve exportar dados pessoais de menores.
+
+### Contrato de transporte do arquivo C4
+
+O frontend atual gera `por-tras-da-oferta/c4-semana` com `versao: 1`,
+`sessao`, `estado` integral e `resumo`. O MCP valida o arquivo e deriva seus
+próprios indicadores do `estado`; por segurança, o campo `resumo` do navegador
+é somente informativo. A conta é definida pela sessão autenticada do MCP, nunca
+por um ID declarado no JSON. CORS permanece restrito ao próprio servidor MCP;
+não há requisições entre origens partindo do jogo. Cada participante escolhe
+manualmente seu arquivo no portal e pode pedir exclusão da importação.
