@@ -191,3 +191,32 @@ test("comprar no Pix além da folga faz perder a viagem", async ({ page }) => {
   await page.locator('[data-action="end-next"]').click();
   await expect(page.locator(".strat.is-fell").first()).toBeVisible();
 });
+
+
+test("as fotos dos produtos cabem inteiras nos quadrados da loja e da página de detalhe", async ({ page }) => {
+  await enter(page);
+  await page.locator('[data-action="shop"]').first().click();
+  for (const id of ["fone", "tenis", "plano", "mochila", "powerbank", "garrafa", "luminaria", "ingresso"]) {
+    const photo = page.locator(`.shop-product[data-product="${id}"] .art.has-photo.is-product-photo .art-photo`);
+    await expect(photo).toHaveCount(1);
+    await expect(photo).toHaveCSS("object-fit", "contain");
+    await expect(photo).toHaveCSS("position", "absolute");
+    const layout = await photo.evaluate((image) => {
+      const tile = image.parentElement!;
+      const bounds = image.getBoundingClientRect();
+      const square = tile.getBoundingClientRect();
+      return {
+        fitsWidth: bounds.width <= square.width + 1,
+        fitsHeight: bounds.height <= square.height + 1,
+        backdrop: getComputedStyle(tile, "::before").content,
+      };
+    });
+    expect(layout.fitsWidth).toBe(true);
+    expect(layout.fitsHeight).toBe(true);
+    expect(layout.backdrop).toBe("none");
+  }
+
+  await page.locator('.shop-product[data-product="luminaria"]').click();
+  const hero = page.locator(".shop-hero .art.has-photo.is-product-photo .art-photo");
+  await expect(hero).toHaveCSS("object-fit", "contain");
+});
