@@ -2073,6 +2073,24 @@ root.addEventListener("input",e=>{
  }
 });
 
+root.addEventListener('submit',async e=>{
+ if(e.target.id!=='c4-account-form')return;
+ e.preventDefault();
+ const form=e.target,submitter=e.submitter,modo=submitter?.value==='login'?'login':'signup';
+ const username=String(new FormData(form).get('username')||'').trim();
+ const password=String(new FormData(form).get('password')||'');
+ const feedback=document.getElementById('c4-account-status');
+ if(!form.checkValidity())return;
+ for(const button of form.querySelectorAll('button'))button.disabled=true;
+ if(feedback)feedback.textContent=modo==='signup'?'Criando sua conta…':'Entrando…';
+ try{
+  const player=await ContaC4.login(username,password,modo);
+  installPlayer(player);
+ }catch(error){
+  if(feedback)feedback.textContent=error?.message||'Não foi possível entrar.';
+  for(const button of form.querySelectorAll('button'))button.disabled=false;
+ }
+});
 root.addEventListener('click',e=>{
  const el=e.target.closest('[data-action]');
  if(!el){
@@ -2085,7 +2103,7 @@ root.addEventListener('click',e=>{
   storyIgnoreClick=false;
   return;
  }
- if(a==='start'){state.started=true;state.startedAt ||= new Date().toISOString();save();showIntro();}
+ if(a==='start'){if(!identity){renderAccountGate('Entre na sua conta para iniciar.');return;}state.started=true;state.startedAt ||= new Date().toISOString();save();showIntro();}
  else if(a==='skip-intro'||a==='intro-next'||a==='open-next'){clearTimeout(introTimer);state.wake=true;state.wakeList=[{icon:'🎧',text:'Seu fone parou de funcionar hoje no intervalo.'},{icon:'🛍️',text:'Pulso Shop: um presente de boas-vindas espera por você.'}];save();overlay={type:'wake'};renderGame();}
  else if(a==='open-day'){state.wake=false;save();overlay=null;appendNext();renderGame();}
  else if(a==='sleep'){sleep();}
@@ -2097,9 +2115,11 @@ root.addEventListener('click',e=>{
    save();
    const data=ExportC4.build(state,{pressure:Pressure,recommender:Recommender});
    ExportC4.download(data);
-   if(info)info.textContent='Arquivo JSON baixado. Para enviar, abra a página do MCP e importe o arquivo com sua conta.';
+   if(info)info.textContent='Cópia JSON baixada. O envio ao MCP acontece automaticamente ao terminar o quiz.';
   }catch(error){if(info)info.textContent=error.message||'Não foi possível exportar.';}
  }
+ else if(a==='retry-c4'){void sendCompletedC4();}
+ else if(a==='switch-player'){void switchPlayer();}
  else if(a==='end-next'){state.endStep=Math.min(3,(state.endStep||0)+1);save();renderEnd();}
  else if(a==='quiz'){answerQuizOption(el);}
  else if(a==='inbox'){if(story)stopStory();closeModal();overlay={type:'inbox'};drawOverlay();}
@@ -2193,7 +2213,11 @@ root.addEventListener('click',e=>{
    if(!panel.hidden)panel.scrollIntoView({block:'start',behavior:'smooth'});
   }
  }
- else if(a==='restart')restart()
+ else if(a==='restart'){
+  if(state.finished&&state.endStep===3&&state.c4SyncedRunId!==state.runId&&
+    !confirm('Seu percurso ainda não foi recebido pelo MCP. Reiniciar agora pode impedir o envio. Quer continuar?'))return;
+  restart();
+ }
  else if(a==='sources'){const node=document.querySelector('#sources');if(node){node.hidden=!node.hidden;if(!node.hidden)node.scrollIntoView({block:'nearest',behavior:'smooth'});}}
 });
 
@@ -2233,7 +2257,13 @@ document.addEventListener('visibilitychange',()=>{
  if(document.hidden)pauseStory('hidden');
  else resumeStory('hidden');
 });
-render();
+renderAccountGate();
+if(ContaC4.account()){
+ ContaC4.validate().then(user=>{
+  if(!user){renderAccountGate('Sua sessão expirou. Entre novamente para continuar.');return;}
+  installPlayer(user);
+ }).catch(error=>renderAccountGate(error?.message||'Entre novamente para continuar.'));
+}
 })();
 </script>
 </body>
