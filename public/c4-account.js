@@ -6,7 +6,8 @@
  const rawBase=document.querySelector('meta[name="c4-mcp-origin"]')?.getAttribute('content')||"";
  // Ajuste VITE_C4_MCP_ORIGIN no deploy quando o MCP usa outro dominio.
  const fallback="https://mcp.portrasdaoferta.workers.dev";
- const base=/^https:\/\/[^/]+\/?$/.test(rawBase)?rawBase.replace(/\/$/,""):fallback;
+ const allowed=/^https:\/\/[^/]+\/?$/.test(rawBase)||/^http:\/\/(?:127\.0\.0\.1|localhost)(?::\d+)?\/?$/.test(rawBase);
+ const base=allowed?rawBase.replace(/\/$/,""):fallback;
  const endpoint=path=>base+"/api/c4/client/"+path;
  let active=null;
  function readSaved(){
@@ -38,9 +39,13 @@
   const options={method:data===undefined?"GET":"POST",headers,credentials:"omit",
     mode:"cors",cache:"no-store"};
   if(data!==undefined)options.body=JSON.stringify(data);
+  const controller=new AbortController();
+  options.signal=controller.signal;
+  const timer=setTimeout(()=>controller.abort(),12000);
   let response;
   try{response=await fetch(endpoint(path),options);}
   catch{throw Error("Não foi possível conectar ao MCP. Confira sua internet e a configuração do servidor.");}
+  finally{clearTimeout(timer);}
   let result;
   try{
    if(!response.headers.get("content-type")?.includes("application/json"))
@@ -71,7 +76,14 @@
  }
  async function complete(payload){return call("complete",payload,true);}
  async function logout(){
-  try{if(active?.token)await call("logout",{},true);}finally{clear();}
+  const credential=active?.token;
+  clear();
+  if(credential){
+   try{
+    await fetch(endpoint("logout"),{method:"POST",mode:"cors",credentials:"omit",keepalive:true,
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+credential},body:"{}"});
+   }catch{}
+  }
  }
  root.PorTrasContaC4=Object.freeze({login,validate,complete,logout,account,clear,base});
 })(typeof window!=="undefined"?window:globalThis);
