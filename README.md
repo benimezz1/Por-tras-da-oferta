@@ -5,38 +5,47 @@ Jogo educativo do Ciclo 4, Colégio Rio Branco. A **experiência principal** é 
 - **Fotografias da experiência:** 36 fotografias distintas de posts, stories, produtos e perfis, selecionadas do Pexels e importadas em JPEG otimizado para `public/assets/social/unique/`. Os 20 WebPs anteriores continuam disponíveis como reserva. Veja `docs/IMAGENS-JOGO.md`.
 - **Jogo atual:** abra a raiz do site (`/`). Cinco dias, oito lojas, conversas, live, roleta, Pulso Pay e um final em quatro etapas (extrato, por trás da oferta, quiz e raio-x).
 - **Versão anterior:** abra `/classico.html` para acessar a campanha React original de seis capítulos. O código e seus testes foram preservados.
-- **Privacidade:** marcas, pessoas, preços e compras são fictícios. Nenhum pagamento é realizado. As escolhas ficam no armazenamento local deste navegador (`nofeed-simulator-v4`); apenas uma exportação JSON seguida de importação voluntária no portal do MCP permite compartilhá-las. O aviso aparece na introdução e no final; durante a partida ele foi retirado de propósito, para a experiência parecer um app real.
+- **Privacidade:** marcas, pessoas, preços e compras são fictícios. Nenhum pagamento é realizado. Antes de jogar, a tela de login informa que o registro fictício será enviado automaticamente ao MCP quando o quiz terminar. A senha nunca integra o JSON; o jogador pode solicitar a exclusão do percurso. O conteúdo dentro do feed segue imersivo.
 
 O novo protótipo está em `index.html`; o modo clássico segue em `src/` e `classico.html`. O Vite gera as duas entradas no mesmo build. O backend/MCP é mantido no projeto separado [Por-tras-da-oferta-MCP](https://github.com/benimezz1/Por-tras-da-oferta-MCP).
 
-## Exportação do percurso atual para o MCP
+## Identificação e sincronização automática com o MCP
 
+A campanha atual (`/`) **exige login antes de começar**. O jogador informa
+apenas **apelido de 3–24 caracteres e senha de 10–128 caracteres**. Não precisa
+ser o nome real. A opção **Criar conta e continuar** cria a primeira conta;
+**Já tenho conta** recupera a conta existente. O frontend usa uma sessão opaca
+de 8 horas guardada só na aba (`sessionStorage`). O progresso é salvo em
+`localStorage` com chave individual do usuário. Na bancada, **Trocar jogador**
+encerra a sessão sem mostrar a partida de outro usuário.
 
-## Exportação JSON da campanha atual (Semana até a viagem)
+Ao completar os cinco dias, responder as cinco questões do quiz e abrir o
+**Raio-x**, o jogo cria automaticamente o JSON
+`por-tras-da-oferta/c4-semana` (versão 1) e o envia via
+`POST /api/c4/client/complete`, protegido por token, **para o mesmo usuário
+autenticado do MCP**. O servidor valida a campanha, associa o documento à conta
+e recalcula os indicadores; `consultar_progresso` e
+`consultar_percurso_c4` passam a consultar esse percurso. A interface mostra
+**recebido pelo MCP** apenas após confirmação real da API. Sem conexão, o
+progresso continua salvo e o jogador pode tentar novamente (ou entrar de novo
+se a sessão expirou). O download JSON continua opcional como cópia de segurança,
+**não é mais o fluxo principal**.
 
-O jogo principal (`/`) exporta o **percurso C4 de cinco dias** como arquivo JSON
-versionado (`formato: "por-tras-da-oferta/c4-semana"`, `versao: 1`).
-Use o botão **Exportar JSON da semana** no Perfil (inclusive durante a partida)
-ou no **Raio-x final**. O arquivo inclui o estado local da partida: conteúdos
-e interações vistos, algoritmo e personalização, sinais de pressão e estratégias,
-compras fictícias, faturas e assinaturas, vibe, conversas, notificações, quiz,
-meta financeira e indicadores de fechamento. A campanha clássica de seis capítulos
-continua com seu exportador legado, mas **não é compatível** com o novo importador.
+**Privacidade e transparência:** a tela inicial informa sobre o envio automático
+antes da partida. São escolhas fictícias, não compras reais, e não se pede nome
+completo, e-mail ou dados pessoais. A senha não integra o JSON. O usuário pode
+excluir a importação no portal MCP. Para ler o registro no ChatGPT, ainda é
+necessário **vincular a conta** via login OAuth ou pelo código temporário no
+fluxo de conversa; o assistente não adivinha a identidade de uma conversa.
 
-**Como enviar ao MCP:** o download não envia nada automaticamente. O participante
-deve abrir o portal do MCP, criar/entrar em sua conta com apelido fictício e código
-de inscrição da apresentação, selecionar o JSON e clicar em **Importar percurso**.
-O portal usa `POST /api/c4/import`, com cookie de sessão e validação do formato;
-a importação mais recente substitui a anterior da mesma conta, e pode ser apagada
-em **Excluir meu percurso importado**. O MCP oferece `consultar_progresso` para
-o resumo C4 e `consultar_percurso_c4` para seções detalhadas; a autenticação
-via OAuth ou vínculo por conversa continua obrigatória.
-
-A nova API e o frontend pertencem a **repositórios separados**. Publicar/mesclar
-somente um deles não completa a integração; o servidor MCP precisa ser
-reimplantado/reiniciado em seu ambiente próprio. Dados fictícios enviados pelo
-jogador não constituem prova de autoria ou histórico real. Nenhuma compra é real,
-não se faz diagnóstico psicológico e não se deve exportar dados pessoais de menores.
+**Configuração de publicação:** compile o frontend com
+`VITE_C4_MCP_ORIGIN=https://DOMINIO_REAL_DO_MCP` (somente origem, sem `/mcp`)
+e configure o backend com `C4_GAME_ORIGIN=https://jogo.portrasdaoferta.workers.dev`.
+Se a variável de frontend não for fornecida, o cliente tentará o endereço
+`https://mcp.portrasdaoferta.workers.dev` como fallback de demonstração,
+que **precisa ser conferido** com o domínio de fato publicado.
+O MCP e o jogo são projetos/deploys separados: as duas versões precisam
+estar atualizadas. [Contrato e endpoints](docs/INTEGRACAO-MCP.md).
 
 ## Executar
 
@@ -98,15 +107,25 @@ A CI executa testes, build e Playwright em Chromium com viewports desktop e iPho
 - `src/services/api.ts`: adaptador HTTP dos endpoints realmente existentes.
 - `tools/mobile-preview.html`: harness de QA com iframe de 390 × 844; não entra no build de produção.
 
-## Contas e MCP
+## Contas e publicação
 
-O padrão é `VITE_BACKEND_ENABLED=false`. Para usar cadastro/login reais, compile com essa variável `true` **somente ao servir a aplicação na mesma origem do backend revisado**. Usa cookie HttpOnly; senhas e tokens não são gravados pelo frontend. Ao restaurar um percurso de conta, `/api/me` deve confirmar a mesma identidade antes de exibir os dados.
+No **jogo atual**, a autenticação C4 usa `public/c4-account.js`,
+`public/c4-export.js`, `index.html` e os endpoints novos do
+repositório MCP. As contas e os dados da campanha pertencem ao MCP; no jogo
+só se guarda o token temporário da aba e o estado fictício por usuário.
+O contrato `/api/game/choice` do modo antigo não é usado.
 
-A autenticação é compatível com o contrato inspecionado. A nova campanha **ainda não pode ser salva no servidor nem consultada pelo MCP**. Seus cenários não são enviados a `/api/game/choice`, cujo modelo suporta somente quatro escolhas simples. [Contrato observado e API C4 proposta](docs/INTEGRACAO-MCP.md).
+O **modo clássico** (`/classico.html`) preserva o adaptador de login
+`VITE_BACKEND_ENABLED` e seu histórico, independente do fluxo novo.
 
 ## Publicação
 
-O build gera `dist/`. Uma configuração isolada do Cloudflare Workers publica apenas a **demonstração sem cadastro** em `jogo.portrasdaoferta.workers.dev`; não altera o Worker `mcp`, AWS ou Tunnel. [Guia da demonstração](docs/DEMO-CLOUDFLARE.md) e [integração posterior](docs/PUBLICACAO.md).
+O Vite gera `dist/` para o Worker estático do jogo. O endereço do MCP
+precisa ser configurado no build com `VITE_C4_MCP_ORIGIN`; o MCP deve
+permitir somente a origem do jogo em `C4_GAME_ORIGIN`. É preciso
+reimplantar o backend separadamente e verificar o deploy em ambos os
+endereços. [Publicação](docs/PUBLICACAO.md) e
+[guia Cloudflare](docs/DEMO-CLOUDFLARE.md).
 
 ## Referência e limites
 
