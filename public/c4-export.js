@@ -69,7 +69,9 @@
     return payload;
   }
   function download(payload, doc = document) {
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const pretty = JSON.stringify(payload, null, 2);
+    const raw = new TextEncoder().encode(pretty).length <= 1024 * 1024 ? pretty : JSON.stringify(payload);
+    const blob = new Blob([raw], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = doc.createElement("a");
     link.href = url;
