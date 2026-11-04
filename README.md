@@ -1,11 +1,11 @@
 # Por Trás da Oferta
 
-Jogo educativo do Ciclo 4, Colégio Rio Branco. A **experiência principal** agora é uma simulação imersiva de rede social, com feed, stories, posts de amigos e anúncios adaptados às escolhas do jogador. O jogador começa com R$ 620 fictícios e tenta preservar R$ 400 para uma viagem escolar.
+Jogo educativo do Ciclo 4, Colégio Rio Branco. A **experiência principal** é a **semana até a viagem**: o jogador tem R$ 620 fictícios e precisa chegar ao sábado com R$ 400 para pagar a viagem da turma. Entre segunda e sexta, usa o **pulso.**, uma rede social com loja integrada que aplica, de forma imersiva, as estratégias psicológicas estudadas no relatório C3: cronômetros que reiniciam, estoque que nunca acaba, live de influenciadora, roleta de cupons, cartão "compre agora, pague depois", taxas tardias, opções pré-marcadas, grupos de amigos com FOMO e anúncios para quando a "vibe" está baixa. No sábado chegam a fatura, a viagem (ou não) e a revelação de cada estratégia, com quiz de reconhecimento. Design completo: [docs/SEMANA-ATE-A-VIAGEM.md](docs/SEMANA-ATE-A-VIAGEM.md).
 
 - **Fotografias da experiência:** 36 fotografias distintas de posts, stories, produtos e perfis, selecionadas do Pexels e importadas em JPEG otimizado para `public/assets/social/unique/`. Os 20 WebPs anteriores continuam disponíveis como reserva. Veja `docs/IMAGENS-JOGO.md`.
-- **Jogo atual:** abra a raiz do site (`/`). São quatro fases conectadas: fone de ouvido, tênis, assinatura musical e mochila. Cada fase apresenta uma situação, uma rede social, um anúncio e uma decisão (comprar, salvar no carrinho ou não comprar).
+- **Jogo atual:** abra a raiz do site (`/`). Cinco dias, oito lojas, conversas, live, roleta, Pulso Pay e um final em quatro etapas (extrato, por trás da oferta, quiz e raio-x).
 - **Versão anterior:** abra `/classico.html` para acessar a campanha React original de seis capítulos. O código e seus testes foram preservados.
-- **Privacidade:** marcas, pessoas, preços e compras são fictícios. Nenhum pagamento é realizado. Na nova versão, as escolhas ficam no armazenamento local deste navegador; a demonstração não as envia ao MCP.
+- **Privacidade:** marcas, pessoas, preços e compras são fictícios. Nenhum pagamento é realizado. As escolhas ficam no armazenamento local deste navegador (`nofeed-simulator-v4`); a demonstração não as envia ao MCP. O aviso aparece na introdução e no final; durante a partida ele foi retirado de propósito, para a experiência parecer um app real.
 
 O novo protótipo está em `index.html`; o modo clássico segue em `src/` e `classico.html`. O Vite gera as duas entradas no mesmo build. O backend/MCP é mantido no projeto separado [Por-tras-da-oferta-MCP](https://github.com/benimezz1/Por-tras-da-oferta-MCP).
 
@@ -51,7 +51,11 @@ A CI executa testes, build e Playwright em Chromium com viewports desktop e iPho
 
 ## Estrutura
 
-- `src/game/content.ts`: capítulos, evidências, estratégias e textos educativos.
+- `public/pressure.js`: motor de pressão (estratégias, parcelamento, checkout, cupons, cronômetros, vibe, fatura, perfil e quiz).
+- `public/week.js`: roteiro da semana (dias, eventos, conversas, preços por dia).
+- `public/pressure.css`: estilos da camada de pressão.
+- `public/stream.js` e `public/recommendation.js`: algoritmo do feed (agora com temas liberados e foco por dia).
+- `src/game/content.ts` (modo clássico): capítulos, evidências, estratégias e textos educativos.
 - `src/game/engine.ts`: máquina de progressão, orçamento em centavos, decisões idempotentes e reconhecimento por evidência.
 - `src/game/types.ts`: modelo versionado `c4-v1`.
 - `src/components/Simulation.tsx`: navegação entre rede social e lojas.

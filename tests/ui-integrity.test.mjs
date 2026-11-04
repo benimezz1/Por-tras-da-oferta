@@ -22,7 +22,15 @@ describe("integridade das interações do No Feed",()=>{
    expect(source.includes("data-action=\""+action+"\""),"faltou ação "+action).toBe(true);
   }
   expect(source).toContain('"add-cart"');
-  expect(source).toContain("SITE FICTÍCIO");
-  expect(source).toContain("Nenhum pagamento verdadeiro");
+  for(const action of ["roleta","spin","live","live-buy","pay","activate-card","inbox","chat","chat-choice","sleep","open-day","end-next","quiz","pass","exit-accept","exit-decline","add-to-order","cancel-sub"]){
+   expect(source.includes("'"+action+"'")||source.includes('"'+action+'"'),"faltou ação "+action).toBe(true);
+  }
+ });
+ it("a partida não interrompe a imersão com avisos de bastidor; o aviso fica na abertura e no final",()=>{
+  expect(source).not.toContain("SITE FICTÍCIO");
+  expect(source).not.toContain("anúncio fictício");
+  expect(source).not.toContain("Ajuda: pensar antes de comprar");
+  expect(source).toContain("Tudo aqui é simulado");
+  expect(source).toContain("Nenhuma compra é real");
  });
 });
