@@ -1768,7 +1768,7 @@ function renderAccountGate(message=""){
   </form>
   <p class="account-status" id="c4-account-status" role="status">${esc(message)}</p>
   <div class="account-privacy"><strong>Como seus dados serão usados?</strong>
-   <p>Depois da quinta-feira e da sexta-feira, ao finalizar as <b>cinco perguntas do quiz</b>, sua partida fictícia (escolhas, compras simuladas, interações e respostas) será enviada <b>automaticamente</b> ao servidor do projeto para que o ChatGPT possa analisá-la após você vincular esta conta. A senha nunca entra no JSON. Você pode pedir a exclusão do registro.</p>
+   <p>Ao terminar os cinco dias e responder as <b>cinco perguntas do quiz</b>, sua partida fictícia (escolhas, compras simuladas, interações e respostas) será enviada <b>automaticamente</b> ao servidor do projeto para que o ChatGPT possa analisá-la após você vincular esta conta. A senha nunca entra no JSON. Você pode pedir a exclusão do registro.</p>
   </div>
   <p class="small muted" style="margin-top:14px">Use somente dados fictícios da simulação. O projeto não faz diagnóstico de ninguém.</p>
  </section></main>`;
@@ -1943,7 +1943,7 @@ function showC4SyncStatus(){
  node.textContent=sent?'✓ Percurso recebido pelo MCP. Agora o ChatGPT pode consultar esta conta após o vínculo.'
   :syncInFlight?'Enviando suas respostas e escolhas ao MCP…'
   :syncMessage||'O envio será realizado automaticamente.';
- if(retry)retry.hidden=sent||syncInFlight;
+ if(retry){retry.hidden=sent||syncInFlight;retry.textContent=ContaC4.account()?'Tentar enviar novamente':'Entrar novamente para enviar';}
 }
 async function sendCompletedC4(){
  if(!identity||!state.finished||state.endStep!==3||state.c4SyncedRunId===state.runId||syncInFlight)return;
@@ -1962,7 +1962,7 @@ async function sendCompletedC4(){
   syncMessage='';
  }catch(error){
   if(identity?.id===playerId&&state.runId===run)
-   syncMessage=(error?.message||'Não foi possível enviar a partida.')+' Use “Tentar enviar novamente”; seu progresso continua salvo neste dispositivo.';
+   syncMessage=(error?.message||'Não foi possível enviar a partida.')+(ContaC4.account()?' Tente novamente;':' Entre novamente com seu apelido;')+' seu progresso continua salvo neste dispositivo.';
  }finally{syncInFlight=false;showC4SyncStatus();}
 }
 function render(){if(!identity){renderAccountGate();return;}if(!state.started){renderHome();return;}if(state.finished){renderEnd();return;}renderGame();}
@@ -2118,7 +2118,7 @@ root.addEventListener('click',e=>{
    if(info)info.textContent='Cópia JSON baixada. O envio ao MCP acontece automaticamente ao terminar o quiz.';
   }catch(error){if(info)info.textContent=error.message||'Não foi possível exportar.';}
  }
- else if(a==='retry-c4'){void sendCompletedC4();}
+ else if(a==='retry-c4'){if(ContaC4.account())void sendCompletedC4();else void switchPlayer();}
  else if(a==='switch-player'){void switchPlayer();}
  else if(a==='end-next'){state.endStep=Math.min(3,(state.endStep||0)+1);save();renderEnd();}
  else if(a==='quiz'){answerQuizOption(el);}
