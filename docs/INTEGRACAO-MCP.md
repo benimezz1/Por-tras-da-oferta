@@ -1,5 +1,7 @@
 # Integração com o MCP
 
+> **Nota:** as seções iniciais preservam o histórico de desenvolvimento de 28/10/2026. O fluxo vigente está descrito em **Atualização vigente — login prévio e envio automático da Semana C4**, no fim deste documento.
+
 ## Fonte inspecionada
 
 Consulta inicial e reconferência somente de leitura em 28/10/2026. Repositório `benimezz1/Por-tras-da-oferta-MCP`, branch `feat/login-oauth-cloudflare-mcp`, commit `cc89c7f57edc79126afb015c57d5483e8f145e1e`. A `main` estava no protótipo anterior sem contas. O estado da produção não foi inferido a partir dessas branches, nem testado com participantes reais.
@@ -58,38 +60,55 @@ Adaptador testado com transporte simulado para cookie, erro 401 e fallback HTML.
 O fluxo novo autentica o participante no site e devolve um código de uso único para confirmar o vínculo no chat. Senha permanece somente no site; a credencial temporária retornada não deve aparecer no chat, na interface do jogo, em URLs ou no armazenamento do frontend. O jogo não tenta criar esse vínculo por conta própria. Ao incorporar os arquivos estáticos ao Worker, as páginas `/vincular` e `/vincular/*` precisam continuar no backend; um fallback genérico para `index.html` quebraria esse fluxo.
 
 
-## Exportação JSON da campanha atual (Semana até a viagem)
+## Atualização vigente — login prévio e envio automático da Semana C4
 
-O jogo principal (`/`) exporta o **percurso C4 de cinco dias** como arquivo JSON
-versionado (`formato: "por-tras-da-oferta/c4-semana"`, `versao: 1`).
-Use o botão **Exportar JSON da semana** no Perfil (inclusive durante a partida)
-ou no **Raio-x final**. O arquivo inclui o estado local da partida: conteúdos
-e interações vistos, algoritmo e personalização, sinais de pressão e estratégias,
-compras fictícias, faturas e assinaturas, vibe, conversas, notificações, quiz,
-meta financeira e indicadores de fechamento. A campanha clássica de seis capítulos
-continua com seu exportador legado, mas **não é compatível** com o novo importador.
+Este fluxo **substitui o procedimento manual** descrito nas notas históricas
+acima para o jogo novo. A conta MCP e o percurso fictício atual são reunidos
+sem solicitar mais do que apelido e senha antes de iniciar.
 
-**Como enviar ao MCP:** o download não envia nada automaticamente. O participante
-deve abrir o portal do MCP, criar/entrar em sua conta com apelido fictício e código
-de inscrição da apresentação, selecionar o JSON e clicar em **Importar percurso**.
-O portal usa `POST /api/c4/import`, com cookie de sessão e validação do formato;
-a importação mais recente substitui a anterior da mesma conta, e pode ser apagada
-em **Excluir meu percurso importado**. O MCP oferece `consultar_progresso` para
-o resumo C4 e `consultar_percurso_c4` para seções detalhadas; a autenticação
-via OAuth ou vínculo por conversa continua obrigatória.
+1. **Cadastro / login:** antes da landing page, o jogador vê um formulário
+   de nome de usuário (3–24 caracteres, **não precisa ser nome real**) e senha
+   (10–128 caracteres). O jogo chama `POST /api/c4/client/signup` ou
+   `POST /api/c4/client/login` na origem do MCP. Não pede código de inscrição
+   no jogo novo.
+2. **Sessão:** o backend responde com token aleatório de 8 horas. O navegador
+   guarda token exclusivamente na aba; persiste o estado local em
+   `nofeed-simulator-v4:user:<id-da-conta>`. Jogadores sucessivos no
+   mesmo dispositivo não compartilham estados.
+3. **Partida:** cinco dias e o final em quatro etapas. O JSON exportado usa
+   `por-tras-da-oferta/c4-semana` versão 1, com feed, escolhas, compras
+   fictícias, faturas, interações, pressões, vibe, algoritmo e quiz.
+4. **Fim:** ao chegar ao **Raio-x** depois de responder as cinco perguntas,
+   o frontend envia automaticamente o JSON para
+   `POST /api/c4/client/complete` com `Authorization: Bearer`.
+   O servidor exige `finished:true`, `endStep:3` e cinco respostas,
+   valida o documento, recalcula indicadores e grava na mesma conta.
+   O arquivo não leva senha. O frontend só mostra sucesso com confirmação
+   de identidade e ID de partida.
+5. **Falhas:** rede ou sessão expirada não descartam o estado local. Há
+   botão para reenviar ou autenticar novamente, sem refazer a partida.
+   O download JSON manual permanece apenas como cópia de segurança.
+6. **Leitura no ChatGPT:** o jogador conecta a mesma conta do MCP usando
+   OAuth ou `iniciar_vinculo` / `confirmar_vinculo`, sem digitar a
+   senha no chat. Depois, `consultar_progresso` prioriza a campanha C4 e
+   `consultar_percurso_c4` permite consultar economia, quiz, jornada,
+   vibe, algoritmo e estratégias. Um chat não tem acesso ao histórico
+   somente por conhecer o apelido — precisa de vínculo autenticado.
 
-A nova API e o frontend pertencem a **repositórios separados**. Publicar/mesclar
-somente um deles não completa a integração; o servidor MCP precisa ser
-reimplantado/reiniciado em seu ambiente próprio. Dados fictícios enviados pelo
-jogador não constituem prova de autoria ou histórico real. Nenhuma compra é real,
-não se faz diagnóstico psicológico e não se deve exportar dados pessoais de menores.
+### Deploy e segurança
 
-### Contrato de transporte do arquivo C4
-
-O frontend atual gera `por-tras-da-oferta/c4-semana` com `versao: 1`,
-`sessao`, `estado` integral e `resumo`. O MCP valida o arquivo e deriva seus
-próprios indicadores do `estado`; por segurança, o campo `resumo` do navegador
-é somente informativo. A conta é definida pela sessão autenticada do MCP, nunca
-por um ID declarado no JSON. CORS permanece restrito ao próprio servidor MCP;
-não há requisições entre origens partindo do jogo. Cada participante escolhe
-manualmente seu arquivo no portal e pode pedir exclusão da importação.
+- Jogo estático: definir `VITE_C4_MCP_ORIGIN` com **origem HTTPS real do MCP**,
+  sem `/mcp`; fallback previsto `https://mcp.portrasdaoferta.workers.dev`,
+  ainda não validado como hostname de produção.
+- Backend MCP: definir `C4_GAME_ORIGIN` como origem exata do jogo
+  (`https://jogo.portrasdaoferta.workers.dev`) e
+  `C4_SIGNUP_ENABLED=true`; limitar cadastros e tentativas.
+- Repositórios separados: integrar/deployar **ambos**, sem alterar o
+  Worker estático para hospedar senhas ou dados do servidor.
+- Nada de cookies de terceiros: as requisições do jogo usam Bearer,
+  CORS restrito à origem autorizada e armazenamento somente do hash de
+  token no backend. Os endpoints antigos continuam sujeitos à política
+  de origem existente.
+- Os registros são de uma simulação e não comprovam autoria nem
+  representam diagnóstico psicológico. Limitar ao uso escolar, evitar
+  dados pessoais de menores e garantir exclusão após a apresentação.

@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="color-scheme" content="light" />
+<meta name="c4-mcp-origin" content="%VITE_C4_MCP_ORIGIN%" />
 <title>No Feed — suas escolhas, seu algoritmo</title>
 <style>
 :root{--ink:#27242d;--muted:#827e89;--line:#eae7eb;--paper:#fff;--pink:#ec477e;--dark:#26212b;--violet:#7e62eb;--bg:#f5f2f4;--mint:#bff4dc;--shadow:0 18px 55px rgba(41,25,42,.09)}
@@ -282,6 +283,23 @@
 .shop-receipt-suggestion .art{width:64px;height:62px;flex:none;border-radius:8px}
 .shop-receipt-suggestion strong{display:block;font-size:12px}
 .shop-receipt-suggestion small{display:block;margin-top:5px;color:#a34a7c;font-size:11px}
+
+/* Identificação simples antes do jogo; estado isolado por conta. */
+.account-screen{min-height:100svh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 90% 20%,#e8def8,transparent 34%),radial-gradient(circle at 10% 90%,#fde2ed,transparent 35%),#faf9f8}
+.account-card{width:min(460px,100%);background:white;border:1px solid #ece5ed;border-radius:26px;padding:clamp(22px,4vw,36px);box-shadow:0 20px 60px #3f234314}
+.account-card h1{font-size:clamp(28px,5vw,40px);letter-spacing:-.055em;line-height:1.08;margin:22px 0 14px}
+.account-card p{color:#706476;font-size:14px;margin:0 0 18px}
+.account-card label{display:block;color:#4b3e50;font-size:13px;font-weight:750;margin:14px 0}
+.account-card input{margin-top:7px;width:100%;padding:14px 13px;font-size:16px;border:1px solid #dcd3df;border-radius:12px;background:white;color:#302834}
+.account-actions{display:grid;gap:9px;margin-top:17px}
+.account-actions button{width:100%}
+.account-privacy{margin-top:18px;padding:14px;background:#faf4fa;border:1px solid #f1e5f1;border-radius:13px;line-height:1.5}
+.account-privacy strong{font-size:12px}.account-privacy p{font-size:12px;margin:4px 0 0}
+.account-status{font-size:13px;min-height:21px;margin:9px 0 0;color:#99517a}
+.account-switch{border:0;background:transparent;color:#795c81;text-decoration:underline;cursor:pointer;font-size:12px;padding:5px}
+.c4-sync-panel{border:1px solid #dfede6;background:#fafefa;border-radius:15px;padding:16px;margin:17px 0}
+.c4-sync-panel p{font-size:13px;margin:8px 0}.c4-sync-status{font-size:14px;font-weight:700}
+.c4-sync-panel .secondary{margin-top:8px}
 </style>
 <link rel="stylesheet" href="/pressure.css" />
 </head>
@@ -306,10 +324,13 @@
 <script src="/pressure.js"></script>
 <script src="/week.js"></script>
 <script src="/c4-export.js"></script>
+<script src="/c4-account.js"></script>
 <script>
 (()=>{
 "use strict";
-const KEY='nofeed-simulator-v4';
+const USER_KEY_PREFIX='nofeed-simulator-v4:user:';
+const ContaC4=window.PorTrasContaC4;
+let identity=null,syncInFlight=false,syncMessage='';
 const Pressure=window.PorTrasPressure,Week=window.PorTrasWeek,ExportC4=window.PorTrasExportC4;
 
 const Recommender=window.NoFeedRecommender;
@@ -358,21 +379,27 @@ function newRunId(){
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
  pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null});
-let state=makeInitial();try{
- const saved=JSON.parse(localStorage.getItem(KEY)||"null");
- if(saved?.version===4&&Array.isArray(saved.feedItems)&&Array.isArray(saved.purchases)){
-  state={...makeInitial(),...saved,feedItems:saved.feedItems.slice(0,Stream.MAX_FEED_ITEMS)};
-  if(!Array.isArray(state.liked))state.liked=[];
-  if(!Array.isArray(state.likedAds))state.likedAds=[];
+let state=makeInitial();
+function restoreForPlayer(player) {
+ state=makeInitial();
+ try{
+  const saved=JSON.parse(localStorage.getItem(USER_KEY_PREFIX+player.id)||"null");
+  if(saved?.version===4&&Array.isArray(saved.feedItems)&&Array.isArray(saved.purchases)){
+   state={...makeInitial(),...saved,feedItems:saved.feedItems.slice(0,Stream.MAX_FEED_ITEMS)};
+   if(!Array.isArray(state.liked))state.liked=[];
+   if(!Array.isArray(state.likedAds))state.likedAds=[];
    if(!Array.isArray(state.hiddenPosts))state.hiddenPosts=[];
    state.signals={...makeInitial().signals,...state.signals};
- }
-}catch(e){}
-state.algorithm=Recommender.normalize(state.algorithm);
-state.pressure=Pressure.normalizeLedger(state.pressure);
-state.vibe=Pressure.normalizeVibe(state.vibe);
-for(const k of ['card','variant','flags','threads','timers','stock','context','anchors','protection','quiz'])if(!state[k]||typeof state[k]!=='object'||Array.isArray(state[k]))state[k]=makeInitial()[k];
-for(const k of ['coupons','invoice','subscriptions','notifs','fixes','exitOffers','wakeList'])if(!Array.isArray(state[k]))state[k]=[];
+  }
+ }catch(e){}
+ state.algorithm=Recommender.normalize(state.algorithm);
+ state.pressure=Pressure.normalizeLedger(state.pressure);
+ state.vibe=Pressure.normalizeVibe(state.vibe);
+ for(const key of ['card','variant','flags','threads','timers','stock','context','anchors','protection','quiz'])
+  if(!state[key]||typeof state[key]!=='object'||Array.isArray(state[key]))state[key]=makeInitial()[key];
+ for(const key of ['coupons','invoice','subscriptions','notifs','fixes','exitOffers','wakeList'])
+  if(!Array.isArray(state[key]))state[key]=[];
+}
 let overlay=null,story=null,modal=null,toastTimer=null,introTimer=null,scene=0;
 const STORY_DURATION=5500;
 let storyTimer=null,storyStartedAt=0,storyPointer=null,storyIgnoreClick=false,storyChangeSeq=0;
@@ -404,7 +431,7 @@ function storyTime(item){
  const times=['26 min','1 h','3 h','46 min','2 h','4 h','12 min','31 min','5 h','18 min','1 h','6 h'];
  return times[item.idx]||'há pouco';
 }
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
+const save=()=>{try{if(identity)localStorage.setItem(USER_KEY_PREFIX+identity.id,JSON.stringify(state))}catch(e){}};
 const signal=(id,num=1)=>{if(Object.prototype.hasOwnProperty.call(state.signals,id))state.signals[id]+=num;};
 const pushEvent=(type,message)=>{state.events.push({phase:state.phase,type,message});save()};
 const products={
@@ -1670,8 +1697,9 @@ function drawOverlay(){
    ${state.card.active?'':`<button class="reviews-shortcut" data-action="pay"><strong>💳 Pulso Pay pré-aprovado</strong>${icon("chevron")}</button>`}
    <button class="reviews-shortcut" data-action="subs"><strong>Assinaturas${sub?' · 1 ativa':''}</strong>${icon("chevron")}</button>
    <button class="reviews-shortcut" data-action="goal"><strong>Minha meta da viagem</strong>${icon("chevron")}</button>
-   <button class="reviews-shortcut" data-action="export-c4"><strong>⬇ Exportar meu percurso em JSON para o MCP</strong>${icon("chevron")}</button>
-   <p class="small muted">O arquivo fica neste dispositivo. Para compartilhar com o MCP, importe-o depois na sua conta; nada é enviado automaticamente.</p>
+   <button class="reviews-shortcut" data-action="export-c4"><strong>⬇ Baixar cópia JSON (opcional)</strong>${icon("chevron")}</button>
+   <p class="small muted">Sua conta <b>${esc(identity.username)}</b> enviará automaticamente a partida para o MCP ao concluir o quiz. O arquivo é apenas uma cópia.</p>
+   <button class="reviews-shortcut" data-action="switch-player"><strong>Trocar de jogador / sair da conta</strong>${icon("chevron")}</button>
    <p class="small muted export-c4-status" role="status"></p>
    <label class="option-row"><input id="privacy-switch" type="checkbox" ${state.personalized?"checked":""}/><span><strong>Recomendações personalizadas</strong><br><small class="muted">Se desligar, o feed deixa de usar seus sinais e para de repetir anúncios.</small></span></label>
    <button class="tertiary full" data-action="finish" style="margin-top:14px">Encerrar a semana agora</button>
@@ -1724,14 +1752,48 @@ function drawModal(){
  const box=document.createElement('div');box.className='layer-backdrop';box.innerHTML=`<section class="bottom-sheet" role="dialog" aria-modal="true">${content}</section>`;phone.appendChild(box);
  tick();
 }
-function renderHome(){exitHomeButton.hidden=true;root.innerHTML=`<main class="home"><div class="home-inner"><section><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA · EXPERIÊNCIA INTERATIVA</div><h1>Seu feed.<br><em>Suas escolhas.</em></h1><p>Uma semana. R$ 620 na conta. Uma viagem com a turma que custa R$ 400. E um app que vai fazer de tudo para você gastar.</p><button class="primary" data-action="start">Começar a semana &nbsp;→</button><div class="home-meta"><span>✦</span><span>5 dias · cerca de 10 minutos · compras e pessoas fictícias</span></div></section><div class="preview-art"><div class="blob one"></div><div class="blob two"></div><div class="preview-phone"><div class="preview-header">pulso. <span style="font-size:18px">♡ &nbsp;⌑</span></div><div class="preview-storybar"><div class="preview-avatar">${mediaPhoto("avatar_bia","avatar-photo","Foto de perfil da Bia")}</div><div class="preview-avatar">${mediaPhoto("avatar_lucca","avatar-photo","Foto de perfil do Lucca")}</div><div class="preview-avatar">${mediaPhoto("avatar_livia","avatar-photo","Foto de perfil da Lívia")}</div><div class="preview-avatar">${mediaPhoto("avatar_gabi","avatar-photo","Foto de perfil da Gabi")}</div></div><div class="preview-photo realistic-preview">${mediaPhoto("post_p1","art-photo","Amigos aproveitando um encontro no parque")}</div><div class="preview-caption"><b>bia.m</b> Quem já tá pronto pro sábado? 💜<br><span style="color:#aaa">Ver os 18 comentários...</span></div><div class="preview-ad">⚡ Oferta relâmpago <b>· termina em 09:59</b></div></div><div class="preview-badge">Só mais um scroll… 👀</div></div></div></main>`;}
+function renderAccountGate(message=""){
+ exitHomeButton.hidden=true;
+ root.innerHTML=`<main class="account-screen"><section class="account-card">
+  <div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
+  <h1>Primeiro, como vamos chamar você?</h1>
+  <p>Crie um <strong>nome de usuário</strong> para identificar sua partida depois. Pode ser um apelido inventado — <strong>não precisa ser seu nome real.</strong></p>
+  <form id="c4-account-form" autocomplete="on">
+   <label>Nome de usuário <input name="username" autocomplete="username" placeholder="Ex.: jogador42" minlength="3" maxlength="24" pattern="[a-zA-Z0-9_.-]+" required /></label>
+   <label>Senha <input name="password" type="password" autocomplete="current-password" placeholder="Pelo menos 10 caracteres" minlength="10" maxlength="128" required /></label>
+   <div class="account-actions">
+    <button type="submit" class="primary" value="signup" name="modo">Criar conta e continuar</button>
+    <button type="submit" class="secondary" value="login" name="modo">Já tenho conta · Entrar</button>
+   </div>
+  </form>
+  <p class="account-status" id="c4-account-status" role="status">${esc(message)}</p>
+  <div class="account-privacy"><strong>Como seus dados serão usados?</strong>
+   <p>Ao terminar os cinco dias e responder as <b>cinco perguntas do quiz</b>, sua partida fictícia (escolhas, compras simuladas, interações e respostas) será enviada <b>automaticamente</b> ao servidor do projeto para que o ChatGPT possa analisá-la após você vincular esta conta. A senha nunca entra no JSON. Você pode pedir a exclusão do registro.</p>
+  </div>
+  <p class="small muted" style="margin-top:14px">Use somente dados fictícios da simulação. O projeto não faz diagnóstico de ninguém.</p>
+ </section></main>`;
+}
+function installPlayer(user){
+ identity=user;
+ restoreForPlayer(user);
+ syncMessage="";
+ overlay=null;modal=null;
+ render();
+}
+async function switchPlayer(){
+ clearTimeout(introTimer);stopStory();clearInterval(liveTimer);bannerQueue=[];
+ try{await ContaC4.logout();}catch(e){ContaC4.clear();}
+ identity=null;state=makeInitial();overlay=null;modal=null;syncMessage="";
+ renderAccountGate();
+}
+function renderHome(){if(!identity){renderAccountGate();return;}exitHomeButton.hidden=true;root.innerHTML=`<main class="home"><div class="home-inner"><section><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA · EXPERIÊNCIA INTERATIVA</div><h1>Seu feed.<br><em>Suas escolhas.</em></h1><p>Uma semana. R$ 620 na conta. Uma viagem com a turma que custa R$ 400. E um app que vai fazer de tudo para você gastar.</p><button class="primary" data-action="start">Começar a semana &nbsp;→</button><p class="small muted" style="margin:13px 0 0">Sua conta: <strong>${esc(identity.username)}</strong> · <button class="account-switch" data-action="switch-player">Trocar jogador</button></p><div class="home-meta"><span>✦</span><span>5 dias · cerca de 10 minutos · compras e pessoas fictícias</span></div></section><div class="preview-art"><div class="blob one"></div><div class="blob two"></div><div class="preview-phone"><div class="preview-header">pulso. <span style="font-size:18px">♡ &nbsp;⌑</span></div><div class="preview-storybar"><div class="preview-avatar">${mediaPhoto("avatar_bia","avatar-photo","Foto de perfil da Bia")}</div><div class="preview-avatar">${mediaPhoto("avatar_lucca","avatar-photo","Foto de perfil do Lucca")}</div><div class="preview-avatar">${mediaPhoto("avatar_livia","avatar-photo","Foto de perfil da Lívia")}</div><div class="preview-avatar">${mediaPhoto("avatar_gabi","avatar-photo","Foto de perfil da Gabi")}</div></div><div class="preview-photo realistic-preview">${mediaPhoto("post_p1","art-photo","Amigos aproveitando um encontro no parque")}</div><div class="preview-caption"><b>bia.m</b> Quem já tá pronto pro sábado? 💜<br><span style="color:#aaa">Ver os 18 comentários...</span></div><div class="preview-ad">⚡ Oferta relâmpago <b>· termina em 09:59</b></div></div><div class="preview-badge">Só mais um scroll… 👀</div></div></div></main>`;}
 function showIntro(){
  exitHomeButton.hidden=false;scene=0;clearTimeout(introTimer);
  root.innerHTML=`<main class="cinematic"><div class="scene-box">
  <div class="scene-icon">🚌</div><div class="eyebrow" style="color:#eec7ee">DOMINGO · 21:40</div>
  <h2>Sábado tem viagem da turma. Sua missão: <span style="color:#ffc5e2">guardar R$ 400.</span></h2>
  <p>Você tem <b>R$ 620</b> na conta. O boleto de <b>R$ 400</b> da viagem vence no sábado de manhã — sem pagar, não embarca. Até lá, é uma semana normal: escola, amigos e o <b>pulso.</b>, seu app favorito.</p>
- <p class="scene-fine">Tudo aqui é simulado: pessoas, marcas, preços e compras são fictícios. Nenhum pagamento é real e nada sai deste navegador.</p>
+ <p class="scene-fine">Tudo aqui é simulado: pessoas, marcas, preços e compras são fictícios. Nenhum pagamento é real. Ao terminar o quiz, o registro fictício desta conta será enviado automaticamente ao MCP.</p>
  <button class="scene-next" data-action="intro-next">Começar a semana →</button>
  </div></main>`;
 }
@@ -1851,12 +1913,15 @@ function endStep3(s){
  <div class="end-box"><h3>Por que isso importa</h3><p class="small muted">Na TIC Kids Online Brasil 2025, 55% dos adolescentes de 11 a 17 anos tiveram contato com publicidade em redes sociais, 84% viram conteúdos que divulgavam produtos sem identificação clara, e 51% das crianças e adolescentes pediram algo depois de ver um anúncio online. Reconhecer as estratégias é um passo para o consumo responsável do ODS 12.</p></div>
  <button class="secondary algorithm-final-reveal" data-action="algorithm-final" aria-expanded="false" aria-controls="algorithm-final-panel">ⓘ Entender como o algoritmo montou meu feed</button>
  ${algorithmResults()}
- <div class="end-box"><h3>Seu percurso para o MCP</h3>
- <p class="small muted">Baixe um JSON completo desta partida, incluindo os cinco dias, interações, compras fictícias, estratégias, vibe, decisões, algoritmo e quiz. Depois faça login na página do MCP e importe o arquivo, se quiser compartilhar seu percurso educativo com o assistente. Nenhum dado é enviado automaticamente.</p>
- <button class="secondary full" data-action="export-c4">⬇ Exportar JSON da semana</button>
+ <div class="c4-sync-panel"><h3>Seu percurso no ChatGPT</h3>
+ <p class="small muted">A partida fictícia da conta <strong>${esc(identity?.username||'jogador')}</strong> é enviada automaticamente ao MCP depois do quiz.</p>
+ <p id="c4-sync-status" class="c4-sync-status" role="status">Preparando envio ao MCP…</p>
+ <button class="secondary" data-action="retry-c4" hidden>Tentar enviar novamente</button>
+ <p class="small muted">Para o ChatGPT consultar seu percurso, peça para usar o plugin <strong>Por Trás da Oferta</strong> e vincule o mesmo apelido. Digite sua senha somente no site seguro de vínculo, nunca no chat.</p>
+ <button class="secondary full" data-action="export-c4">⬇ Baixar cópia do JSON (opcional)</button>
  <p class="small muted export-c4-status" role="status"></p>
- <a href="https://mcp.portrasdaoferta.workers.dev/#importar" target="_blank" rel="noopener noreferrer">Abrir página de importação do MCP ↗</a></div>
- <div class="end-buttons"><button class="primary" data-action="restart">Jogar novamente ↗</button><button class="secondary" data-action="sources">Base da pesquisa</button></div>
+ </div>
+ <div class="end-buttons"><button class="primary" data-action="restart">Jogar novamente ↗</button><button class="secondary" data-action="switch-player">Outro jogador / sair</button><button class="secondary" data-action="sources">Base da pesquisa</button></div>
  <div id="sources" hidden class="end-box tiny-sources"><strong>Referências do projeto</strong><p>Bandyopadhyay et al. (2021) · Bauman (2008) · De Jans et al. (2020) · Dinh e Lee (2024) · Feng et al. (2024) · Huang et al. (2025) · Iyer et al. (2020) · NIC.br, TIC Kids Online Brasil 2025 (2026) · OCDE (2022), dark commercial patterns · Setyani et al. (2019) · Shamim, Azam e Islam (2024) · Van der Bend et al. (2023). Complementares: Mathur et al. (2019), Dark Patterns at Scale; Prelec e Simester (2001), efeito do cartão de crédito. Entrevista com a psicóloga Ana Carolina Barros Mendonça Cortez Penna.</p><p>Marcas, pessoas e valores são fictícios. O ranking imita princípios gerais conhecidos, sem reproduzir modelos proprietários.</p></div>`;
 }
 function renderEnd(){
@@ -1866,11 +1931,41 @@ function renderEnd(){
  root.innerHTML=`<main class="end end-step-${step}"><div class="end-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
  <div class="end-progress">${['Sábado','Por trás','Quiz','Raio-x'].map((l,i)=>`<span class="${i<=step?'on':''}">${l}</span>`).join('')}</div>
  ${body}
- <p class="end-disclaimer">Simulação educativa do Colégio Rio Branco · C4. Nenhuma compra é real, nada sai deste navegador e o jogo não diagnostica ninguém.</p>
+ <p class="end-disclaimer">Simulação educativa do Colégio Rio Branco · C4. Nenhuma compra é real. Ao concluir, o jogo envia o percurso fictício ao MCP da conta identificada, se houver conexão. O jogo não faz diagnósticos.</p>
  </div></main>`;
  window.scrollTo(0,0);root.querySelector('.end')?.scrollTo?.(0,0);
+ if(step===3){showC4SyncStatus();if(state.c4SyncedRunId!==state.runId)void sendCompletedC4();}
 }
-function render(){if(!state.started){renderHome();return;}if(state.finished){renderEnd();return;}renderGame();}
+function showC4SyncStatus(){
+ const node=document.getElementById('c4-sync-status'),retry=root.querySelector('[data-action="retry-c4"]');
+ if(!node)return;
+ const sent=state.c4SyncedRunId===state.runId;
+ node.textContent=sent?'✓ Percurso recebido pelo MCP. Agora o ChatGPT pode consultar esta conta após o vínculo.'
+  :syncInFlight?'Enviando suas respostas e escolhas ao MCP…'
+  :syncMessage||'O envio será realizado automaticamente.';
+ if(retry){retry.hidden=sent||syncInFlight;retry.textContent=ContaC4.account()?'Tentar enviar novamente':'Entrar novamente para enviar';}
+}
+async function sendCompletedC4(){
+ if(!identity||!state.finished||state.endStep!==3||state.c4SyncedRunId===state.runId||syncInFlight)return;
+ const playerId=identity.id,run=state.runId;
+ syncInFlight=true;syncMessage='';
+ showC4SyncStatus();
+ try{
+  const payload=ExportC4.build(state,{pressure:Pressure,recommender:Recommender});
+  const result=await ContaC4.complete(payload);
+  if(result?.usuario?.id!==playerId||result?.partida!==run)
+   throw Error('O servidor não confirmou a conta e a partida corretas.');
+  if(!identity||identity.id!==playerId||state.runId!==run)return;
+  state.c4SyncedRunId=run;
+  state.c4SyncedAt=new Date().toISOString();
+  save();
+  syncMessage='';
+ }catch(error){
+  if(identity?.id===playerId&&state.runId===run)
+   syncMessage=(error?.message||'Não foi possível enviar a partida.')+(ContaC4.account()?' Tente novamente;':' Entre novamente com seu apelido;')+' seu progresso continua salvo neste dispositivo.';
+ }finally{syncInFlight=false;showC4SyncStatus();}
+}
+function render(){if(!identity){renderAccountGate();return;}if(!state.started){renderHome();return;}if(state.finished){renderEnd();return;}renderGame();}
 
 let lastLikeFlash={photo:null,time:0};
 let feedTouchStart=null,lastFeedTouchTap=null;
@@ -1978,6 +2073,24 @@ root.addEventListener("input",e=>{
  }
 });
 
+root.addEventListener('submit',async e=>{
+ if(e.target.id!=='c4-account-form')return;
+ e.preventDefault();
+ const form=e.target,submitter=e.submitter,modo=submitter?.value==='login'?'login':'signup';
+ const username=String(new FormData(form).get('username')||'').trim();
+ const password=String(new FormData(form).get('password')||'');
+ const feedback=document.getElementById('c4-account-status');
+ if(!form.checkValidity())return;
+ for(const button of form.querySelectorAll('button'))button.disabled=true;
+ if(feedback)feedback.textContent=modo==='signup'?'Criando sua conta…':'Entrando…';
+ try{
+  const player=await ContaC4.login(username,password,modo);
+  installPlayer(player);
+ }catch(error){
+  if(feedback)feedback.textContent=error?.message||'Não foi possível entrar.';
+  for(const button of form.querySelectorAll('button'))button.disabled=false;
+ }
+});
 root.addEventListener('click',e=>{
  const el=e.target.closest('[data-action]');
  if(!el){
@@ -1990,7 +2103,7 @@ root.addEventListener('click',e=>{
   storyIgnoreClick=false;
   return;
  }
- if(a==='start'){state.started=true;state.startedAt ||= new Date().toISOString();save();showIntro();}
+ if(a==='start'){if(!identity){renderAccountGate('Entre na sua conta para iniciar.');return;}state.started=true;state.startedAt ||= new Date().toISOString();save();showIntro();}
  else if(a==='skip-intro'||a==='intro-next'||a==='open-next'){clearTimeout(introTimer);state.wake=true;state.wakeList=[{icon:'🎧',text:'Seu fone parou de funcionar hoje no intervalo.'},{icon:'🛍️',text:'Pulso Shop: um presente de boas-vindas espera por você.'}];save();overlay={type:'wake'};renderGame();}
  else if(a==='open-day'){state.wake=false;save();overlay=null;appendNext();renderGame();}
  else if(a==='sleep'){sleep();}
@@ -2002,9 +2115,11 @@ root.addEventListener('click',e=>{
    save();
    const data=ExportC4.build(state,{pressure:Pressure,recommender:Recommender});
    ExportC4.download(data);
-   if(info)info.textContent='Arquivo JSON baixado. Para enviar, abra a página do MCP e importe o arquivo com sua conta.';
+   if(info)info.textContent='Cópia JSON baixada. O envio ao MCP acontece automaticamente ao terminar o quiz.';
   }catch(error){if(info)info.textContent=error.message||'Não foi possível exportar.';}
  }
+ else if(a==='retry-c4'){if(ContaC4.account())void sendCompletedC4();else void switchPlayer();}
+ else if(a==='switch-player'){void switchPlayer();}
  else if(a==='end-next'){state.endStep=Math.min(3,(state.endStep||0)+1);save();renderEnd();}
  else if(a==='quiz'){answerQuizOption(el);}
  else if(a==='inbox'){if(story)stopStory();closeModal();overlay={type:'inbox'};drawOverlay();}
@@ -2098,7 +2213,11 @@ root.addEventListener('click',e=>{
    if(!panel.hidden)panel.scrollIntoView({block:'start',behavior:'smooth'});
   }
  }
- else if(a==='restart')restart()
+ else if(a==='restart'){
+  if(state.finished&&state.endStep===3&&state.c4SyncedRunId!==state.runId&&
+    !confirm('Seu percurso ainda não foi recebido pelo MCP. Reiniciar agora pode impedir o envio. Quer continuar?'))return;
+  restart();
+ }
  else if(a==='sources'){const node=document.querySelector('#sources');if(node){node.hidden=!node.hidden;if(!node.hidden)node.scrollIntoView({block:'nearest',behavior:'smooth'});}}
 });
 
@@ -2138,7 +2257,13 @@ document.addEventListener('visibilitychange',()=>{
  if(document.hidden)pauseStory('hidden');
  else resumeStory('hidden');
 });
-render();
+renderAccountGate();
+if(ContaC4.account()){
+ ContaC4.validate().then(user=>{
+  if(!user){renderAccountGate('Sua sessão expirou. Entre novamente para continuar.');return;}
+  installPlayer(user);
+ }).catch(error=>renderAccountGate(error?.message||'Entre novamente para continuar.'));
+}
 })();
 </script>
 </body>
