@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 const KEY = "nofeed-simulator-v4";
 test.use({ reducedMotion: "reduce" });
@@ -241,4 +242,47 @@ test("as fotos dos produtos preenchem os quadrados sem margens internas ou faixa
   const hero = page.locator(".shop-hero .art.has-photo.is-product-photo .art-photo");
   await expect(hero).toHaveCSS("object-fit", "cover");
   await expect(hero).toHaveCSS("padding", "0px");
+});
+
+test("exporta JSON da semana pelo perfil sem enviar dados automaticamente", async ({ page }) => {
+  await enter(page);
+  await page.locator('.phone-footer [data-action="profile"]').click();
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator('.layer [data-action="export-c4"]').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename().startsWith("por-tras-da-oferta-semana-")).toBe(true);
+  expect(download.suggestedFilename().endsWith(".json")).toBe(true);
+  const filePath = await download.path();
+  expect(filePath).toBeTruthy();
+  const exported = JSON.parse(await readFile(filePath!, "utf8"));
+  expect(exported).toMatchObject({
+    formato: "por-tras-da-oferta/c4-semana",
+    versao: 1,
+    campanha: "semana-ate-a-viagem",
+    simulado: true,
+    estado: { version: 4, started: true, day: 1, wallet: 620, goal: 400 },
+  });
+  expect(exported.resumo.estrategias).toHaveLength(10);
+  expect(exported.sessao.id).toBeTruthy();
+  await expect(page.locator(".layer .export-c4-status")).toContainText("Arquivo JSON baixado");
+  await expect(page.locator(".status-bar")).toContainText("SEG");
+});
+
+test("o encerramento inclui exportação do percurso para o MCP", async ({ page }) => {
+  await enter(page);
+  for (let d = 0; d < 5; d++) await nextDay(page);
+  for (let i = 0; i < 3; i++) {
+    if (i === 2) {
+      for (let q = 0; q < 5; q++) await page.locator(".quiz-q").nth(q).locator(".quiz-opt").first().click();
+    }
+    await page.locator('[data-action="end-next"]').click();
+  }
+  await expect(page.locator('.end-step-3 [data-action="export-c4"]')).toBeVisible();
+  const dl = page.waitForEvent("download");
+  await page.locator('.end-step-3 [data-action="export-c4"]').click();
+  const file = await dl;
+  const data = JSON.parse(await readFile((await file.path())!, "utf8"));
+  expect(data.estado.finished).toBe(true);
+  expect(data.resumo.quiz.respondidas).toBe(5);
+  expect(data.sessao.concluidaEm).toBeTruthy();
 });
