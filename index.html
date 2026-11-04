@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="color-scheme" content="light" />
+<meta name="c4-mcp-origin" content="%VITE_C4_MCP_ORIGIN%" />
 <title>No Feed — suas escolhas, seu algoritmo</title>
 <style>
 :root{--ink:#27242d;--muted:#827e89;--line:#eae7eb;--paper:#fff;--pink:#ec477e;--dark:#26212b;--violet:#7e62eb;--bg:#f5f2f4;--mint:#bff4dc;--shadow:0 18px 55px rgba(41,25,42,.09)}
@@ -282,6 +283,23 @@
 .shop-receipt-suggestion .art{width:64px;height:62px;flex:none;border-radius:8px}
 .shop-receipt-suggestion strong{display:block;font-size:12px}
 .shop-receipt-suggestion small{display:block;margin-top:5px;color:#a34a7c;font-size:11px}
+
+/* Identificação simples antes do jogo; estado isolado por conta. */
+.account-screen{min-height:100svh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 90% 20%,#e8def8,transparent 34%),radial-gradient(circle at 10% 90%,#fde2ed,transparent 35%),#faf9f8}
+.account-card{width:min(460px,100%);background:white;border:1px solid #ece5ed;border-radius:26px;padding:clamp(22px,4vw,36px);box-shadow:0 20px 60px #3f234314}
+.account-card h1{font-size:clamp(28px,5vw,40px);letter-spacing:-.055em;line-height:1.08;margin:22px 0 14px}
+.account-card p{color:#706476;font-size:14px;margin:0 0 18px}
+.account-card label{display:block;color:#4b3e50;font-size:13px;font-weight:750;margin:14px 0}
+.account-card input{margin-top:7px;width:100%;padding:14px 13px;font-size:16px;border:1px solid #dcd3df;border-radius:12px;background:white;color:#302834}
+.account-actions{display:grid;gap:9px;margin-top:17px}
+.account-actions button{width:100%}
+.account-privacy{margin-top:18px;padding:14px;background:#faf4fa;border:1px solid #f1e5f1;border-radius:13px;line-height:1.5}
+.account-privacy strong{font-size:12px}.account-privacy p{font-size:12px;margin:4px 0 0}
+.account-status{font-size:13px;min-height:21px;margin:9px 0 0;color:#99517a}
+.account-switch{border:0;background:transparent;color:#795c81;text-decoration:underline;cursor:pointer;font-size:12px;padding:5px}
+.c4-sync-panel{border:1px solid #dfede6;background:#fafefa;border-radius:15px;padding:16px;margin:17px 0}
+.c4-sync-panel p{font-size:13px;margin:8px 0}.c4-sync-status{font-size:14px;font-weight:700}
+.c4-sync-panel .secondary{margin-top:8px}
 </style>
 <link rel="stylesheet" href="/pressure.css" />
 </head>
@@ -306,10 +324,13 @@
 <script src="/pressure.js"></script>
 <script src="/week.js"></script>
 <script src="/c4-export.js"></script>
+<script src="/c4-account.js"></script>
 <script>
 (()=>{
 "use strict";
-const KEY='nofeed-simulator-v4';
+const USER_KEY_PREFIX='nofeed-simulator-v4:user:';
+const ContaC4=window.PorTrasContaC4;
+let identity=null,syncInFlight=false,syncMessage='';
 const Pressure=window.PorTrasPressure,Week=window.PorTrasWeek,ExportC4=window.PorTrasExportC4;
 
 const Recommender=window.NoFeedRecommender;
@@ -358,21 +379,27 @@ function newRunId(){
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
  pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null});
-let state=makeInitial();try{
- const saved=JSON.parse(localStorage.getItem(KEY)||"null");
- if(saved?.version===4&&Array.isArray(saved.feedItems)&&Array.isArray(saved.purchases)){
-  state={...makeInitial(),...saved,feedItems:saved.feedItems.slice(0,Stream.MAX_FEED_ITEMS)};
-  if(!Array.isArray(state.liked))state.liked=[];
-  if(!Array.isArray(state.likedAds))state.likedAds=[];
+let state=makeInitial();
+function restoreForPlayer(player) {
+ state=makeInitial();
+ try{
+  const saved=JSON.parse(localStorage.getItem(USER_KEY_PREFIX+player.id)||"null");
+  if(saved?.version===4&&Array.isArray(saved.feedItems)&&Array.isArray(saved.purchases)){
+   state={...makeInitial(),...saved,feedItems:saved.feedItems.slice(0,Stream.MAX_FEED_ITEMS)};
+   if(!Array.isArray(state.liked))state.liked=[];
+   if(!Array.isArray(state.likedAds))state.likedAds=[];
    if(!Array.isArray(state.hiddenPosts))state.hiddenPosts=[];
    state.signals={...makeInitial().signals,...state.signals};
- }
-}catch(e){}
-state.algorithm=Recommender.normalize(state.algorithm);
-state.pressure=Pressure.normalizeLedger(state.pressure);
-state.vibe=Pressure.normalizeVibe(state.vibe);
-for(const k of ['card','variant','flags','threads','timers','stock','context','anchors','protection','quiz'])if(!state[k]||typeof state[k]!=='object'||Array.isArray(state[k]))state[k]=makeInitial()[k];
-for(const k of ['coupons','invoice','subscriptions','notifs','fixes','exitOffers','wakeList'])if(!Array.isArray(state[k]))state[k]=[];
+  }
+ }catch(e){}
+ state.algorithm=Recommender.normalize(state.algorithm);
+ state.pressure=Pressure.normalizeLedger(state.pressure);
+ state.vibe=Pressure.normalizeVibe(state.vibe);
+ for(const key of ['card','variant','flags','threads','timers','stock','context','anchors','protection','quiz'])
+  if(!state[key]||typeof state[key]!=='object'||Array.isArray(state[key]))state[key]=makeInitial()[key];
+ for(const key of ['coupons','invoice','subscriptions','notifs','fixes','exitOffers','wakeList'])
+  if(!Array.isArray(state[key]))state[key]=[];
+}
 let overlay=null,story=null,modal=null,toastTimer=null,introTimer=null,scene=0;
 const STORY_DURATION=5500;
 let storyTimer=null,storyStartedAt=0,storyPointer=null,storyIgnoreClick=false,storyChangeSeq=0;
@@ -404,7 +431,7 @@ function storyTime(item){
  const times=['26 min','1 h','3 h','46 min','2 h','4 h','12 min','31 min','5 h','18 min','1 h','6 h'];
  return times[item.idx]||'há pouco';
 }
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}};
+const save=()=>{try{if(identity)localStorage.setItem(USER_KEY_PREFIX+identity.id,JSON.stringify(state))}catch(e){}};
 const signal=(id,num=1)=>{if(Object.prototype.hasOwnProperty.call(state.signals,id))state.signals[id]+=num;};
 const pushEvent=(type,message)=>{state.events.push({phase:state.phase,type,message});save()};
 const products={
