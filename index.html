@@ -1697,8 +1697,9 @@ function drawOverlay(){
    ${state.card.active?'':`<button class="reviews-shortcut" data-action="pay"><strong>💳 Pulso Pay pré-aprovado</strong>${icon("chevron")}</button>`}
    <button class="reviews-shortcut" data-action="subs"><strong>Assinaturas${sub?' · 1 ativa':''}</strong>${icon("chevron")}</button>
    <button class="reviews-shortcut" data-action="goal"><strong>Minha meta da viagem</strong>${icon("chevron")}</button>
-   <button class="reviews-shortcut" data-action="export-c4"><strong>⬇ Exportar meu percurso em JSON para o MCP</strong>${icon("chevron")}</button>
-   <p class="small muted">O arquivo fica neste dispositivo. Para compartilhar com o MCP, importe-o depois na sua conta; nada é enviado automaticamente.</p>
+   <button class="reviews-shortcut" data-action="export-c4"><strong>⬇ Baixar cópia JSON (opcional)</strong>${icon("chevron")}</button>
+   <p class="small muted">Sua conta <b>${esc(identity.username)}</b> enviará automaticamente a partida para o MCP ao concluir o quiz. O arquivo é apenas uma cópia.</p>
+   <button class="reviews-shortcut" data-action="switch-player"><strong>Trocar de jogador / sair da conta</strong>${icon("chevron")}</button>
    <p class="small muted export-c4-status" role="status"></p>
    <label class="option-row"><input id="privacy-switch" type="checkbox" ${state.personalized?"checked":""}/><span><strong>Recomendações personalizadas</strong><br><small class="muted">Se desligar, o feed deixa de usar seus sinais e para de repetir anúncios.</small></span></label>
    <button class="tertiary full" data-action="finish" style="margin-top:14px">Encerrar a semana agora</button>
@@ -1751,14 +1752,48 @@ function drawModal(){
  const box=document.createElement('div');box.className='layer-backdrop';box.innerHTML=`<section class="bottom-sheet" role="dialog" aria-modal="true">${content}</section>`;phone.appendChild(box);
  tick();
 }
-function renderHome(){exitHomeButton.hidden=true;root.innerHTML=`<main class="home"><div class="home-inner"><section><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA · EXPERIÊNCIA INTERATIVA</div><h1>Seu feed.<br><em>Suas escolhas.</em></h1><p>Uma semana. R$ 620 na conta. Uma viagem com a turma que custa R$ 400. E um app que vai fazer de tudo para você gastar.</p><button class="primary" data-action="start">Começar a semana &nbsp;→</button><div class="home-meta"><span>✦</span><span>5 dias · cerca de 10 minutos · compras e pessoas fictícias</span></div></section><div class="preview-art"><div class="blob one"></div><div class="blob two"></div><div class="preview-phone"><div class="preview-header">pulso. <span style="font-size:18px">♡ &nbsp;⌑</span></div><div class="preview-storybar"><div class="preview-avatar">${mediaPhoto("avatar_bia","avatar-photo","Foto de perfil da Bia")}</div><div class="preview-avatar">${mediaPhoto("avatar_lucca","avatar-photo","Foto de perfil do Lucca")}</div><div class="preview-avatar">${mediaPhoto("avatar_livia","avatar-photo","Foto de perfil da Lívia")}</div><div class="preview-avatar">${mediaPhoto("avatar_gabi","avatar-photo","Foto de perfil da Gabi")}</div></div><div class="preview-photo realistic-preview">${mediaPhoto("post_p1","art-photo","Amigos aproveitando um encontro no parque")}</div><div class="preview-caption"><b>bia.m</b> Quem já tá pronto pro sábado? 💜<br><span style="color:#aaa">Ver os 18 comentários...</span></div><div class="preview-ad">⚡ Oferta relâmpago <b>· termina em 09:59</b></div></div><div class="preview-badge">Só mais um scroll… 👀</div></div></div></main>`;}
+function renderAccountGate(message=""){
+ exitHomeButton.hidden=true;
+ root.innerHTML=`<main class="account-screen"><section class="account-card">
+  <div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
+  <h1>Primeiro, como vamos chamar você?</h1>
+  <p>Crie um <strong>nome de usuário</strong> para identificar sua partida depois. Pode ser um apelido inventado — <strong>não precisa ser seu nome real.</strong></p>
+  <form id="c4-account-form" autocomplete="on">
+   <label>Nome de usuário <input name="username" autocomplete="username" placeholder="Ex.: jogador42" minlength="3" maxlength="24" pattern="[a-zA-Z0-9_.-]+" required /></label>
+   <label>Senha <input name="password" type="password" autocomplete="current-password" placeholder="Pelo menos 10 caracteres" minlength="10" maxlength="128" required /></label>
+   <div class="account-actions">
+    <button type="submit" class="primary" value="signup" name="modo">Criar conta e continuar</button>
+    <button type="submit" class="secondary" value="login" name="modo">Já tenho conta · Entrar</button>
+   </div>
+  </form>
+  <p class="account-status" id="c4-account-status" role="status">${esc(message)}</p>
+  <div class="account-privacy"><strong>Como seus dados serão usados?</strong>
+   <p>Depois da quinta-feira e da sexta-feira, ao finalizar as <b>cinco perguntas do quiz</b>, sua partida fictícia (escolhas, compras simuladas, interações e respostas) será enviada <b>automaticamente</b> ao servidor do projeto para que o ChatGPT possa analisá-la após você vincular esta conta. A senha nunca entra no JSON. Você pode pedir a exclusão do registro.</p>
+  </div>
+  <p class="small muted" style="margin-top:14px">Use somente dados fictícios da simulação. O projeto não faz diagnóstico de ninguém.</p>
+ </section></main>`;
+}
+function installPlayer(user){
+ identity=user;
+ restoreForPlayer(user);
+ syncMessage="";
+ overlay=null;modal=null;
+ render();
+}
+async function switchPlayer(){
+ clearTimeout(introTimer);stopStory();clearInterval(liveTimer);bannerQueue=[];
+ try{await ContaC4.logout();}catch(e){ContaC4.clear();}
+ identity=null;state=makeInitial();overlay=null;modal=null;syncMessage="";
+ renderAccountGate();
+}
+function renderHome(){if(!identity){renderAccountGate();return;}exitHomeButton.hidden=true;root.innerHTML=`<main class="home"><div class="home-inner"><section><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA · EXPERIÊNCIA INTERATIVA</div><h1>Seu feed.<br><em>Suas escolhas.</em></h1><p>Uma semana. R$ 620 na conta. Uma viagem com a turma que custa R$ 400. E um app que vai fazer de tudo para você gastar.</p><button class="primary" data-action="start">Começar a semana &nbsp;→</button><p class="small muted" style="margin:13px 0 0">Sua conta: <strong>${esc(identity.username)}</strong> · <button class="account-switch" data-action="switch-player">Trocar jogador</button></p><div class="home-meta"><span>✦</span><span>5 dias · cerca de 10 minutos · compras e pessoas fictícias</span></div></section><div class="preview-art"><div class="blob one"></div><div class="blob two"></div><div class="preview-phone"><div class="preview-header">pulso. <span style="font-size:18px">♡ &nbsp;⌑</span></div><div class="preview-storybar"><div class="preview-avatar">${mediaPhoto("avatar_bia","avatar-photo","Foto de perfil da Bia")}</div><div class="preview-avatar">${mediaPhoto("avatar_lucca","avatar-photo","Foto de perfil do Lucca")}</div><div class="preview-avatar">${mediaPhoto("avatar_livia","avatar-photo","Foto de perfil da Lívia")}</div><div class="preview-avatar">${mediaPhoto("avatar_gabi","avatar-photo","Foto de perfil da Gabi")}</div></div><div class="preview-photo realistic-preview">${mediaPhoto("post_p1","art-photo","Amigos aproveitando um encontro no parque")}</div><div class="preview-caption"><b>bia.m</b> Quem já tá pronto pro sábado? 💜<br><span style="color:#aaa">Ver os 18 comentários...</span></div><div class="preview-ad">⚡ Oferta relâmpago <b>· termina em 09:59</b></div></div><div class="preview-badge">Só mais um scroll… 👀</div></div></div></main>`;}
 function showIntro(){
  exitHomeButton.hidden=false;scene=0;clearTimeout(introTimer);
  root.innerHTML=`<main class="cinematic"><div class="scene-box">
  <div class="scene-icon">🚌</div><div class="eyebrow" style="color:#eec7ee">DOMINGO · 21:40</div>
  <h2>Sábado tem viagem da turma. Sua missão: <span style="color:#ffc5e2">guardar R$ 400.</span></h2>
  <p>Você tem <b>R$ 620</b> na conta. O boleto de <b>R$ 400</b> da viagem vence no sábado de manhã — sem pagar, não embarca. Até lá, é uma semana normal: escola, amigos e o <b>pulso.</b>, seu app favorito.</p>
- <p class="scene-fine">Tudo aqui é simulado: pessoas, marcas, preços e compras são fictícios. Nenhum pagamento é real e nada sai deste navegador.</p>
+ <p class="scene-fine">Tudo aqui é simulado: pessoas, marcas, preços e compras são fictícios. Nenhum pagamento é real. Ao terminar o quiz, o registro fictício desta conta será enviado automaticamente ao MCP.</p>
  <button class="scene-next" data-action="intro-next">Começar a semana →</button>
  </div></main>`;
 }
