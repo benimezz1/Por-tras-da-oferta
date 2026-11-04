@@ -193,30 +193,34 @@ test("comprar no Pix além da folga faz perder a viagem", async ({ page }) => {
 });
 
 
-test("as fotos dos produtos cabem inteiras nos quadrados da loja e da página de detalhe", async ({ page }) => {
+test("as fotos dos produtos preenchem os quadrados sem margens internas ou faixas vazias", async ({ page }) => {
   await enter(page);
   await page.locator('[data-action="shop"]').first().click();
   for (const id of ["fone", "tenis", "plano", "mochila", "powerbank", "garrafa", "luminaria", "ingresso"]) {
     const photo = page.locator(`.shop-product[data-product="${id}"] .art.has-photo.is-product-photo .art-photo`);
     await expect(photo).toHaveCount(1);
-    await expect(photo).toHaveCSS("object-fit", "contain");
+    await expect(photo).toHaveCSS("object-fit", "cover");
+    await expect(photo).toHaveCSS("padding", "0px");
     await expect(photo).toHaveCSS("position", "absolute");
     const layout = await photo.evaluate((image) => {
       const tile = image.parentElement!;
       const bounds = image.getBoundingClientRect();
       const square = tile.getBoundingClientRect();
       return {
-        fitsWidth: bounds.width <= square.width + 1,
-        fitsHeight: bounds.height <= square.height + 1,
+        fillsWidth: Math.abs(bounds.width - square.width) <= 1,
+        fillsHeight: Math.abs(bounds.height - square.height) <= 1,
+        loaded: (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0,
         backdrop: getComputedStyle(tile, "::before").content,
       };
     });
-    expect(layout.fitsWidth).toBe(true);
-    expect(layout.fitsHeight).toBe(true);
+    expect(layout.fillsWidth).toBe(true);
+    expect(layout.fillsHeight).toBe(true);
+    expect(layout.loaded).toBe(true);
     expect(layout.backdrop).toBe("none");
   }
 
   await page.locator('.shop-product[data-product="luminaria"]').click();
   const hero = page.locator(".shop-hero .art.has-photo.is-product-photo .art-photo");
-  await expect(hero).toHaveCSS("object-fit", "contain");
+  await expect(hero).toHaveCSS("object-fit", "cover");
+  await expect(hero).toHaveCSS("padding", "0px");
 });
