@@ -16,7 +16,7 @@ export async function mockC4Service(page: Page) {
     }
     const input = req.postDataJSON?.() ?? {};
     if (path.endsWith("/signup") || path.endsWith("/login")) {
-      current = { id: "player-e2e", username: String(input.username || "aluno_teste") };
+      current = { id: input.username === "aluno_teste" ? "player-e2e" : "player-" + String(input.username || "outro"), username: String(input.username || "aluno_teste") };
       return route.fulfill({
         status: 200, headers: cors, body: JSON.stringify({
           token: "a".repeat(43),
