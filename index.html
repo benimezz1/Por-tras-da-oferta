@@ -332,7 +332,7 @@
 .account-footer{font-size:11px;line-height:1.55;color:#9d90a1;text-align:center}
 .account-switch{border:0;background:transparent;color:#795c81;text-decoration:underline;cursor:pointer;font-size:12px;padding:5px}
 @media(max-width:900px){.account-shell{grid-template-columns:minmax(0,1fr);max-width:550px;gap:20px;padding:25px 0 37px}.account-header,.account-footer{max-width:550px}.account-editorial h1{font-size:clamp(43px,7.5vw,63px);margin-bottom:16px}.account-editorial .account-lede{font-size:15px;margin-bottom:15px}.account-feature-pills{margin-bottom:0}.account-route{display:none}.account-card{max-width:none}}
-@media(max-width:530px){.account-screen{padding:17px 15px 20px}.account-brand{font-size:12px}.account-brand .brand-symbol{width:31px;height:31px}.account-header-tag{font-size:10px;padding:7px 9px}.account-editorial h1{font-size:clamp(40px,11.8vw,55px)}.account-overline{font-size:10px;margin-bottom:15px}.account-shell{gap:16px;padding:20px 0 27px}.account-card{border-radius:22px;padding:24px 20px}.account-card h2{font-size:31px}.account-feature-pills{gap:6px}.account-feature-pills span{padding:6px 10px;font-size:11px}}
+@media(max-width:530px){.account-desktop-tag{display:none}.account-screen{padding:17px 15px 20px}.account-brand{font-size:12px}.account-brand .brand-symbol{width:31px;height:31px}.account-header-tag{font-size:10px;padding:7px 9px}.account-editorial h1{font-size:clamp(40px,11.8vw,55px)}.account-overline{font-size:10px;margin-bottom:15px}.account-shell{gap:16px;padding:20px 0 27px}.account-card{border-radius:22px;padding:24px 20px}.account-card h2{font-size:31px}.account-feature-pills{gap:6px}.account-feature-pills span{padding:6px 10px;font-size:11px}}
 @media(prefers-reduced-motion:reduce){.account-actions button{transition:none}}
 .c4-sync-panel{border:1px solid #dfede6;background:#fafefa;border-radius:15px;padding:16px;margin:17px 0}
 .c4-sync-panel p{font-size:13px;margin:8px 0}.c4-sync-status{font-size:14px;font-weight:700}
@@ -1796,7 +1796,7 @@ function renderAccountGate(message=""){
  root.innerHTML=`<main class="account-screen">
  <header class="account-header">
   <div class="brandline account-brand"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
-  <span class="account-header-tag"><i aria-hidden="true"></i> COLÉGIO RIO BRANCO · CICLO 4</span>
+  <span class="account-header-tag"><i aria-hidden="true"></i><span class="account-desktop-tag">COLÉGIO RIO BRANCO · </span>CICLO 4</span>
  </header>
  <div class="account-shell">
   <section class="account-editorial" aria-labelledby="account-hero-title">
