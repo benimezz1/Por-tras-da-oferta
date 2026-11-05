@@ -51,6 +51,32 @@ async function firstAdProduct(page: Page) {
   await expect(page.locator(".shop-title")).toBeVisible();
 }
 
+test("login do jogo compartilha o visual do MCP sem mockup e preserva acesso", async ({ page }) => {
+  await page.goto("/");
+  const screen = page.locator(".account-screen");
+  await expect(screen).toBeVisible();
+  await expect(page.locator("#account-hero-title")).toContainText("Seu feed.");
+  await expect(page.locator("#account-hero-title")).toContainText("Suas escolhas.");
+  await expect(page.locator("#account-card-title")).toContainText("Primeiro, como vamos chamar você?");
+  await expect(page.locator(".account-privacy")).toContainText("automaticamente");
+  await expect(page.locator(".account-route li")).toHaveCount(3);
+  await expect(page.locator(".account-screen .preview-phone")).toHaveCount(0);
+  await expect(page.locator('#c4-account-form button[value="signup"]')).toBeVisible();
+  await expect(page.locator('#c4-account-form button[value="login"]')).toBeVisible();
+
+  const layout = await page.evaluate(() => ({
+    overflow: document.documentElement.scrollWidth > window.innerWidth + 2,
+    background: getComputedStyle(document.querySelector(".account-screen")!).backgroundImage,
+  }));
+  expect(layout.overflow).toBe(false);
+  expect(layout.background).toContain("radial-gradient");
+
+  await page.locator('#c4-account-form input[name="username"]').fill("aluno_teste");
+  await page.locator('#c4-account-form input[name="password"]').fill("senha-teste-12345");
+  await page.locator('#c4-account-form button[value="login"]').click();
+  await expect(page.locator(".home")).toBeVisible();
+});
+
 test("a partida mantém a imersão: HUD, sem avisos de bastidor e meta só sob demanda", async ({ page }) => {
   await enter(page);
   await expect(page.locator(".hud-vibe")).toBeVisible();

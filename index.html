@@ -284,19 +284,56 @@
 .shop-receipt-suggestion strong{display:block;font-size:12px}
 .shop-receipt-suggestion small{display:block;margin-top:5px;color:#a34a7c;font-size:11px}
 
-/* Identificação simples antes do jogo; estado isolado por conta. */
-.account-screen{min-height:100svh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 90% 20%,#e8def8,transparent 34%),radial-gradient(circle at 10% 90%,#fde2ed,transparent 35%),#faf9f8}
-.account-card{width:min(460px,100%);background:white;border:1px solid #ece5ed;border-radius:26px;padding:clamp(22px,4vw,36px);box-shadow:0 20px 60px #3f234314}
-.account-card h1{font-size:clamp(28px,5vw,40px);letter-spacing:-.055em;line-height:1.08;margin:22px 0 14px}
-.account-card p{color:#706476;font-size:14px;margin:0 0 18px}
-.account-card label{display:block;color:#4b3e50;font-size:13px;font-weight:750;margin:14px 0}
-.account-card input{margin-top:7px;width:100%;padding:14px 13px;font-size:16px;border:1px solid #dcd3df;border-radius:12px;background:white;color:#302834}
-.account-actions{display:grid;gap:9px;margin-top:17px}
-.account-actions button{width:100%}
-.account-privacy{margin-top:18px;padding:14px;background:#faf4fa;border:1px solid #f1e5f1;border-radius:13px;line-height:1.5}
-.account-privacy strong{font-size:12px}.account-privacy p{font-size:12px;margin:4px 0 0}
-.account-status{font-size:13px;min-height:21px;margin:9px 0 0;color:#99517a}
+/* Acesso C4 — paleta, tipografia e padroes do jogo/MCP; sem mockup de celular. */
+.account-screen{min-height:100svh;display:flex;flex-direction:column;position:relative;isolation:isolate;overflow-x:hidden;padding:clamp(16px,2.6vw,30px) clamp(18px,5vw,64px) 22px;background:radial-gradient(circle at 90% 15%,#e7dafe 0,transparent 35%),radial-gradient(circle at 4% 90%,#fbe3e8 0,transparent 39%),#faf9f8;color:#27242d}
+.account-screen:before{content:"";position:absolute;z-index:-1;right:12%;top:12%;width:clamp(170px,27vw,460px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#d6bbee25 0,transparent 70%);pointer-events:none}
+.account-header,.account-shell,.account-footer{width:min(1120px,100%);margin-inline:auto}
+.account-header{display:flex;align-items:center;justify-content:space-between;gap:17px}
+.account-brand{display:inline-flex;align-items:center;gap:10px;font-size:14px;white-space:nowrap}
+.account-brand .brand-symbol{height:35px;width:35px;border-radius:11px;box-shadow:0 8px 22px #27242d18}
+.account-header-tag{display:inline-flex;align-items:center;gap:9px;border:1px solid #eae2ea;border-radius:999px;background:#ffffffbf;padding:8px 13px;font-size:11px;color:#726779;font-weight:820;white-space:nowrap}
+.account-header-tag i{width:7px;height:7px;border-radius:50%;background:#ec477e;box-shadow:0 0 0 3px #fae5ee}
+.account-shell{margin-block:auto;display:grid;grid-template-columns:minmax(0,1.04fr) minmax(340px,480px);align-items:center;gap:clamp(25px,5.7vw,88px);padding:clamp(22px,3.5vw,50px) 0}
+.account-editorial{min-width:0}
+.account-overline{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid #efe5ee;background:#ffffffc9;text-transform:uppercase;font-size:11px;font-weight:850;letter-spacing:.1em;color:#9f729c;margin:0 0 22px}
+.account-editorial h1{font-size:clamp(46px,5.4vw,73px);font-weight:870;letter-spacing:-.075em;line-height:.98;margin:0 0 23px}
+.account-editorial h1 em{font-style:normal;color:transparent;background:linear-gradient(115deg,#ec477e 8%,#a372dc 74%);-webkit-background-clip:text;background-clip:text}
+.account-editorial .account-lede{max-width:490px;color:#726b78;font-size:clamp(15px,1.4vw,18px);line-height:1.64;margin:0 0 24px}
+.account-feature-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:30px}
+.account-feature-pills span{display:inline-flex;align-items:center;gap:6px;border:1px solid #ece4ea;border-radius:999px;background:#ffffffd9;padding:8px 11px;color:#665a68;font-size:12px;font-weight:780;white-space:nowrap}
+.account-feature-pills strong{color:#c65793}
+.account-route{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;max-width:495px;padding:0;margin:0;list-style:none}
+.account-route li{min-width:0;padding:13px 12px;border-radius:17px;border:1px solid #eee4ec;background:#ffffffba;box-shadow:0 9px 24px #65426308}
+.account-route-icon{display:grid;place-items:center;width:35px;height:35px;border-radius:12px;background:linear-gradient(145deg,#ffe0ea,#e7dafd);color:#a24f9b;font-weight:850;font-size:20px;margin-bottom:11px}
+.account-route strong{display:block;font-size:12px;font-weight:850;margin-bottom:3px}
+.account-route small{display:block;color:#928797;font-size:11px;line-height:1.4}
+.account-card{position:relative;width:100%;max-width:480px;overflow:hidden;padding:clamp(24px,3.2vw,36px);border:1px solid #ece5ed;border-radius:26px;background:white;box-shadow:0 24px 65px #3f234316}
+.account-card:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#ec477e,#a372dc 67%,#7e62eb)}
+.account-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
+.account-card-step{font-size:11px;font-weight:850;letter-spacing:.12em;color:#a2789f;text-transform:uppercase}
+.account-card-mark{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:#f9eaf5;color:#c34a91;font-size:19px}
+.account-card h2{font-size:clamp(30px,3.3vw,39px);font-weight:850;line-height:1.07;letter-spacing:-.058em;margin:0 0 12px}
+.account-card .account-intro{color:#706476;font-size:14px;line-height:1.56;margin:0 0 16px}
+.account-card label{display:block;color:#4b3e50;font-size:13px;font-weight:760;margin:14px 0}
+.account-card input{width:100%;margin-top:7px;padding:14px 13px;font-size:16px;border:1px solid #dcd3df;border-radius:12px;background:white;color:#302834;transition:border-color .18s,box-shadow .18s}
+.account-card input::placeholder{color:#a9a1ae}
+.account-card input:focus{outline:0;border-color:#a979df;box-shadow:0 0 0 3px #a979df23}
+.account-actions{display:grid;gap:9px;margin-top:18px}
+.account-actions button{width:100%;min-height:49px;padding:14px 18px;border-radius:13px;transition:transform .18s,box-shadow .18s,background .18s}
+.account-actions .primary{box-shadow:0 10px 22px #27242d20}
+.account-actions .primary:hover{box-shadow:0 13px 26px #27242d2a}
+.account-actions .secondary{background:white;border-color:#eae4ea}
+.account-actions .secondary:hover{background:#faf6fa}
+.account-privacy{margin-top:19px;padding:13px 14px;border:1px solid #f1e5f1;border-radius:13px;background:#faf4fa;line-height:1.5}
+.account-privacy strong{font-size:12px;color:#473647}
+.account-privacy p{font-size:12px;line-height:1.55;color:#796a79;margin:4px 0 0}
+.account-status{font-size:13px;font-weight:700;min-height:18px;line-height:1.45;margin:10px 0 0;color:#a33b77}
+.account-hint{color:#928697;font-size:11px;line-height:1.5;margin:13px 0 0}
+.account-footer{font-size:11px;line-height:1.55;color:#9d90a1;text-align:center}
 .account-switch{border:0;background:transparent;color:#795c81;text-decoration:underline;cursor:pointer;font-size:12px;padding:5px}
+@media(max-width:900px){.account-shell{grid-template-columns:minmax(0,1fr);max-width:550px;gap:20px;padding:25px 0 37px}.account-header,.account-footer{max-width:550px}.account-editorial h1{font-size:clamp(43px,7.5vw,63px);margin-bottom:16px}.account-editorial .account-lede{font-size:15px;margin-bottom:15px}.account-feature-pills{margin-bottom:0}.account-route{display:none}.account-card{max-width:none}}
+@media(max-width:530px){.account-desktop-tag{display:none}.account-screen{padding:17px 15px 20px}.account-brand{font-size:12px}.account-brand .brand-symbol{width:31px;height:31px}.account-header-tag{font-size:10px;padding:7px 9px}.account-editorial h1{font-size:clamp(40px,11.8vw,55px)}.account-overline{font-size:10px;margin-bottom:15px}.account-shell{gap:16px;padding:20px 0 27px}.account-card{border-radius:22px;padding:24px 20px}.account-card h2{font-size:31px}.account-feature-pills{gap:6px}.account-feature-pills span{padding:6px 10px;font-size:11px}}
+@media(prefers-reduced-motion:reduce){.account-actions button{transition:none}}
 .c4-sync-panel{border:1px solid #dfede6;background:#fafefa;border-radius:15px;padding:16px;margin:17px 0}
 .c4-sync-panel p{font-size:13px;margin:8px 0}.c4-sync-status{font-size:14px;font-weight:700}
 .c4-sync-panel .secondary{margin-top:8px}
@@ -1756,24 +1793,48 @@ function drawModal(){
 }
 function renderAccountGate(message=""){
  exitHomeButton.hidden=true;
- root.innerHTML=`<main class="account-screen"><section class="account-card">
-  <div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
-  <h1>Primeiro, como vamos chamar você?</h1>
-  <p>Crie um <strong>nome de usuário</strong> para identificar sua partida depois. Pode ser um apelido inventado — <strong>não precisa ser seu nome real.</strong></p>
-  <form id="c4-account-form" autocomplete="on">
-   <label>Nome de usuário <input name="username" autocomplete="username" placeholder="Ex.: jogador42" minlength="3" maxlength="24" pattern="[a-zA-Z0-9_.-]+" required /></label>
-   <label>Senha <input name="password" type="password" autocomplete="current-password" placeholder="Pelo menos 10 caracteres" minlength="10" maxlength="128" required /></label>
-   <div class="account-actions">
-    <button type="submit" class="primary" value="signup" name="modo">Criar conta e continuar</button>
-    <button type="submit" class="secondary" value="login" name="modo">Já tenho conta · Entrar</button>
+ root.innerHTML=`<main class="account-screen">
+ <header class="account-header">
+  <div class="brandline account-brand"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
+  <span class="account-header-tag"><i aria-hidden="true"></i><span class="account-desktop-tag">COLÉGIO RIO BRANCO · </span>CICLO 4</span>
+ </header>
+ <div class="account-shell">
+  <section class="account-editorial" aria-labelledby="account-hero-title">
+   <p class="account-overline">✦ EXPERIÊNCIA INTERATIVA · NO FEED</p>
+   <h1 id="account-hero-title">Seu feed.<br><em>Suas escolhas.</em></h1>
+   <p class="account-lede">Uma semana, um orçamento fictício e uma rede social que vai tentar convencer você a comprar. Será que você consegue enxergar as estratégias por trás de cada oferta?</p>
+   <div class="account-feature-pills" aria-label="Como funciona a experiência">
+    <span><strong>✦</strong> 5 dias de história</span>
+    <span><strong>◇</strong> R$ 620 fictícios</span>
+    <span><strong>♡</strong> Quiz e Raio-X</span>
    </div>
-  </form>
-  <p class="account-status" id="c4-account-status" role="status">${esc(message)}</p>
-  <div class="account-privacy"><strong>Como seus dados serão usados?</strong>
-   <p>Ao terminar os cinco dias e responder as <b>cinco perguntas do quiz</b>, sua partida fictícia (escolhas, compras simuladas, interações e respostas) será enviada <b>automaticamente</b> ao servidor do projeto para que o ChatGPT possa analisá-la após você vincular esta conta. A senha nunca entra no JSON. Você pode pedir a exclusão do registro.</p>
-  </div>
-  <p class="small muted" style="margin-top:14px">Use somente dados fictícios da simulação. O projeto não faz diagnóstico de ninguém.</p>
- </section></main>`;
+   <ol class="account-route" aria-label="Etapas da experiência">
+    <li><span class="account-route-icon" aria-hidden="true">♡</span><strong>Explore</strong><small>Posts, stories e ofertas</small></li>
+    <li><span class="account-route-icon" aria-hidden="true">↗</span><strong>Escolha</strong><small>Seu dinheiro, suas decisões</small></li>
+    <li><span class="account-route-icon" aria-hidden="true">✦</span><strong>Descubra</strong><small>As estratégias do feed</small></li>
+   </ol>
+  </section>
+  <section class="account-card" aria-labelledby="account-card-title">
+   <div class="account-card-top"><span class="account-card-step">ANTES DE COMEÇAR · SUA CONTA</span><span class="account-card-mark" aria-hidden="true">✦</span></div>
+   <h2 id="account-card-title">Primeiro, como vamos chamar você?</h2>
+   <p class="account-intro">Use um <strong>apelido inventado</strong> para identificar sua partida. Não precisa ser seu nome real.</p>
+   <form id="c4-account-form" autocomplete="on">
+    <label>Nome de usuário <input name="username" autocomplete="username" placeholder="Ex.: jogador42" minlength="3" maxlength="24" pattern="[a-zA-Z0-9_.-]+" required /></label>
+    <label>Senha <input name="password" type="password" autocomplete="current-password" placeholder="Pelo menos 10 caracteres" minlength="10" maxlength="128" required /></label>
+    <div class="account-actions">
+     <button type="submit" class="primary" value="signup" name="modo">Criar conta e continuar →</button>
+     <button type="submit" class="secondary" value="login" name="modo">Já tenho conta · Entrar</button>
+    </div>
+   </form>
+   <p class="account-status" id="c4-account-status" role="status" aria-live="polite">${esc(message)}</p>
+   <div class="account-privacy"><strong>Como seus dados serão usados?</strong>
+    <p>Depois dos cinco dias e do quiz, suas escolhas fictícias serão enviadas <b>automaticamente</b> ao MCP para análise no ChatGPT, após você vincular a conta. A senha não entra no JSON. Você pode solicitar a exclusão do percurso.</p>
+   </div>
+   <p class="account-hint">Use somente dados fictícios. O projeto não faz diagnósticos nem compras reais.</p>
+  </section>
+ </div>
+ <footer class="account-footer">Projeto educativo · Psicologia do consumo, marketing digital e ODS 12 · Nenhuma compra é real</footer>
+</main>`;
 }
 function installPlayer(user){
  identity=user;
