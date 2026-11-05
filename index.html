@@ -332,6 +332,8 @@ const USER_KEY_PREFIX='nofeed-simulator-v4:user:';
 const ContaC4=window.PorTrasContaC4;
 let identity=null,syncInFlight=false,syncMessage='';
 const Pressure=window.PorTrasPressure,Week=window.PorTrasWeek,ExportC4=window.PorTrasExportC4;
+// O stream tem limite 58, mas o historico salvo inclui eventos e noites de 5 dias.
+const MAX_WEEK_HISTORY_ITEMS=Week.DAYS.reduce((total,day)=>total+day.quota+day.events.length+1,0);
 
 const Recommender=window.NoFeedRecommender;
 
@@ -385,7 +387,7 @@ function restoreForPlayer(player) {
  try{
   const saved=JSON.parse(localStorage.getItem(USER_KEY_PREFIX+player.id)||"null");
   if(saved?.version===4&&Array.isArray(saved.feedItems)&&Array.isArray(saved.purchases)){
-   state={...makeInitial(),...saved,feedItems:saved.feedItems.slice(0,Stream.MAX_FEED_ITEMS)};
+   state={...makeInitial(),...saved,feedItems:saved.feedItems.slice(0,MAX_WEEK_HISTORY_ITEMS)};
    if(!Array.isArray(state.liked))state.liked=[];
    if(!Array.isArray(state.likedAds))state.likedAds=[];
    if(!Array.isArray(state.hiddenPosts))state.hiddenPosts=[];
