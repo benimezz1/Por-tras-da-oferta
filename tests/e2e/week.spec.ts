@@ -315,11 +315,21 @@ test("final do quiz envia JSON automaticamente ao MCP da conta correta", async (
   });
   expect(Object.keys(payload.estado.quiz)).toHaveLength(5);
   expect(payload.estado).not.toHaveProperty("password");
+  // O historico real inclui posts, anuncios, eventos e as cinco noites.
+  // O antigo limite 58 valia apenas para posts/anuncios e truncava o save ao recarregar.
+  const feedAntes = payload.estado.feedItems.map((item: { id: string }) => item.id);
+  expect(feedAntes.length).toBeGreaterThan(58);
+  expect(feedAntes.length).toBeLessThanOrEqual(65);
   await expect(page.locator("#c4-sync-status")).toContainText("Percurso recebido pelo MCP");
   const state=await saved(page);
   expect(state.c4SyncedRunId).toBe(payload.sessao.id);
   await page.reload();
   await expect(page.locator("#c4-sync-status")).toContainText("Percurso recebido pelo MCP");
+  const baixarNovamente = page.waitForEvent("download");
+  await page.locator('.end-step-3 [data-action="export-c4"]').click();
+  const arquivoRestaurado = await baixarNovamente;
+  const payloadRestaurado = JSON.parse(await readFile((await arquivoRestaurado.path())!, "utf8"));
+  expect(payloadRestaurado.estado.feedItems.map((item: { id: string }) => item.id)).toEqual(feedAntes);
 });
 
 test("cada apelido mantém seu próprio progresso no mesmo Chrome", async ({ page }) => {
