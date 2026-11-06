@@ -339,6 +339,18 @@
 .c4-sync-panel .secondary{margin-top:8px}
 </style>
 <link rel="stylesheet" href="/pressure.css" />
+<style>
+.feed-tools{display:flex;gap:8px;padding:6px 14px 10px}.feed-tools button{flex:1;padding:8px 10px;font-size:13px}
+.day-menu-btn{font-size:20px;font-weight:700;line-height:1}
+.phone.low-vibe .phone-content{filter:saturate(.65) brightness(.97)}
+.ev-surprise{display:flex;align-items:center;gap:12px}.ev-surprise.empty{opacity:.75}
+.late-hint{text-align:center;margin:8px 0 0}
+.mine-post .post-caption{padding:10px 14px}.mine-hint{padding:0 14px 12px;margin:0}
+.post-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.post-choice{display:flex;flex-direction:column;gap:6px;padding:0;border:1px solid #0001;border-radius:12px;overflow:hidden;background:none;cursor:pointer;text-align:left}
+.post-choice img,.post-choice .art-photo{width:100%;aspect-ratio:1;object-fit:cover;display:block}.post-choice span{padding:0 8px 8px;font-size:13px}
+.time-guess input{width:100%}.time-guess p{text-align:center;font-size:18px}
+</style>
 </head>
 <body>
 <div id="app"></div>
@@ -369,8 +381,11 @@ const USER_KEY_PREFIX='nofeed-simulator-v4:user:';
 const ContaC4=window.PorTrasContaC4;
 let identity=null,syncInFlight=false,syncMessage='';
 const Pressure=window.PorTrasPressure,Week=window.PorTrasWeek,ExportC4=window.PorTrasExportC4;
-// O stream tem limite 58, mas o historico salvo inclui eventos e noites de 5 dias.
-const MAX_WEEK_HISTORY_ITEMS=Week.DAYS.reduce((total,day)=>total+day.quota+day.events.length+1,0);
+// O feed agora é infinito: o histórico salvo só tem um teto de segurança.
+const MAX_WEEK_HISTORY_ITEMS=2000;
+// Limite real da partida (30 min). Plataformas reais não fazem isso.
+const TIME_LIMIT_MS=30*60*1000;
+const emptyAttention=()=>({extraItems:0,realMs:0,exitHooks:0,exitHookDays:[],surprises:0,adSwaps:0,refreshes:0,lateNights:0,guess:null});
 
 const Recommender=window.NoFeedRecommender;
 
@@ -417,7 +432,7 @@ function newRunId(){
  return "c4-"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
- pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null});
+ pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),myPosts:[]});
 let state=makeInitial();
 function restoreForPlayer(player) {
  state=makeInitial();
@@ -425,6 +440,9 @@ function restoreForPlayer(player) {
   const saved=JSON.parse(localStorage.getItem(USER_KEY_PREFIX+player.id)||"null");
   if(saved?.version===4&&Array.isArray(saved.feedItems)&&Array.isArray(saved.purchases)){
    state={...makeInitial(),...saved,feedItems:saved.feedItems.slice(0,MAX_WEEK_HISTORY_ITEMS)};
+   state.attention={...emptyAttention(),...(saved.attention||{})};
+   if(!Array.isArray(state.attention.exitHookDays))state.attention.exitHookDays=[];
+   if(!Array.isArray(state.myPosts))state.myPosts=[];
    if(!Array.isArray(state.liked))state.liked=[];
    if(!Array.isArray(state.likedAds))state.likedAds=[];
    if(!Array.isArray(state.hiddenPosts))state.hiddenPosts=[];
@@ -979,7 +997,8 @@ const dayItems=(d=state.day)=>state.feedItems.filter(x=>(x.day||1)===d);
 const streamItems=()=>state.feedItems.filter(x=>x.kind==='post'||x.kind==='ad');
 const dayStreamCount=()=>dayItems().filter(x=>x.kind==='post'||x.kind==='ad').length;
 const pad2=n=>String(n).padStart(2,'0');
-function clockLabel(){const d=dayInfo(),m=Math.min(23*60+52,d.start+dayItems().length*14);return pad2(Math.floor(m/60))+':'+pad2(m%60);}
+function clockMinutes(){const d=dayInfo();return d.start+dayItems().length*14;}
+function clockLabel(){const m=clockMinutes()%(24*60);return pad2(Math.floor(m/60))+':'+pad2(m%60);}
 function expose(key,moment){if(Pressure.expose(state.pressure,key,moment))save();}
 function influenced(keys,action){for(const k of [...new Set(keys)])Pressure.influence(state.pressure,k,typeof action==='function'?action(k):action);save();}
 function vibe(delta,tag,label){Pressure.vibeChange(state.vibe,delta,tag,label);save();pulseVibe(delta);}
@@ -1027,6 +1046,14 @@ function eventApplies(ev){
 }
 function onEventInserted(item){
  const d=item.day;
+ if(item.type==='surprise'){
+  if(item.variant!=='nothing')state.attention.surprises++;
+  if(item.variant==='coins'){item.bonus=3;state.coins=Pressure.round(state.coins+3);}
+  else if(item.variant==='comment')Pressure.vibeChange(state.vibe,4,'surprise','A Bia comentou numa foto sua.');
+  else if(item.variant==='drop')addCoupon({code:'VOLTA-'+item.product.toUpperCase(),label:'15% OFF no '+productName(item.product),kind:'pct',amount:15,min:0,only:[item.product],expiresDay:d,source:'surprise'});
+  expose('recompensa_variavel',item.variant==='nothing'?'Um card de “surpresa” apareceu vazio: “nada por aqui… continue rolando”.':'Uma surpresa apareceu no meio do feed, sem aviso, e fez você querer ver o próximo post.');
+  return;
+ }
  if(item.type==='checkin'){
   state.streak++;const bonus=state.streak>=5?15:5;state.coins=Pressure.round(state.coins+bonus);item.bonus=bonus;
   expose('recompensa',`Check-in diário: sequência de ${state.streak} dia(s) e +${money(bonus)} em moedas que só valem no app.`);
@@ -1048,15 +1075,55 @@ function onEventInserted(item){
  else if(item.type==='cartnudge'){expose('personalizacao','Lembrete do carrinho e de produtos que você visitou.');expose('urgencia','“Seus itens estão quase esgotando.”');}
  else if(item.type==='live')expose('influencia','A Lívia entrou ao vivo vendendo o tênis da semana.');
 }
+/* Posição sorteada dentro da janela [mín, máx], com semente da partida:
+ * cada partida tem o roteiro em ordem diferente. */
+function evAt(ev,d){
+ if(!Array.isArray(ev.at))return ev.at;
+ const [lo,hi]=ev.at;
+ return lo+Pressure.hash(state.runId+':'+d.n+':'+ev.type+':'+(ev.thread||ev.post||''))%(hi-lo+1);
+}
+let scrollFastAt=0,lastScroll=null;
+const fastScroll=()=>Date.now()-scrollFastAt<4000;
+function streamArgs(d){
+ return {shown:streamItems(),profile:state.algorithm,personalized:state.personalized,phase:state.phase,cart:state.cart,viewed:state.viewed,purchased:state.purchases.map(p=>p.id),allowed:d.allow,focus:d.focus,
+  infinite:true,exclude:dayItems().filter(x=>x.kind==='post').map(x=>x.id),fastScroll:fastScroll(),lowVibe:state.vibe.value<40};
+}
+function trackStreamItem(item,d){
+ Pressure.vibeTick(state.vibe);
+ if(item.swap){state.attention.adSwaps++;expose('rolagem_infinita','Quando você rolou rápido, o feed trocou um anúncio por post de amigo para te segurar.');}
+ if(item.recycled)expose('rolagem_infinita','Os posts novos acabaram e o feed passou a repetir conteúdos como “Sugerido para você”.');
+ if(item.kind==='ad'){
+  if(item.campaign==='retarget')expose('personalizacao',`${productName(item.topic)} voltou a aparecer depois que você demonstrou interesse.`);
+  else if(item.campaign==='pair')expose('personalizacao',`Depois de uma compra, o feed sugeriu ${productName(item.topic)} “para combinar”.`);
+ }
+ state.phase=Math.min(15,Math.floor(streamItems().length/6));
+}
+/* Recompensa variável: ~1/6 de chance por item, ~1/3 depois do mínimo do dia. */
+function maybeSurprise(d){
+ const n=state.feedItems.length,extra=dayStreamCount()>d.minQuota;
+ if(Pressure.hash(state.runId+':s:'+n)%6>(extra?1:0))return;
+ const seen=state.viewed.find(id=>products[id]&&!bought(id));
+ const kinds=['coins','comment','nothing'].concat(seen?['drop']:[]);
+ const variant=kinds[Pressure.hash(state.runId+':v:'+n)%kinds.length];
+ const item={kind:'event',type:'surprise',variant,product:variant==='drop'?seen:'',id:'sp-'+d.n+'-'+n,day:d.n};
+ state.feedItems.push(item);onEventInserted(item);
+}
+/* Passou das 23h rolando: anúncio emocional e a próxima manhã começa pior. */
+function checkLate(d){
+ if(clockMinutes()<23*60||state.flags['late'+d.n])return;
+ state.flags['late'+d.n]=true;state.attention.lateNights++;
+ expose('rolagem_infinita',`${d.label}: passou das 23h rolando o feed.`);
+ if(!dayItems().some(x=>x.type==='mood')){const item={kind:'event',type:'mood',id:`ev-${d.n}-mood-late`,day:d.n};state.feedItems.push(item);onEventInserted(item);}
+}
 function appendNext(){
  const d=dayInfo();
  if(!d||state.finished||dayItems().some(x=>x.kind==='night'))return false;
  let added=0;
  const insertEvents=(force=false)=>{
-  for(const ev of d.events){
-   const id=`ev-${d.n}-${ev.type}-${ev.at}`;
+  for(const [i,ev] of d.events.entries()){
+   const id=`ev-${d.n}-${ev.type}-${i}`;
    if(state.feedItems.some(x=>x.id===id))continue;
-   if(!force&&ev.at>dayStreamCount())continue;
+   if(!force&&evAt(ev,d)>dayStreamCount())continue;
    const ok=eventApplies(ev);
    const item={kind:'event',id,type:ok?ev.type:'none',thread:ev.thread||'',post:ev.post||'',day:d.n,topic:ev.post?(Week.COMPARE_POSTS[ev.post]?.topic||''):''};
    state.feedItems.push(item);
@@ -1064,20 +1131,22 @@ function appendNext(){
   }
  };
  insertEvents();
- for(let i=0;i<5&&dayStreamCount()<d.quota;i++){
-  const batch=Stream.nextBatch(contentPool(),{shown:streamItems(),profile:state.algorithm,personalized:state.personalized,phase:state.phase,cart:state.cart,viewed:state.viewed,purchased:state.purchases.map(p=>p.id),allowed:d.allow,focus:d.focus},1);
+ // Sem fim: depois do mínimo do dia o feed continua; o dia só acaba pelo menu ⋯.
+ for(let i=0;i<5;i++){
+  const batch=Stream.nextBatch(contentPool(),streamArgs(d),1);
   if(!batch.length)break;
   const item={...batch[0],day:d.n};
   state.feedItems.push(item);added++;
-  Pressure.vibeTick(state.vibe);
-  if(item.kind==='ad'){
-   if(item.campaign==='retarget')expose('personalizacao',`${productName(item.topic)} voltou a aparecer depois que você demonstrou interesse.`);
-   else if(item.campaign==='pair')expose('personalizacao',`Depois de uma compra, o feed sugeriu ${productName(item.topic)} “para combinar”.`);
+  trackStreamItem(item,d);
+  if(dayStreamCount()>d.minQuota){
+   state.attention.extraItems++;
+   if(dayStreamCount()===d.minQuota+1)expose('rolagem_infinita',`${d.label}: o feed não acabou depois dos posts do dia e continuou trazendo conteúdo.`);
   }
-  state.phase=Math.min(15,Math.floor(streamItems().length/6));
+  maybeSurprise(d);
   insertEvents();
+  checkLate(d);
  }
- if(dayStreamCount()>=d.quota||!added){insertEvents(true);state.feedItems.push({kind:'night',id:'night-'+d.n,day:d.n});added++;}
+ if(!added){insertEvents(true);state.feedItems.push({kind:'night',id:'night-'+d.n,day:d.n});added++;}
  save();
  return added>0;
 }
@@ -1089,6 +1158,10 @@ function deliverThread(key,day){
  const th=state.threads[key]||(state.threads[key]={days:[],unread:0,picked:{}});
  if(th.days.includes(day))return;
  th.days.push(day);th.unread+=block.messages.length;
+ if(block.ifMissing&&!bought(block.ifMissing.product)){
+  (th.left||(th.left={}))[day]=true;th.unread+=block.ifMissing.messages.length;
+  expose('fomo','No grupo da turma, combinaram algo só para quem tinha o tênis da moda.');
+ }
  const preview=block.messages[Math.min(1,block.messages.length-1)][1];
  banner(`<span class="push-app">💬 ${esc(t.name)}</span><span class="push-text">${esc(preview)}</span>`,{'data-action':'chat','data-thread':key});
  if(key==='turma')expose('fomo','Grupo da turma comentando quem vai de tênis novo e quem comprou o quê.');
@@ -1122,7 +1195,7 @@ function chatPage(){
  const body=th.days.map(day=>{
   const b=t.blocks.find(x=>x.day===day),pick=th.picked[day];
   const who=from=>t.kind==='group'?`<small>${esc(SENDERS[from]||from)}</small>`:'';
-  const msgs=b.messages.map(([from,text])=>`<div class="msg in">${who(from)}${esc(text)}</div>`).join('');
+  const msgs=b.messages.concat(th.left?.[day]&&b.ifMissing?b.ifMissing.messages:[]).map(([from,text])=>`<div class="msg in">${who(from)}${esc(text)}</div>`).join('');
   let tail='';
   if(b.choices){
    if(pick){const c=b.choices.find(c=>c.id===pick);tail=`<div class="msg out">${esc(c.label)}</div>${c.reply?`<div class="msg in">${who(k==='fest'?'bia':k==='turma'?'gabi':k)}${esc(c.reply)}</div>`:''}`;}
@@ -1464,6 +1537,7 @@ function buy(ids){
   return `Comprou ${label} com ${Pressure.STRATEGIES[k].name.toLowerCase()} na tela.`;
  });
  Pressure.vibeBuy(state.vibe,trial?10:16+6*(ids.length-1),'Comprou '+label);
+ state.flags.boughtToday=true;
  state.lastOrder={items:ids,total:paid,method:trial?'trial':method,n:q.n,each:q.each,cashback,coupon:q.coupon?.code||'',trial,at:Date.now()};
  state.payMethod=null;
  save();overlay={type:"receipt"};modal=null;renderGame(true);
@@ -1529,7 +1603,9 @@ function overnight(){
 }
 function sleep(){
  if(state.day>=Week.DAYS.length){finishWeek();return;}
- Pressure.vibeChange(state.vibe,9,'night','Uma noite de sono');
+ if(state.flags['late'+state.day])Pressure.vibeChange(state.vibe,-10,'night','Dormiu tarde rolando o feed');
+ else Pressure.vibeChange(state.vibe,9,'night','Uma noite de sono');
+ if(state.flags.boughtToday){state.flags.boughtToday=false;Pressure.vibeChange(state.vibe,-10,'afterglow','A empolgação da compra passou');}
  state.day++;
  state.flags.cartHold=0;
  state.wakeList=overnight();
@@ -1545,6 +1621,42 @@ function wakePage(){
  ${list.length?`<div class="wake-notifs"><small>NOTIFICAÇÕES</small>${list.map(n=>`<div class="wake-n"><span>${n.icon}</span><p>${esc(n.text)}</p></div>`).join('')}</div>`:''}
  <button class="primary full wake-open" data-action="open-day">Abrir o pulso. →</button></div>`;
 }
+/* Gancho de saída: uma vez por dia, quando a pessoa tenta sair. */
+function tryExitHook(src){
+ if(!state.started||state.finished||state.wake||state.attention.exitHookDays.includes(state.day))return false;
+ if(src!=='end'&&(overlay||modal||story))return false;
+ state.attention.exitHookDays.push(state.day);
+ expose('gancho_saida','Quando você tentou sair, apareceu “a Bia postou uma foto com você, ver agora?”.');
+ save();modal={type:'exit-hook',src};drawModal();return true;
+}
+function topOfToday(items){
+ const idx=state.feedItems.findIndex(x=>(x.day||1)===state.day);
+ state.feedItems.splice(idx<0?state.feedItems.length:idx,0,...items);
+}
+let refreshing=false;
+function refreshFeed(){
+ if(refreshing)return;refreshing=true;
+ const btn=document.querySelector('[data-action="refresh-feed"]');if(btn)btn.textContent='Atualizando…';
+ setTimeout(()=>{
+  refreshing=false;const d=dayInfo();state.attention.refreshes++;
+  expose('recompensa_variavel','Puxar para atualizar: às vezes vinha novidade, às vezes “nada novo ainda”.');
+  const lucky=Pressure.hash(state.runId+':r:'+state.attention.refreshes)%2===0;
+  const batch=lucky&&d?Stream.nextBatch(contentPool(),{...streamArgs(d),preferFriends:true},2):[];
+  if(!batch.length){save();renderGame(true);toast('Nada novo ainda. Tente de novo daqui a pouco.');return;}
+  const items=batch.map(b=>({...b,day:d.n,fresh:true}));
+  topOfToday(items);for(const it of items)trackStreamItem(it,d);
+  save();renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);toast(items.length+' publicações novas');
+ },1500);
+}
+function publishPost(choice){
+ const c=POST_CHOICES.find(x=>x.id===choice);if(!c)return;
+ if(state.myPosts.some(p=>p.day===state.day)){modal=null;renderGame(true);toast('Você já postou hoje.');return;}
+ const boosted=bought(c.topic),id='me-'+state.day;
+ state.myPosts.push({id,choice,day:state.day,at:Date.now(),boosted,target:(12+Pressure.hash(state.runId+id)%14)*(boosted?3:1)});
+ topOfToday([{kind:'mine',id,day:state.day}]);
+ expose('validacao_social',boosted?`Seu post com ${productName(c.topic)} rendeu 3x mais curtidas.`:`Seu post rendeu poucas curtidas, e o app sugeriu que com ${productName(c.topic)} renderia 3x mais.`);
+ modal=null;save();renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);
+}
 function finishWeek(){stopStory();clearInterval(liveTimer);state.finished=true;state.finishedAt ||= new Date().toISOString();state.endStep=0;save();overlay=null;modal=null;renderEnd();}
 
 /* ---------- cards do roteiro ---------- */
@@ -1554,6 +1666,8 @@ function eventCard(item){
  if(t==='roleta')return `<section class="ev ev-roleta"><span class="ev-emoji big">🎁</span><div><strong>${state.flags.roleta?'Seu cupom de R$ 50 OFF está ativo':'Seu giro grátis está esperando'}</strong><p>${state.flags.roleta?'Válido só hoje até 23:59 em compras acima de R$ 249.':'Prêmio garantido: até R$ 100 OFF no Pulso Shop.'}</p></div><button class="ev-btn" data-action="${state.flags.roleta?'shop':'roleta'}">${state.flags.roleta?'Usar cupom':'Girar agora'}</button></section>`;
  if(t==='card')return state.card.active?'':`<section class="ev ev-card"><div class="mini-card">pulso<b>.</b> pay</div><div><strong>Você foi pré-aprovado! 💳</strong><p>${money(state.card.limit)} de limite. Compre agora, pague depois.</p></div><button class="ev-btn" data-action="pay">Ativar</button></section>`;
  if(t==='compare'){const c=Week.COMPARE_POSTS[item.post];return c?comparePostCard(c):'';}
+ if(t==='surprise')return surpriseCard(item);
+ if(t==='tagged')return taggedCard();
  if(t==='live')return `<section class="ev ev-live" data-action="live" role="button" tabindex="0" aria-label="Entrar na live da Lívia"><div class="ev-live-photo" style="background-image:url('${mediaSrc('story_tenis_1')}')"><span class="live-badge">AO VIVO</span><span class="ev-live-viewers">👀 1,2 mil</span></div><div class="ev-live-text"><span class="avatar photo-avatar">${mediaPhoto('avatar_livia','avatar-photo','Foto de perfil da Lívia')}</span><div><strong>livia.looks está ao vivo</strong><p>“Cupom exclusivo só pra quem está aqui agora 🔥”</p></div></div><button class="ev-btn live" data-action="live">Entrar na live</button></section>`;
  if(t==='trial')return bought('plano')?'':`<section class="ev ev-trial"><span class="ev-emoji big">🎧</span><div><strong>Estudar com foco? MODO+ 3 dias GRÁTIS</strong><p>Sem anúncios entre as músicas. Cancele quando quiser.</p></div><button class="ev-btn" data-action="product" data-product="plano" data-source="trial">Testar grátis</button></section>`;
  if(t==='mood'){
@@ -1569,6 +1683,27 @@ function eventCard(item){
  }
  if(t==='lastcall'){if(bought('ingresso'))return '';return `<section class="ev ev-fest"><strong>🎉 POCKET FEST · HOJE 20H</strong><p>Lote final · a turma já garantiu</p><div class="scarcity-bar"><span style="width:92%"></span></div><small>92% vendido · encerra em <b class="js-countdown" data-until="${state.flags.festEnd}">01:42:00</b></small><button class="ev-btn" data-action="product" data-product="ingresso" data-source="lastcall">Garantir ingresso · ${money(price('ingresso').price)}</button></section>`;}
  return '';
+}
+const POST_CHOICES=[
+ {id:'look',photo:'story_tenis_0',topic:'tenis',caption:'look de hoje 👟'},
+ {id:'estudo',photo:'story_plano_0',topic:'plano',caption:'modo estudo ativado 📚'},
+ {id:'role',photo:'post_p10',topic:'ingresso',caption:'fim de tarde com a galera ☀️'},
+ {id:'musica',photo:'story_fone_0',topic:'fone',caption:'trilha sonora do dia 🎧'}];
+const myLikes=p=>Math.round(p.target*Math.min(1,Math.sqrt(Math.max(0,Date.now()-p.at)/120000)));
+function mineCard(item){
+ const p=state.myPosts.find(x=>x.id===item.id);if(!p)return '';
+ const c=POST_CHOICES.find(x=>x.id===p.choice)||POST_CHOICES[0];
+ return `<article class="post mine-post"><div class="post-top"><span class="avatar">🙂</span><div class="user-info"><div class="username">você</div><div class="post-sub">agora</div></div></div><div class="post-media feed-photo">${mediaPhoto(c.photo,'art-photo','Sua publicação')}</div><div class="post-caption"><strong>❤️ <span class="js-my-likes" data-post="${p.id}">${myLikes(p)}</span> curtidas</strong> · ${esc(c.caption)}</div>${p.boosted?'':`<p class="small muted mine-hint">💡 Posts com ${esc(productName(c.topic))} estão rendendo 3x mais curtidas hoje.</p>`}</article>`;
+}
+function surpriseCard(item){
+ const v=item.variant;
+ if(v==='coins')return `<section class="ev ev-surprise"><span class="ev-emoji big">🎉</span><div><strong>Surpresa! +${money(item.bonus||3)} em moedas</strong><p>Continue rolando: pode ter mais.</p></div></section>`;
+ if(v==='comment')return `<section class="ev ev-surprise"><span class="ev-emoji big">💬</span><div><strong>bia.m comentou numa foto sua</strong><p>“saudade dessa época 🥹”</p></div></section>`;
+ if(v==='drop'&&item.product)return `<section class="ev ev-surprise"><span class="ev-emoji big">📉</span><div><strong>Baixou! ${esc(productName(item.product))} com 15% OFF</strong><p>Só pra você, só hoje.</p></div><button class="ev-btn" data-action="product" data-product="${item.product}" data-source="surprise">Ver</button></section>`;
+ return `<section class="ev ev-surprise empty"><span class="ev-emoji big">🎁</span><div><strong>Nada por aqui… desta vez</strong><p>Continue rolando.</p></div></section>`;
+}
+function taggedCard(){
+ return `<article class="post compare-post tagged-post"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar('bia.m','post_p10',false)}</span><div class="user-info"><div class="username">bia.m <span class="meta-tag">marcou você</span></div><div class="post-sub">agora</div></div></div><div class="post-media feed-photo">${mediaPhoto('post_p10','art-photo','Foto da turma')}</div><div class="post-caption"><strong>bia.m</strong> saudade dessa turma 🥹 @você</div></article>`;
 }
 function comparePostCard(c){
  const liked=state.liked.includes(c.id);
@@ -1586,10 +1721,17 @@ function refreshHeader(){
 let tickTimer=null;
 function tick(){
  const now=Date.now();
+ for(const el of document.querySelectorAll('.js-my-likes[data-post]')){const p=state.myPosts.find(x=>x.id===el.dataset.post);if(p)el.textContent=myLikes(p);}
  for(const el of document.querySelectorAll('.js-countdown[data-until]')){const left=Number(el.dataset.until)-now;el.textContent=left>0?Pressure.formatClock(left):'00:00';}
  for(const el of document.querySelectorAll('.js-timer[data-product]')){el.textContent=Pressure.formatClock(Pressure.timerLeft(state.timers[el.dataset.product],now));}
 }
-tickTimer=setInterval(tick,1000);
+function countTime(){
+ if(!identity||!state.started||state.finished||state.wake||document.visibilityState!=='visible')return;
+ state.attention.realMs+=1000;
+ if(state.attention.realMs>=TIME_LIMIT_MS){state.flags.timeLimit=true;finishWeek();return;}
+ if(state.attention.realMs%10000===0)save();
+}
+tickTimer=setInterval(()=>{countTime();tick();},1000);
 function openProduct(id,source){
  if(!products[id])return;
  clearTimeout(storeOpenTimer);storeOpenTimer=null;
@@ -1672,20 +1814,26 @@ function stageFeed(){
   else if(item.kind==='ad'){if(!state.hiddenPosts.includes(item.id))card=adCard(item.topic,item.retarget,item);}
   else if(item.kind==='event')card=eventCard(item);
   else if(item.kind==='night')card=nightCard(item);
+  else if(item.kind==='mine')card=mineCard(item);
+  if(card&&item.recycled)card=sectionDivider('Sugerido para você','page')+card;
+  else if(card&&item.fresh)card=sectionDivider('Novo')+card;
   return card+(i===4?shopStrip():'');
  }).join('');
  const ended=items.some(x=>x.kind==='night');
- return `<div class="game">${asideLeft()}<main class="phone" aria-label="Simulador de rede social">
+ const extraToday=Math.max(0,dayStreamCount()-(d.minQuota||7));
+ return `<div class="game">${asideLeft()}<main class="phone${state.vibe.value<40?' low-vibe':''}" aria-label="Simulador de rede social">
  <div class="status-bar"><span class="sb-time">${d.short} · ${clockLabel()}</span><span class="hud"><button class="hud-vibe" data-action="vibe-info" aria-label="Sua vibe: ${m.label}"><span class="hud-vibe-emoji">${m.emoji}</span><span class="hud-vibe-track"><span class="hud-vibe-fill" style="width:${state.vibe.value}%"></span></span></button><button class="hud-coins" data-action="coins-info" aria-label="Moedas Pulso">🪙 ${money(state.coins)}</button></span></div>
  <header class="phone-head"><span class="phone-logo">pulso<b>.</b></span><div class="phone-actions">
  <button class="shop-entry" data-action="shop" aria-label="Abrir lojas">${state.day===4?'🔥 Liquida':'Ofertas'}</button><button class="icon-button" data-action="notifications" aria-label="Notificações" style="position:relative">${icon('heart')}${state.notifs.length?'<span class="notif-dot"></span>':''}</button>
  <button class="icon-button hud-dm" data-action="inbox" aria-label="Mensagens" style="position:relative">${icon('send')}${n?`<span class="cart-dot">${n}</span>`:''}</button>
  <button class="icon-button" data-action="cart" aria-label="Abrir carrinho" style="position:relative">${icon('cart')}${state.cart.length?`<span class="cart-dot">${state.cart.length}</span>`:''}</button>
+ <button class="icon-button day-menu-btn" data-action="day-menu" aria-label="Mais opções">⋯</button>
  </div></header>
  <div class="phone-content" id="feed-scroll">
  ${renderStories(storyPool())}
  <div class="recommendation-caption">${state.personalized?'Para você':'Publicações em ordem cronológica'}</div>
- ${cards}${ended?'':'<button class="load-more" data-action="load-more">Mais publicações para você ↓</button>'}
+ <div class="feed-tools"><button class="secondary" data-action="refresh-feed">↻ Novidades</button><button class="secondary" data-action="new-post">＋ Postar</button></div>
+ ${cards}${ended?'':`${extraToday>=15?'<p class="late-hint small muted">Já está tarde… (⋯ → Encerrar o dia)</p>':''}<button class="load-more" data-action="load-more">Mais publicações para você ↓</button>`}
  </div><button class="scroll-cue" data-action="scroll-cue" aria-label="Role para baixo para continuar">Continue rolando ↓</button>
  <footer class="phone-footer"><button class="icon-button" data-action="feedtop" aria-label="Início do feed">${icon('home')}</button>
  <button class="icon-button" data-action="search" aria-label="Explorar lojas">${icon('search')}</button>
@@ -1787,6 +1935,17 @@ function drawModal(){
   content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer"><div class="exit-gift">💳</div><h3>Tem certeza?</h3><p>Quem ativa o Pulso Pay ganha <b>5% de volta</b> em moedas e parcela em até 10x. A oferta pré-aprovada pode não aparecer de novo.</p>
   <button class="primary full" data-action="activate-card">Ativar meu limite</button>
   <button class="tertiary full" data-action="card-no">Não quero facilidades</button></div>`;
+ }
+ else if(v.type==='day-menu'){
+  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Opções</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header><div class="sheet-scroll">
+  <button class="secondary full" data-action="end-day">${state.day>=Week.DAYS.length?'Dormir e acordar no sábado 🚌':'Encerrar o dia 💤'}</button>
+  <button class="tertiary full" style="margin-top:10px" data-action="close-modal">Continuar no feed</button></div>`;
+ }else if(v.type==='exit-hook'){
+  content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer"><div class="exit-gift">📸</div><h3>bia.m postou uma foto com você</h3><p>Ver agora?</p>
+  <button class="primary full" data-action="hook-accept">Ver agora</button>
+  <button class="tertiary full" data-action="hook-decline">Agora não</button></div>`;
+ }else if(v.type==='new-post'){
+  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Nova publicação</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header><div class="sheet-scroll post-choices">${POST_CHOICES.map(c=>`<button class="post-choice" data-action="publish" data-choice="${c.id}">${mediaPhoto(c.photo,'art-photo',c.caption)}<span>${esc(c.caption)}</span></button>`).join('')}</div>`;
  }
  const box=document.createElement('div');box.className='layer-backdrop';box.innerHTML=`<section class="bottom-sheet" role="dialog" aria-modal="true">${content}</section>`;phone.appendChild(box);
  tick();
@@ -1969,8 +2128,9 @@ function endStep3(s){
  <div class="end-stat"><label>Reconheceu</label><strong>${right}/${qs.length}</strong><span class="small muted">estratégias no quiz</span></div>
  <div class="end-stat"><label>Viagem</label><strong>${s.tripPaid?'Foi ✅':'Ficou ❌'}</strong><span class="small muted">${s.tripPaid?'reserva de R$ 400 preservada':'faltaram '+money(s.missing)}</span></div>
  <div class="end-stat"><label>Gasto total</label><strong>${money(s.spent)}</strong><span class="small muted">incluindo parcelas e assinatura</span></div>
- <div class="end-stat"><label>Estratégias que te pegaram</label><strong>${prof.filter(p=>p.influenced).length}/10</strong><span class="small muted">${prof.reduce((a,p)=>a+p.exposed,0)} estímulos recebidos</span></div>
+ <div class="end-stat"><label>Estratégias que te pegaram</label><strong>${prof.filter(p=>p.influenced).length}/${Pressure.KEYS.length}</strong><span class="small muted">${prof.reduce((a,p)=>a+p.exposed,0)} estímulos recebidos</span></div>
  </div>
+ ${attentionBox()}
  ${top.length?`<div class="end-box"><h3>Onde você ficou mais vulnerável</h3>${top.map(p=>`<div class="insight"><strong>${p.icon} ${esc(p.name)}</strong><p>${esc(p.actions.at(-1)||p.short)}</p></div>`).join('')}</div>`:`<div class="end-box"><h3>Você não comprou nada</h3><p class="small muted">Ótimo para a viagem. Mas repare: as estratégias continuaram aparecendo e se adaptando a cada clique. Na vida real, elas trabalham todos os dias.</p></div>`}
  <div class="end-box"><h3>Para usar fora do jogo</h3><div class="tips">${tips.map(([i,t,d])=>`<div class="tip"><span>${i}</span><div><strong>${t}</strong><p>${d}</p></div></div>`).join('')}</div></div>
  <div class="end-box"><h3>Por que isso importa</h3><p class="small muted">Na TIC Kids Online Brasil 2025, 55% dos adolescentes de 11 a 17 anos tiveram contato com publicidade em redes sociais, 84% viram conteúdos que divulgavam produtos sem identificação clara, e 51% das crianças e adolescentes pediram algo depois de ver um anúncio online. Reconhecer as estratégias é um passo para o consumo responsável do ODS 12.</p></div>
@@ -1987,8 +2147,30 @@ function endStep3(s){
  <div class="end-buttons"><button class="primary" data-action="restart">Jogar novamente ↗</button><button class="secondary" data-action="switch-player">Outro jogador / sair</button><button class="secondary" data-action="sources">Base da pesquisa</button></div>
  <div id="sources" hidden class="end-box tiny-sources"><strong>Referências do projeto</strong><p>Bandyopadhyay et al. (2021) · Bauman (2008) · De Jans et al. (2020) · Dinh e Lee (2024) · Feng et al. (2024) · Huang et al. (2025) · Iyer et al. (2020) · NIC.br, TIC Kids Online Brasil 2025 (2026) · OCDE (2022), dark commercial patterns · Setyani et al. (2019) · Shamim, Azam e Islam (2024) · Van der Bend et al. (2023). Complementares: Mathur et al. (2019), Dark Patterns at Scale; Prelec e Simester (2001), efeito do cartão de crédito. Entrevista com a psicóloga Ana Carolina Barros Mendonça Cortez Penna.</p><p>Marcas, pessoas e valores são fictícios. O ranking imita princípios gerais conhecidos, sem reproduzir modelos proprietários.</p></div>`;
 }
+function guessPage(){
+ return `<main class="end"><div class="end-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
+ ${state.flags.timeLimit?'<div class="end-box"><h3>⏹ 30 minutos de jogo</h3><p>A partida foi encerrada automaticamente. Plataformas reais não fazem isso. Nós fazemos.</p></div>':''}
+ <div class="eyebrow" style="margin-top:23px">ANTES DE VER O RESULTADO</div>
+ <h1>Quanto tempo você acha que jogou?</h1>
+ <div class="end-box time-guess"><input type="range" id="time-guess" min="1" max="60" value="10" aria-label="Minutos estimados"><p><strong id="time-guess-out">10</strong> minutos</p></div>
+ <button class="primary" data-action="guess-time">Ver o que aconteceu →</button></div></main>`;
+}
+function attentionBox(){
+ const a=state.attention,real=Math.max(1,Math.round(a.realMs/60000)),diff=real-(a.guess||0);
+ const likes=state.myPosts.reduce((n,p)=>n+myLikes(p),0);
+ const row=(i,t,d)=>`<div class="insight"><strong>${i} ${t}</strong><p>${d}</p></div>`;
+ return `<div class="end-box attention-box"><h3>Raio-X da atenção</h3>
+ ${row('⏱️',`Você achou que jogou ${a.guess??'?'} min. Jogou ${real} min.`,diff>0?`O feed levou ${diff} min a mais do que você percebeu.`:'Você percebeu bem o próprio tempo. Na vida real, sem relógio na tela, isso fica mais difícil.')}
+ ${row('♾️',`${a.extraItems} conteúdos além dos posts de cada dia`,`Nenhum deles era necessário: o feed só não tinha fim. ${a.lateNights?`Em ${a.lateNights} noite(s) você passou das 23h.`:''}`)}
+ ${row('🪝',`${a.exitHookDays.length} gancho(s) de saída, ${a.exitHooks} funcionaram`,'Quando você tentou sair, apareceu algo “imperdível” sobre você.')}
+ ${row('🎲',`${a.surprises} surpresa(s) e ${a.refreshes} atualização(ões)`,'Recompensas imprevisíveis fazem a gente continuar procurando a próxima.')}
+ ${row('🔀',`${a.adSwaps} anúncio(s) trocado(s) por post de amigo`,'Quando você rolava rápido (sinal de tédio), o algoritmo segurava os anúncios para não te perder.')}
+ ${state.myPosts.length?row('❤️',`${likes} curtidas nos seus posts`,'As curtidas chegaram aos poucos para você voltar e conferir, e valiam 3x mais com o produto da moda.'):''}
+ </div>`;
+}
 function renderEnd(){
  exitHomeButton.hidden=false;
+ if(state.attention.guess==null){root.innerHTML=guessPage();window.scrollTo(0,0);return;}
  const s=Pressure.settle(state),step=Math.max(0,Math.min(3,state.endStep||0));
  const body=[endStep0,endStep1,endStep2,endStep3][step](s);
  root.innerHTML=`<main class="end end-step-${step}"><div class="end-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
@@ -2114,6 +2296,16 @@ function handleFeedTouchCancel(){
 }
 
 let searchLearningTimer=null;
+root.addEventListener("input",e=>{if(e.target?.id==="time-guess"){const o=document.getElementById("time-guess-out");if(o)o.textContent=e.target.value;}});
+/* Velocidade de rolagem: acima de ~900 px/s conta como "rolando rápido". */
+root.addEventListener("scroll",e=>{
+ if(e.target?.id!=="feed-scroll")return;
+ const now=performance.now(),y=e.target.scrollTop;
+ if(lastScroll){const dt=now-lastScroll.t;if(dt<150)return;if(dt<600&&Math.abs(y-lastScroll.y)/dt*1000>900)scrollFastAt=Date.now();}
+ lastScroll={t:now,y};
+},true);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")tryExitHook("tab");});
+document.documentElement.addEventListener("mouseleave",e=>{if(e.clientY<=0)tryExitHook("mouse");});
 root.addEventListener("input",e=>{
  const input=e.target;
  if(input?.id!=="shop-search")return;
@@ -2170,6 +2362,14 @@ root.addEventListener('click',e=>{
  else if(a==='skip-intro'||a==='intro-next'||a==='open-next'){clearTimeout(introTimer);state.wake=true;state.wakeList=[{icon:'🎧',text:'Seu fone parou de funcionar hoje no intervalo.'},{icon:'🛍️',text:'Pulso Shop: um presente de boas-vindas espera por você.'}];save();overlay={type:'wake'};renderGame();}
  else if(a==='open-day'){state.wake=false;save();overlay=null;appendNext();renderGame();}
  else if(a==='sleep'){sleep();}
+ else if(a==='day-menu'){modal={type:'day-menu'};drawModal();}
+ else if(a==='end-day'){modal=null;document.querySelector('.layer-backdrop')?.remove();if(!tryExitHook('end'))sleep();}
+ else if(a==='hook-accept'){const src=modal?.src;state.attention.exitHooks++;influenced(['gancho_saida'],'Ia sair, mas voltou para ver a foto em que foi marcado.');if(!state.feedItems.some(x=>x.id==='tag-'+state.day))topOfToday([{kind:'event',type:'tagged',id:'tag-'+state.day,day:state.day}]);modal=null;save();renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);void src;}
+ else if(a==='hook-decline'){const src=modal?.src;modal=null;if(src==='end')sleep();else renderGame(true);}
+ else if(a==='refresh-feed'){refreshFeed();}
+ else if(a==='new-post'){modal={type:'new-post'};drawModal();}
+ else if(a==='publish'){publishPost(el.dataset.choice);}
+ else if(a==='guess-time'){const v=Number(document.getElementById('time-guess')?.value)||10;state.attention.guess=v;save();renderEnd();}
  else if(a==='load-more'){if(appendNext())renderGame(true);}
  else if(a==='finish'){finishWeek();}
  else if(a==='export-c4'){
@@ -2250,6 +2450,7 @@ root.addEventListener('click',e=>{
   const topic=el.dataset.topic,target=post;
   if(Recommender.topics.includes(topic)&&target){
    trackModel('less',topic,target);
+   expose('personalizacao_dificil','Você pediu “Mostrar menos”, mas o pedido perde força em poucos posts e o tema volta por assuntos vizinhos.');
    if(!state.hiddenPosts.includes(target))state.hiddenPosts.push(target);
    save();
   }

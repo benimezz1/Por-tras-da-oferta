@@ -37,7 +37,7 @@ describe("arquivo JSON da Semana ate a viagem", () => {
       resumo: { jornada: { concluida: true, diaAtual: 5 }, quiz: { respondidas: 1, acertos: 1 } }
     });
     expect(payload.estado).toMatchObject({ version: 4, goal: 400, wallet: 400, quiz: state.quiz });
-    expect(payload.resumo.estrategias).toHaveLength(10);
+    expect(payload.resumo.estrategias).toHaveLength(15);
     expect(payload.resumo.algoritmo).toHaveProperty("topTopics");
     expect(payload.resumo.economia.fechamento.tripPaid).toBe(true);
     expect(payload.estado.purchases[0].name).toBe("Atmos Lite");

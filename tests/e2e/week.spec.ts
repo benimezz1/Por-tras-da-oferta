@@ -31,16 +31,23 @@ async function enter(page: Page) {
   await expect(page.locator(".status-bar")).toContainText("SEG");
 }
 const saved = (page: Page) => page.evaluate((k) => JSON.parse(localStorage.getItem(k) || "null"), KEY);
+// Antes da revelação o jogador estima quanto tempo jogou.
+async function passGuess(page: Page) {
+  const guess = page.locator('[data-action="guess-time"]');
+  if (await guess.count()) await guess.click();
+}
+// O feed não acaba: o dia termina pelo menu ⋯, e na primeira tentativa do dia aparece o gancho de saída.
 async function endOfDay(page: Page) {
-  for (let i = 0; i < 16; i++) {
-    if (await page.locator('[data-action="sleep"]').count()) break;
-    await page.locator(".load-more").evaluate((b: HTMLElement) => b.click());
-  }
-  await expect(page.locator('[data-action="sleep"]')).toBeVisible();
+  for (let i = 0; i < 2; i++) await page.locator(".load-more").evaluate((b: HTMLElement) => b.click());
+  await page.locator('[data-action="day-menu"]').click();
+  await expect(page.locator('[data-action="end-day"]')).toBeVisible();
 }
 async function nextDay(page: Page) {
   await endOfDay(page);
-  await page.locator('[data-action="sleep"]').click();
+  await page.locator('[data-action="end-day"]').click();
+  const decline = page.locator('[data-action="hook-decline"]');
+  if (await decline.count()) await decline.click();
+  await passGuess(page);
   const open = page.locator('[data-action="open-day"]');
   if (await open.count()) await open.click();
 }
@@ -80,7 +87,9 @@ test("login do jogo compartilha o visual do MCP sem mockup e preserva acesso", a
 test("a partida mantém a imersão: HUD, sem avisos de bastidor e meta só sob demanda", async ({ page }) => {
   await enter(page);
   await expect(page.locator(".hud-vibe")).toBeVisible();
-  await expect(page.locator(".hud-coins")).toContainText("R$ 5,00");
+  // Surpresas aleatórias podem somar moedas; o check-in sempre dá R$ 5,00.
+  await expect(page.locator(".hud-coins")).toContainText("R$");
+  await expect(page.locator(".ev-checkin")).toContainText("R$ 5,00");
   await expect(page.locator(".ev-checkin")).toBeVisible();
   await expect(page.locator(".phone")).not.toContainText("fictíci");
   await expect(page.locator('[data-action="algorithm-final"]')).toHaveCount(0);
@@ -192,7 +201,7 @@ test("sem compras o jogador embarca e passa pelo final em quatro etapas", async 
   await expect(page.locator(".extrato")).toContainText("R$ 400,00 pago");
   await page.locator('[data-action="end-next"]').click();
   await expect(page.locator(".end")).toContainText("Nada ali era por acaso");
-  await expect(page.locator(".strat")).toHaveCount(10);
+  await expect(page.locator(".strat")).toHaveCount(15);
   await expect(page.locator(".vibe-chart svg")).toBeVisible();
   await page.locator('[data-action="end-next"]').click();
   const questions = page.locator(".quiz-q");
@@ -238,6 +247,7 @@ test("comprar no Pix além da folga faz perder a viagem", async ({ page }) => {
   expect((await saved(page)).wallet).toBeLessThan(400);
   await page.locator('.phone-footer [data-action="profile"]').click();
   await page.locator('.layer [data-action="finish"]').click();
+  await passGuess(page);
   await expect(page.locator(".end")).toContainText("O ônibus saiu sem você");
   await expect(page.locator(".extrato")).toContainText("recusado");
   await page.locator('[data-action="end-next"]').click();
@@ -295,7 +305,7 @@ test("baixa cópia JSON pelo perfil, além do envio automático final", async ({
     simulado: true,
     estado: { version: 4, started: true, day: 1, wallet: 620, goal: 400 },
   });
-  expect(exported.resumo.estrategias).toHaveLength(10);
+  expect(exported.resumo.estrategias).toHaveLength(15);
   expect(exported.sessao.id).toBeTruthy();
   await expect(page.locator(".layer .export-c4-status")).toContainText("Cópia JSON baixada");
   await expect(page.locator(".status-bar")).toContainText("SEG");
@@ -345,7 +355,8 @@ test("final do quiz envia JSON automaticamente ao MCP da conta correta", async (
   // O antigo limite 58 valia apenas para posts/anuncios e truncava o save ao recarregar.
   const feedAntes = payload.estado.feedItems.map((item: { id: string }) => item.id);
   expect(feedAntes.length).toBeGreaterThan(58);
-  expect(feedAntes.length).toBeLessThanOrEqual(65);
+  // Feed infinito: o save só tem o teto de segurança de 2000 itens.
+  expect(feedAntes.length).toBeLessThanOrEqual(2000);
   await expect(page.locator("#c4-sync-status")).toContainText("Percurso recebido pelo MCP");
   const state=await saved(page);
   expect(state.c4SyncedRunId).toBe(payload.sessao.id);
@@ -380,4 +391,22 @@ test("cada apelido mantém seu próprio progresso no mesmo Chrome", async ({ pag
   await page.locator('#c4-account-form button[value="login"]').click();
   await expect(page.locator(".status-bar")).toContainText("SEG");
   expect((await saved(page)).runId).toBe(first.runId);
+});
+
+test("feed infinito: novidades, postagem própria e gancho de saída", async ({ page }) => {
+  await enter(page);
+  for (let i = 0; i < 4; i++) await page.locator(".load-more").evaluate((b: HTMLElement) => b.click());
+  await expect(page.locator(".load-more")).toBeVisible();
+  expect((await saved(page)).attention.extraItems).toBeGreaterThan(0);
+  await page.locator('[data-action="refresh-feed"]').click();
+  await expect(page.locator(".toast")).toBeVisible({ timeout: 4000 });
+  await page.locator('[data-action="new-post"]').click();
+  await page.locator('[data-action="publish"]').first().click();
+  await expect(page.locator(".mine-post")).toBeVisible();
+  await page.locator('[data-action="day-menu"]').click();
+  await page.locator('[data-action="end-day"]').click();
+  await expect(page.locator(".bottom-sheet")).toContainText("postou uma foto com você");
+  await page.locator('[data-action="hook-accept"]').click();
+  await expect(page.locator(".tagged-post")).toBeVisible();
+  expect((await saved(page)).attention.exitHooks).toBe(1);
 });

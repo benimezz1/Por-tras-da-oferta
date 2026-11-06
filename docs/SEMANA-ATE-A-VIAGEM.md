@@ -74,3 +74,24 @@ Com essas regras, comprar o fone recomendado já consome quase toda a folga; qua
 Tudo é fictício e local: nenhuma compra, cobrança ou dado sai do navegador. A introdução avisa isso antes da partida e o final repete. Durante a partida os avisos foram removidos de propósito, para que a experiência se pareça com um app real — a reflexão acontece na revelação. O jogo não diagnostica consumismo: ele mostra em que momentos o ambiente competiu com a meta que o próprio jogador definiu.
 
 Referências complementares usadas na modelagem (além das do relatório): Mathur et al. (2019), *Dark Patterns at Scale*, sobre cronômetros falsos e mensagens de estoque baixo; Prelec e Simester (2001), sobre o efeito do cartão de crédito na disposição a pagar.
+
+## Camada de retenção (algoritmo que prende)
+
+A semana agora também reproduz o que uma rede faz **antes** de vender: prender a atenção. Cada mecanismo tem revelação correspondente no final.
+
+| Mecanismo | Como funciona no jogo | Arquivo |
+| --- | --- | --- |
+| Rolagem infinita | Cada dia tem `minQuota: 7`; depois disso o feed continua, reciclando posts como "Sugerido para você". O dia só termina pelo menu ⋯ → "Encerrar o dia". Depois de 15 itens extras aparece uma dica discreta. | `public/week.js`, `public/stream.js` (`recycle`), `index.html` (`appendNext`) |
+| Relógio que avança | Cada item soma 14 min fictícios. Passou das 23h: entra o anúncio emocional e a manhã seguinte começa com vibe −10. | `index.html` (`checkLate`, `sleep`) |
+| Roteiro imprevisível | Os eventos têm janela (`at:[2,6]`) e a posição é sorteada com a semente da partida (`runId`). | `public/week.js`, `index.html` (`evAt`) |
+| Recompensa variável | ~1/6 de chance de "surpresa" por item (~1/3 depois do mínimo do dia): moedas, comentário, item com 15% OFF ou nada. "↻ Novidades" às vezes traz 2 posts novos, às vezes "nada novo ainda". | `index.html` (`maybeSurprise`, `refreshFeed`) |
+| Algoritmo de retenção | Posts são ranqueados por `0,6 × retenção + 0,4 × interesse/venda`. Rolagem acima de ~900 px/s suspende anúncios por 4 s e prioriza amigos. | `public/recommendation.js` (`engagement`), `public/stream.js` |
+| "Mostrar menos" fraco | O sinal negativo cai pela metade a cada época e não se transfere aos temas vizinhos, que continuam crescendo. | `public/recommendation.js` |
+| Gancho de saída | Uma vez por dia, ao encerrar o dia, trocar de aba ou levar o mouse para fora: "📸 a Bia postou uma foto com você". | `index.html` (`tryExitHook`) |
+| Validação social | "＋ Postar" (1 por dia): as curtidas chegam aos poucos em ~2 min e triplicam se o post mostra um produto que você comprou. | `index.html` (`publishPost`) |
+| Vibe e consumo | Vibe abaixo de 40: feed com cores apagadas e anúncio a cada 2 itens. A compra dá ânimo imediato, que vira −10 na manhã seguinte. | `public/stream.js` (`wantsAd`), `index.html` |
+| Exclusão do grupo | Sem o tênis, o grupo da turma combina a foto da viagem "só para quem tem o Motion 88". | `public/week.js` (`ifMissing`) |
+
+**Limite real:** depois de 30 minutos reais de jogo, a partida vai direto para o sábado ("Plataformas reais não fazem isso. Nós fazemos.").
+
+**Revelação:** antes do resultado, o jogador estima quanto tempo jogou. O raio-x ganhou o bloco **Raio-X da atenção** (tempo estimado × real, itens extras, noites após 23h, ganchos, surpresas, trocas de anúncio, curtidas). O quiz e o perfil agora cobrem 15 estratégias: as 10 do relatório + rolagem infinita, recompensa variável, gancho de saída, validação social e controle de fachada.

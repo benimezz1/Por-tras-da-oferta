@@ -23,7 +23,8 @@ describe("motor de recomendação didático", () => {
     const after = recommender.affinity(p,"fone",0);
     recommender.record(p,{type:"less",topic:"fone",id:"p1",phase:0});
     expect(recommender.affinity(p,"fone",0)).toBeLessThan(after);
-    expect(recommender.affinity(p,"fone",2)).toBeLessThan(recommender.affinity(p,"fone",0));
+    // "Mostrar menos" perde força rápido: duas épocas depois o tema volta a subir.
+    expect(recommender.affinity(p,"fone",2)).toBeGreaterThan(recommender.affinity(p,"fone",0));
   });
   it("não permite repetição ilimitada de impressões e vistas de produto", () => {
     const p = recommender.emptyProfile();

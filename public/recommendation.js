@@ -66,16 +66,26 @@
       if(profile.events.length>countEvents)profile.events.splice(0,profile.events.length-countEvents);
       return true;
     }
+    /* "Mostrar menos" perde força rápido (metade a cada época): a plataforma
+     * registra o pedido, mas o tema volta logo. */
+    const decayFor = (type,age) => type==="less"?Math.pow(.5,Math.max(0,age)):decay(age);
     function directAffinity(profile,topic,phase){
       return cap((profile?.events||[]).reduce((sum,e)=>
-        e.topic===topic&&e.phase<=phase?sum+weights[e.type]*decay(phase-e.phase):sum,0),-11,17);
+        e.topic===topic&&e.phase<=phase?sum+weights[e.type]*decayFor(e.type,phase-e.phase):sum,0),-11,17);
+    }
+    /* Retenção: só sinais de atenção (tempo olhando, stories, curtidas, comentários).
+     * Mede o que prende o jogador na tela, não o que ele quer comprar. */
+    const attentionTypes = new Set(["impression","dwell","story","like","bookmark","comments"]);
+    function engagement(profile,topic,phase){
+      return cap((profile?.events||[]).reduce((sum,e)=>
+        e.topic===topic&&e.phase<=phase&&attentionTypes.has(e.type)?sum+weights[e.type]*decay(phase-e.phase):sum,0),0,12);
     }
     function affinity(profile,topic,phase){
       if(!topics.includes(topic))return 0;
       const direct=directAffinity(profile,topic,phase);
       const neighbors=Object.entries(related);
       const transferred=neighbors.reduce((sum,[from,edges])=>
-        sum+(edges[topic]||0)*directAffinity(profile,from,phase)*.38,0);
+        sum+(edges[topic]||0)*Math.max(0,directAffinity(profile,from,phase))*.38,0);
       return cap(direct+transferred,-11,17);
     }
     function authorAffinity(profile,author,phase){
@@ -169,7 +179,7 @@
       };
     }
     return Object.freeze({
-      topics,labels,related,weights,emptyProfile,normalize,record,affinity,directAffinity,
+      topics,labels,related,weights,emptyProfile,normalize,record,affinity,directAffinity,engagement,
       authorAffinity,exposureCount,stableNumber,scorePost,rankPosts,rankStories,
       complementaryScore,scoreAd,pickRetarget,summary
     });
