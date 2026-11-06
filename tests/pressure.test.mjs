@@ -8,7 +8,7 @@ const P=globalThis.PorTrasPressure,W=globalThis.PorTrasWeek,S=globalThis.NoFeedS
 
 describe("motor de pressão comercial",()=>{
  it("cobre as dez estratégias do relatório, cada uma com evidência",()=>{
-  expect(P.KEYS).toHaveLength(10);
+  expect(P.KEYS).toHaveLength(15);
   for(const k of P.KEYS){expect(P.STRATEGIES[k].research.length).toBeGreaterThan(40);expect(P.QUIZ_BANK[k]).toBeTruthy();}
  });
  it("parcelamento com juros custa mais que o preço à vista",()=>{

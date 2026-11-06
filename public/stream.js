@@ -26,7 +26,13 @@
     descoberta:args.personalized?hash("p:"+post.id)*.42:0,
     foco:(args.focus||[]).includes(post.topic)?1.5:0
    };
-   return {score:Object.values(parts).reduce((a,b)=>a+b,0),parts};
+   /* Dois objetivos: 60% reter (atenção acumulada no tema + amigo quando a
+    * pessoa rola rápido, sinal de tédio) e 40% o ranking de interesse/venda. */
+   const venda=Object.values(parts).reduce((a,b)=>a+b,0);
+   const retencao=(args.personalized?model.engagement(args.profile,post.topic,args.phase||0):0)
+     +(args.fastScroll&&post.source==="friend"?2.5:0);
+   parts.retencao=retencao;
+   return {score:.6*retencao+.4*venda,parts};
   }
   function choosePost(posts,args){
    const published=new Set((args.shown||[]).filter(x=>x.kind==="post").map(x=>x.id));
@@ -101,33 +107,55 @@
      ||topics.indexOf(a.topic)-topics.indexOf(b.topic)||a.id.localeCompare(b.id));
    return candidates[0];
   }
-  function wantsAd(shown){
+  function wantsAd(shown,args={}){
    const n=shown.length;
    if(n<3||shown.at(-1)?.kind==="ad")return false;
    const sinceLast=(()=>{
     for(let i=n-1;i>=0;i--)if(shown[i].kind==="ad")return n-i-1;
     return n;
    })();
-   return sinceLast>=3;
+   /* vibe baixa: mais anúncios de "você merece" */
+   return sinceLast>=(args.lowVibe?2:3);
   }
   function nextBatch(posts,opts,size=5){
    const args={...opts,phase:Math.max(0,opts.phase||0),shown:[...(opts.shown||[])],cart:opts.cart||[],viewed:opts.viewed||[],purchased:opts.purchased||[]};
    const result=[];
-   for(let attempt=0;result.length<size&&attempt<size+10&&args.shown.length<MAX_FEED_ITEMS;attempt++){
-    let picked=null;
-    if(wantsAd(args.shown))picked=chooseAd(args);
+   for(let attempt=0;result.length<size&&attempt<size+10&&(args.infinite||args.shown.length<MAX_FEED_ITEMS);attempt++){
+    let picked=null,swap=false;
+    if(wantsAd(args.shown,args)){
+     /* rolagem rápida = risco de sair: troca o anúncio por conteúdo que prende */
+     if(args.fastScroll||args.preferFriends)swap=!args.preferFriends;
+     else picked=chooseAd(args);
+    }
     if(!picked){
      const post=choosePost(posts,args);
      if(post)picked={kind:"post",id:post.id,topic:post.topic,author:post.author};
     }
+    if(!picked&&args.infinite)picked=recycle(posts,args);
+    if(picked&&swap)picked.swap=true;
     if(!picked)break;
     args.shown.push(picked);result.push(picked);
    }
    return result;
   }
-  function isDone(posts,shown){
+  /* Feed infinito: quando os posts inéditos acabam, conteúdos antigos voltam
+   * como "Sugerido para você", evitando os que já estão no dia atual. */
+  function recycle(posts,args){
+   const shown=args.shown||[],recent=new Set(shown.slice(-10).map(x=>x.id)),exclude=new Set(args.exclude||[]);
+   const allowed=Array.isArray(args.allowed)?args.allowed:null;
+   let pool=posts.filter(p=>!recent.has(p.id)&&!exclude.has(p.id)&&(!allowed||allowed.includes(p.topic)));
+   if(!pool.length)pool=posts.filter(p=>!recent.has(p.id)&&!exclude.has(p.id));
+   if(!pool.length)pool=posts.filter(p=>!recent.has(p.id));
+   if(!pool.length)return null;
+   const seen=id=>shown.filter(x=>x.id===id).length;
+   pool.sort((a,b)=>(scorePost(b,args).score-seen(b.id))-(scorePost(a,args).score-seen(a.id))||a.id.localeCompare(b.id));
+   const p=pool[0];
+   return {kind:"post",id:p.id,topic:p.topic,author:p.author,recycled:true};
+  }
+  function isDone(posts,shown,infinite=false){
+   if(infinite)return false;
    return shown.length>=MAX_FEED_ITEMS||posts.every(p=>shown.some(item=>item.kind==="post"&&item.id===p.id));
   }
-  return Object.freeze({topics,release,MAX_FEED_ITEMS,scorePost,choosePost,scoreAd,chooseAd,nextBatch,isDone});
+  return Object.freeze({topics,release,MAX_FEED_ITEMS,scorePost,choosePost,scoreAd,chooseAd,wantsAd,recycle,nextBatch,isDone});
  })(root.NoFeedRecommender);
 })(typeof window!=="undefined"?window:globalThis);

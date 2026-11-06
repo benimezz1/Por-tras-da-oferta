@@ -54,7 +54,9 @@ test("o botão de retorno funciona por cima dos stories", async ({ page }) => {
 test("as fotografias dos posts e stories são distintas", async ({ page }) => {
   await enter(page);
   await loadAll(page);
-  const photos = await page.locator('[data-rec-id^="p"] .post-media img.art-photo').evaluateAll(imgs => imgs.map(img => img.getAttribute("src")));
+  // O feed é infinito e recicla posts ("Sugerido para você"): compara um registro por post.
+  const pairs = await page.locator('[data-rec-id^="p"] .post-media img.art-photo').evaluateAll(imgs => imgs.map(img => [img.closest("[data-rec-id]")?.getAttribute("data-rec-id"), img.getAttribute("src")]));
+  const photos = [...new Map(pairs).values()];
   expect(photos.length).toBeGreaterThanOrEqual(4);
   expect(new Set(photos).size).toBe(photos.length);
   expect(photos.every(src => /(?:unique\/post-p[0-9]+[.]jpg|social\/[a-z_-]+[.]webp)$/.test(src || ""))).toBe(true);

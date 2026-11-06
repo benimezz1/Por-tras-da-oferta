@@ -73,3 +73,12 @@ Executar npm test, npm run build e npm run test:e2e. Os testes verificam ordem d
 Não há modelo treinado, rastreamento de usuários reais, dados sensíveis, diagnóstico de consumismo ou cobrança. Os produtos, preços e depoimentos são criados para o jogo. Estratégias como FOMO, desconto de referência e personalização são mostradas para discussão crítica, não como orientação de compra.
 
 Referências conceituais, sem origem dos pesos: Meta AI, Instagram Feed Ranking System Card (https://ai.meta.com/tools/system-cards/instagram-feed-ranking/); TikTok, Como o conteúdo é recomendado (https://support.tiktok.com/pt_BR/using-tiktok/exploring-videos/how-tiktok-recommends-content).
+
+
+## Atualização: objetivo de retenção
+
+- `engagement(profile, topic, phase)` em `recommendation.js` soma apenas sinais de atenção (impressão, permanência, story, curtida, salvar, comentários), com o mesmo decaimento de 0,82.
+- Em `stream.js`, a pontuação dos posts passou a ser `0,6 × retenção + 0,4 × pontuação anterior`. Com rolagem rápida (`fastScroll`), amigos ganham +2,5 em retenção e o anúncio previsto é trocado por um post (`swap`).
+- Vibe abaixo de 40 (`lowVibe`) reduz o intervalo entre anúncios de 3 para 2.
+- `Mostrar menos` decai com fator 0,5 por época, e só afinidades positivas se transferem pelo grafo de temas relacionados.
+- Com `infinite: true`, o feed não tem limite de 58 itens; quando os posts inéditos acabam, `recycle` traz de volta os mais bem pontuados que não estejam entre os últimos 10 nem no dia atual.

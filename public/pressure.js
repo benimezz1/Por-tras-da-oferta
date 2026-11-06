@@ -12,7 +12,8 @@
   return h;
  }
 
- /* As dez estratégias estudadas no relatório C3, com a evidência citada. */
+ /* As dez estratégias estudadas no relatório C3, com a evidência citada,
+  * e cinco mecanismos de retenção que o feed usa para prender a atenção. */
  const STRATEGIES={
   urgencia:{icon:"⏱️",name:"Urgência",short:"Cronômetros e “só hoje” reduzem o tempo para pensar.",
    research:"A psicóloga entrevistada liga prazos curtos à sensação de perda e à redução do tempo para avaliar. Mathur et al. (2019) encontraram cronômetros falsos que reiniciavam em lojas reais."},
@@ -33,7 +34,17 @@
   recompensa:{icon:"🎰",name:"Recompensa imediata",short:"Roletas, moedas e sequências transformam comprar em jogo.",
    research:"Bandyopadhyay et al. (2021): recompensas imediatas pesam mais que recompensas adiadas na compra por impulso."},
   emocao:{icon:"💔",name:"Gatilho emocional",short:"A oferta chega quando você está cansado, triste ou entediado.",
-   research:"A psicóloga entrevistada relaciona compras impulsivas a regulação emocional, autoestima e cansaço; Iyer et al. (2020) incluem humor e autocontrole entre os determinantes do impulso."}
+   research:"A psicóloga entrevistada relaciona compras impulsivas a regulação emocional, autoestima e cansaço; Iyer et al. (2020) incluem humor e autocontrole entre os determinantes do impulso."},
+  rolagem_infinita:{icon:"♾️",name:"Rolagem infinita",short:"O feed nunca acaba e esconde o botão de parar.",
+   research:"A rolagem infinita remove os pontos naturais de parada de uma página. Aza Raskin, criador do recurso, passou a criticá-lo publicamente pelo tempo de tela que ele provoca."},
+  recompensa_variavel:{icon:"🎲",name:"Recompensa variável",short:"Às vezes vem surpresa, às vezes não: por isso você continua rolando.",
+   research:"Skinner mostrou que recompensas imprevisíveis mantêm um comportamento por mais tempo do que recompensas fixas; Eyal (2014) descreve o mesmo princípio em aplicativos que formam hábito."},
+  gancho_saida:{icon:"🪝",name:"Gancho de saída",short:"Quando você tenta sair, aparece algo “imperdível”.",
+   research:"A OCDE (2022) inclui a insistência (nagging) e as interrupções que dificultam sair entre os padrões comerciais obscuros."},
+  validacao_social:{icon:"❤️",name:"Validação social",short:"Curtidas chegam aos poucos e valem mais quando você tem o produto da moda.",
+   research:"A entrevista com a psicóloga destaca o peso da autoestima e da comparação social na adolescência; Dinh e Lee (2024) relacionam comparação social ao consumo para ser visto."},
+  personalizacao_dificil:{icon:"🔒",name:"Controle de fachada",short:"“Mostrar menos” e desligar a personalização quase não mudam nada.",
+   research:"A OCDE (2022) descreve a obstrução: caminhos difíceis para recusar, cancelar ou mudar configurações que favorecem a plataforma."}
  };
  const KEYS=Object.keys(STRATEGIES);
 
@@ -207,7 +218,12 @@
   preco:"“De R$ 399,90 por R$ 159,90 — ou 10x de R$ 19,35.” Na segunda, o mesmo produto era “de R$ 279,90”.",
   dark_patterns:"No checkout, a “Proteção Pulso+” já vinha marcada e o botão de recusa dizia “Não, prefiro pagar mais caro”.",
   recompensa:"“Gire a roleta! Prêmio garantido” — e a seta parou do lado do prêmio maior.",
-  emocao:"23h12: “Dia puxado? Você merece um mimo 💜”, logo depois de você ver fotos que baixaram sua vibe."
+  emocao:"23h12: “Dia puxado? Você merece um mimo 💜”, logo depois de você ver fotos que baixaram sua vibe.",
+  rolagem_infinita:"Os 7 posts do dia acabaram, mas o feed continuou com “Sugerido para você” e o botão de dormir sumiu num menu.",
+  recompensa_variavel:"Você puxou para atualizar: uma vez vieram posts novos, na outra “nada novo ainda”, e você tentou de novo.",
+  gancho_saida:"Você foi encerrar o dia e apareceu: “📸 a Bia postou uma foto com você, ver agora?”.",
+  validacao_social:"Seu post rendeu poucas curtidas, e o app avisou que posts com o tênis da moda rendem 3x mais.",
+  personalizacao_dificil:"Você clicou em “Mostrar menos”, mas o mesmo tema voltou poucos posts depois por um assunto “parecido”."
  };
  function quiz(ledger,count=5){
   const ranked=profile(ledger);
