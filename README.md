@@ -12,11 +12,20 @@ O novo protótipo está em `index.html`; o modo clássico segue em `src/` e `cla
 
 ## Expansão editorial e relógio (C4)
 
-A versão ampliada inclui 480 novos posts e 64 stories distribuídos entre oito assuntos, com dezenas de novas fotos Pexels preparadas em arquivos locais. No mesmo dia, posts já exibidos não são reciclados: o feed pode alcançar 220 itens (mais eventos) antes de terminar. O catálogo é ilustrativo, editorial e varia conforme o interesse e os sinais do jogador.
+A versão ampliada inclui 480 novos posts e 64 stories distribuídos entre oito assuntos, com dezenas de novas fotos Pexels preparadas em arquivos locais. No mesmo dia, posts já exibidos não são reciclados: cada noite conta com cerca de 96 posts novos, além de ofertas e eventos, antes de terminar. O catálogo é ilustrativo, editorial e varia conforme o interesse e os sinais do jogador.
 
-Cada novo dia narrativo começa às **19h**. A leitura de uma publicação inédita soma três minutos simulados. Ao atravessar a meia-noite, a indicação do dia muda discretamente; o botão **Dormir**, fora da área rolável, leva o participante às **19h do próximo dia narrativo**, ou às 19h do dia atual do calendário caso a rolagem já tenha atravessado a meia-noite. O encerramento de sexta continua levando ao sábado de resultados.
+Cada novo dia narrativo começa às **19h**. A rolagem que coloca uma publicação inédita na tela avança **18 minutos simulados** (anteriormente oito), sem esperar o tempo de permanência usado pelo algoritmo. Ao atravessar a meia-noite, a indicação do dia muda discretamente; o botão **Dormir**, fora da área rolável, leva o participante às **19h do próximo dia narrativo**, ou às 19h do dia atual do calendário caso a rolagem já tenha atravessado a meia-noite. O encerramento de sexta continua levando ao sábado de resultados.
 
 O editor de post permite escolher entre 12 fotografias do catálogo, escrever e editar legenda, publicar mais de uma vez ao dia (até 10 posts), editar e excluir posts criados. As imagens devem estar importadas pelo fluxo GitHub Actions em `public/assets/social/unique` para funcionar sem dependência externa na apresentação. Confira as licenças e os IDs em `sources.json`.
+
+
+### Publicacoes proprias, curtidas e comportamento social
+
+O jogador pode criar posts com imagem e legenda, editar, excluir, curtir, comentar e publicar nos stories. As postagens exibem **numero de curtidas** e comentarios de amigos ficticios, simulados conforme a passagem do tempo. Seu perfil mostra uma pequena grade das publicacoes.
+
+**Depois de cada compra ficticia**, o recibo pergunta se a pessoa quer publicar aquela compra **no feed, nos stories, em ambos ou em nenhum**. A escolha e voluntaria; ao compartilhar, a imagem e a legenda aparecem na rede do jogo e podem receber reacoes simuladas.
+
+O JSON do C4 sincronizado com o MCP inclui `purchaseShares` (produto, dia e canal escolhido) e `socialActivity` (contagens). **Legendas e textos dos comentarios que o jogador escrever nao sao enviados**. No MCP, essas escolhas permitem refletir sobre prova social e possivel FOMO sem afirmar que quem compartilhou agiu por pressao. Para a nova consulta funcionar e necessario atualizar tambem o [servidor MCP](https://github.com/benimezz1/Por-tras-da-oferta-MCP).
 
 ## Identificação e sincronização automática com o MCP
 
