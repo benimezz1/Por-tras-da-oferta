@@ -2210,12 +2210,15 @@ function drawModal(){
   }else if(state.myPosts.some(p=>p.id===v.post)){
    const p=state.myPosts.find(x=>x.id===v.post);
    comments=ownPostComments(p);title='Comentários na sua publicação';
+  }else if(Object.values(TAGGED_EVENTS).some(p=>p.id===v.post)){
+   const tagged=Object.values(TAGGED_EVENTS).find(p=>p.id===v.post);
+   comments=tagged.comments.map((c,i)=>[c[0],c[1],`${i+1} min`]);
   }else if(Week.COMPARE_POSTS[v.post]){comments=Week.COMPARE_POSTS[v.post].comments.map((c,i)=>[c[0],c[1],`${i+1} min`]);}
   else{for(const ph of phases){const post=ph.posts.find(x=>x.id===v.post);if(post){comments=post.comments.map((c,i)=>[c[0],c[1],`${i+1} h`]);break;}}}
-  const mine=state.myPosts.some(p=>p.id===v.post);
+  if(!state.myPosts.some(p=>p.id===v.post))comments.push(...(state.postComments[v.post]||[]));
   content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${esc(title)} · ${comments.length}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
   <div class="sheet-scroll">${comments.map((c,i)=>`<div class="comment"><span class="avatar">${['🧑','👩','🧒','🙂'][i%4]}</span><div><strong>${esc(c[0])}</strong><p>${esc(c[1])}</p><small>${esc(c[2]||'há pouco')}</small></div></div>`).join('')}</div>
-  ${mine?`<div class="own-comment-form"><label for="own-comment-input">Escrever comentário</label><textarea id="own-comment-input" maxlength="180" rows="2" placeholder="Adicione um comentário..."></textarea><button class="primary full" data-action="add-my-comment" data-post="${esc(v.post)}">Publicar comentário</button></div>`:''}`;
+  <div class="own-comment-form"><label for="own-comment-input">Escrever comentário</label><textarea id="own-comment-input" maxlength="180" rows="2" placeholder="Adicione um comentário..."></textarea><button class="primary full" data-action="add-my-comment" data-post="${esc(v.post)}">Publicar comentário</button></div>`;
  }else if(v.type==='more'){
   content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Opções de publicação</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
   <div class="sheet-scroll"><p class="small muted">Você pode escolher não ver conteúdos semelhantes.</p>
@@ -2699,7 +2702,21 @@ root.addEventListener('click',e=>{
  else if(a==='share-mine-story'){shareOwnPostToStory(post);}
  else if(a==='like-mine'){toggleOwnLike(post,!state.mineLikes.includes(post));}
  else if(a==='bookmark-mine'){const k=state.bookmarks.indexOf(post);if(k<0)state.bookmarks.push(post);else state.bookmarks.splice(k,1);save();renderGame(true);}
- else if(a==='add-my-comment'){const p=state.myPosts.find(x=>x.id===post);const message=String(document.querySelector('#own-comment-input')?.value||'').trim().slice(0,180);if(p&&message&&p.comments.length<15){p.comments.push([identity?.username||'você',message,'agora']);pushEvent('comentario_proprio','Comentou em uma publicação própria.');save();drawModal();}else if(!message)toast('Escreva um comentário.');}
+ else if(a==='add-my-comment'){
+  const p=state.myPosts.find(x=>x.id===post),message=String(document.querySelector('#own-comment-input')?.value||'').trim().slice(0,180);
+  if(!message){toast('Escreva um comentário.');}
+  else if(p){
+   if(p.comments.length>=15){toast('Limite de comentários da publicação atingido.');return;}
+   p.comments.push([identity?.username||'você',message,'agora']);
+   pushEvent('comentario_proprio','Comentou em uma publicação própria.');save();drawModal();
+  }else{
+   const total=Object.values(state.postComments).reduce((sum,items)=>sum+(Array.isArray(items)?items.length:0),0);
+   if(total>=300||(state.postComments[post]||[]).length>=15){toast('Limite de comentários da partida atingido.');return;}
+   if(!/^[a-zA-Z0-9_-]+$/.test(post)){toast('Não é possível comentar nesta publicação.');return;}
+   (state.postComments[post]||=[]).push([identity?.username||'você',message,'agora']);
+   pushEvent('comentario_post','Comentou em uma publicação fictícia.');save();drawModal();
+  }
+ }
  else if(a==='edit-my-post'){const p=state.myPosts.find(x=>x.id===post);if(p){modal={type:'edit-post',postId:p.id,choice:p.choice,caption:p.caption||''};drawModal();}}
  else if(a==='save-my-post'){const p=state.myPosts.find(x=>x.id===modal?.postId);const selected=postChoices().find(c=>c.id===modal?.choice);if(p&&selected){p.choice=selected.id;p.photo=selected.photo;p.topic=selected.topic;p.caption=String(document.getElementById('my-post-caption')?.value||'').trim().slice(0,220)||selected.caption;save();}modal=null;renderGame(true);toast('Publicação atualizada.');}
  else if(a==='remove-my-post'){const pid=modal?.postId;state.myPosts=state.myPosts.filter(x=>x.id!==pid);state.feedItems=state.feedItems.filter(x=>x.id!==pid);modal=null;save();renderGame(true);toast('Publicação excluída.');}
