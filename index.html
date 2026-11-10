@@ -438,6 +438,14 @@
 .own-story-slot .story-name{font-weight:750}
 @media (max-width:480px){.gallery-sheet{height:94%}.ios-gallery-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 </style>
+
+<style>
+.story-rail .stories>.own-story-container{flex:0 0 66px;width:66px;min-width:66px;position:sticky;left:0;z-index:3;background:#fff}
+.own-story-container .story{position:relative;left:0}
+.own-story-new{position:absolute;top:37px;right:0;width:23px;height:23px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:#1685e9;color:#fff;font-size:17px;font-weight:800;z-index:4;cursor:pointer}
+.own-story-container .story-ring{display:grid;place-items:center}
+.own-story-container .story-face>span{display:grid;place-items:center;width:100%;height:100%;font-size:22px}
+</style>
 </head>
 <body>
 <div id="app"></div>
@@ -690,12 +698,16 @@ function storyGroups(){
   if(!authors.has(item.user))authors.set(item.user,{user:item.user,source:item.source,items:[]});
   authors.get(item.user).items.push(item);
  }
- return [...authors.values()].map(group=>({...group,items:group.items.sort((a,b)=>a.idx-b.idx)}));
+ return [...authors.values()].map(group=>({...group,items:group.items.sort((a,b)=>a.idx-b.idx)}))
+ .sort((a,b)=>a.user==='você'?-1:b.user==='você'?1:0);
 }
 function renderStories(){
- const groups=storyGroups();
- if(!groups.length)return '';
- return '<section class="story-rail" aria-label="Stories de amigos e páginas"><div class="story-rail-heading">STORIES <span>Amigos, criadores e páginas</span></div><div class="stories">'+groups.map(group=>{
+ const groups=storyGroups(),own=groups.find(g=>g.user==='você');
+ const ownFirst=own?.items?.[0],hasOwn=!!ownFirst;
+ const latest=state.myStories.filter(x=>x.day===state.day).at(-1);
+ const ownPhoto=latest?mediaPhoto(latest.photo,'avatar-photo','Foto do seu story'):'<span aria-hidden="true">🙂</span>';
+ const mySlot='<span class="own-story-container"><button class="story own-story-slot '+(hasOwn?'has-story':'')+'" data-action="'+(hasOwn?'story':'new-story')+'"'+(hasOwn?' data-index="'+ownFirst.idx+'"':'')+' data-story-user="você" aria-label="'+(hasOwn?'Ver seu story':'Criar seu story')+'"><span class="story-ring"><span class="story-face">'+ownPhoto+'</span></span><span class="story-name">Seu story</span></button>'+(hasOwn?'<button class="own-story-new" data-action="new-story" aria-label="Adicionar novo story">+</button>':'')+'</span>';
+ return '<section class="story-rail" aria-label="Stories de amigos e páginas"><div class="story-rail-heading">STORIES <span>Amigos, criadores e páginas</span></div><div class="stories">'+mySlot+groups.filter(g=>g.user!=='você').map(group=>{
   const first=group.items[0];
   const fullyRead=group.items.every(s=>state.stories.includes('story-'+s.idx));
   const page=group.source==='page';
@@ -1723,6 +1735,16 @@ function sharePurchase(channel){
  if(feed)document.querySelector('#feed-scroll')?.scrollTo(0,0);
  toast(channel==='nenhum'?'Compra não publicada.':'Sua compra apareceu '+choiceLabel+'! 💜');
 }
+function publishOwnStory(choice){
+ const c=postChoices().find(x=>x.id===choice);
+ if(!c)return;
+ if(state.myStories.filter(x=>x.day===state.day).length>=20){toast('Você já publicou muitos stories hoje.');return;}
+ const caption=String(document.getElementById('my-post-caption')?.value||c.caption).trim().slice(0,220)||c.caption;
+ state.myStories.push({id:'story-me-'+state.day+'-'+(state.myStories.length+1),photo:c.photo,
+  day:state.day,product:c.topic,text:caption,origin:'organic'});
+ pushEvent('story_proprio','Publicou um story com foto selecionada na galeria.');
+ storyPhotoPromises.clear();modal=null;save();renderGame(true);toast('Seu story está no começo da lista! 📸');
+}
 function shareOwnPostToStory(id){
  const p=state.myPosts.find(x=>x.id===id);if(!p)return;
  if(state.myStories.filter(x=>x.day===state.day).length>=20){toast('Limite de stories do dia atingido.');return;}
@@ -2646,6 +2668,8 @@ root.addEventListener('click',e=>{
  else if(a==='hook-decline'){const src=modal?.src;modal=null;if(src==='end')sleep();else renderGame(true);}
  else if(a==='refresh-feed'){refreshFeed();}
  else if(a==='new-post'){modal={type:'new-post',choice:null,caption:''};drawModal();}
+ else if(a==='new-story'){if(story)stopStory();modal={type:'new-story',choice:null,caption:''};drawModal();}
+ else if(a==='publish-own-story'){publishOwnStory(modal?.choice);}
  else if(a==='open-gallery'){const compose=modal;modal={type:'gallery',returnType:compose?.type||'new-post',postId:compose?.postId||null,previousChoice:compose?.choice||null,selectedChoice:compose?.choice||null,draft:document.getElementById('my-post-caption')?.value||compose?.caption||'',filter:'todas'};drawModal();}
  else if(a==='gallery-cancel'){const g=modal;modal={type:g.returnType||'new-post',postId:g.postId,choice:g.previousChoice,caption:g.draft};drawModal();}
  else if(a==='gallery-filter'){modal.filter=el.dataset.filter;drawModal();}
