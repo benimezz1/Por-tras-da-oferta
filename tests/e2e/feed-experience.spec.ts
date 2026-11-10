@@ -340,10 +340,25 @@ test("dormir fica fora do feed, avança às 19h e a meia-noite muda discretament
   await page.evaluate(() => {
     const key='nofeed-simulator-v4:user:player-e2e';
     const v=JSON.parse(localStorage.getItem(key) || '{}');
-    v.clockViewed=102;
+    v.clockViewed=38;
     localStorage.setItem(key,JSON.stringify(v));
   });
   await page.reload();
   await expect(page.locator('.sb-time')).toContainText('QUA · 00:');
   await expect(page.locator('.day-sleep-control')).toContainText('hoje · 19h');
+});
+
+test("cada novo dia mostra publicações inéditas e stories renovados", async ({page}) => {
+  await enter(page);
+  const firstPosts=await page.locator('.post[data-rec-id^="extra-post-"]').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-rec-id')));
+  const firstStories=await page.locator('.story-rail .story').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-story-user')));
+  expect(firstPosts.length).toBeGreaterThan(0);
+  await page.locator('.day-sleep-control').click();
+  await page.locator('[data-action="open-day"]').click();
+  const secondPosts=await page.locator('.post[data-rec-id^="extra-post-"]').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-rec-id')));
+  const secondStories=await page.locator('.story-rail .story').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-story-user')));
+  expect(secondPosts.length).toBeGreaterThan(0);
+  expect(secondPosts.every(id=>!firstPosts.includes(id))).toBe(true);
+  expect(secondStories.length).toBeGreaterThan(0);
+  expect(firstStories.length).toBeGreaterThan(0);
 });
