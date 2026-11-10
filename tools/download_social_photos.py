@@ -34,7 +34,13 @@ def load_sources():
         raise RuntimeError("IDs repetidos! Cada fotografia deve usar fonte diferente.")
     expected = 12 + 12 + 5 + 7
     if len(sources) != expected:
-        raise RuntimeError(f"Esperadas {expected} fotografias, encontradas {len(sources)}")
+        raise RuntimeError(f"Esperadas {expected} fotografias originais, encontradas {len(sources)}")
+    editorial = (ROOT / "public" / "editorial.js").read_text(encoding="utf-8")
+    extra_match = re.search(r"const photos=(\{.*?\});", editorial, re.S)
+    if not extra_match:
+        raise RuntimeError("Mapa editorial de fotos ausente")
+    extras = json.loads(extra_match.group(1))
+    sources.update(extras)
     return sources
 
 

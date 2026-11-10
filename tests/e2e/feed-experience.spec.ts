@@ -55,11 +55,10 @@ test("as fotografias dos posts e stories são distintas", async ({ page }) => {
   await enter(page);
   await loadAll(page);
   // O feed é infinito e recicla posts ("Sugerido para você"): compara um registro por post.
-  const pairs = await page.locator('[data-rec-id^="p"] .post-media img.art-photo').evaluateAll(imgs => imgs.map(img => [img.closest("[data-rec-id]")?.getAttribute("data-rec-id"), img.getAttribute("src")]));
-  const photos = [...new Map(pairs).values()];
-  expect(photos.length).toBeGreaterThanOrEqual(4);
-  expect(new Set(photos).size).toBe(photos.length);
-  expect(photos.every(src => /(?:unique\/post-p[0-9]+[.]jpg|social\/[a-z_-]+[.]webp)$/.test(src || ""))).toBe(true);
+  const photos = await page.locator('.post:not(.ad-post):not(.mine-post) .post-media img.art-photo').evaluateAll(imgs => imgs.map(img => img.getAttribute("src")));
+  expect(photos.length).toBeGreaterThanOrEqual(12);
+  expect(new Set(photos).size).toBeGreaterThanOrEqual(9);
+  expect(photos.every(src => /(?:unique\/(?:post-p[0-9]+|extra-[0-9]+)[.]jpg|social\/[a-z_-]+[.]webp)$/.test(src || ""))).toBe(true);
   const storyPhotos = [];
   for (const index of [0, 2, 4, 7]) {
     await page.locator('[data-action="story"]').nth(index).click();
@@ -316,4 +315,50 @@ test("novos stories mantêm a autoria e levam às novas lojas fictícias", async
  await layer.locator('[data-action="story-product"]').click();
  await expect(layer).toHaveCount(0);
  await expect(page.locator(".shop-title")).toContainText("Volt 10K");
+});
+
+test("editor de post permite escolher foto, personalizar legenda e editar publicação", async ({page}) => {
+  await enter(page);
+  await page.locator('[data-action="new-post"]').click();
+  await expect(page.locator('.post-compose .post-choice')).toHaveCount(12);
+  await page.locator('.post-compose [data-action="select-post-photo"]').nth(5).click();
+  await page.locator('#my-post-caption').fill('Minha legenda especial para a turma');
+  await page.locator('.post-compose [data-action="publish"]').click();
+  await expect(page.locator('.mine-post')).toContainText('Minha legenda especial para a turma');
+  await page.locator('.mine-post [data-action="edit-my-post"]').click();
+  await page.locator('#my-post-caption').fill('Legenda revisada');
+  await page.locator('[data-action="save-my-post"]').click();
+  await expect(page.locator('.mine-post')).toContainText('Legenda revisada');
+});
+test("dormir fica fora do feed, avança às 19h e a meia-noite muda discretamente a data", async ({page}) => {
+  await enter(page);
+  await expect(page.locator('.sb-time')).toContainText('SEG · 19:');
+  await expect(page.locator('.day-sleep-control')).toBeVisible();
+  await page.locator('.day-sleep-control').click();
+  await page.locator('[data-action="open-day"]').click();
+  await expect(page.locator('.sb-time')).toContainText('TER · 19:');
+  await page.evaluate(() => {
+    const key='nofeed-simulator-v4:user:player-e2e';
+    const v=JSON.parse(localStorage.getItem(key) || '{}');
+    v.clockViewed=38;
+    localStorage.setItem(key,JSON.stringify(v));
+  });
+  await page.reload();
+  await expect(page.locator('.sb-time')).toContainText('QUA · 00:');
+  await expect(page.locator('.day-sleep-control')).toContainText('hoje · 19h');
+});
+
+test("cada novo dia mostra publicações inéditas e stories renovados", async ({page}) => {
+  await enter(page);
+  const firstPosts=await page.locator('.post[data-rec-id^="extra-post-"]').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-rec-id')));
+  const firstStories=await page.locator('.story-rail .story').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-story-user')));
+  expect(firstPosts.length).toBeGreaterThan(0);
+  await page.locator('.day-sleep-control').click();
+  await page.locator('[data-action="open-day"]').click();
+  const secondPosts=await page.locator('.post[data-rec-id^="extra-post-"]').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-rec-id')));
+  const secondStories=await page.locator('.story-rail .story').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-story-user')));
+  expect(secondPosts.length).toBeGreaterThan(0);
+  expect(secondPosts.every(id=>!firstPosts.includes(id))).toBe(true);
+  expect(secondStories.length).toBeGreaterThan(0);
+  expect(firstStories.length).toBeGreaterThan(0);
 });

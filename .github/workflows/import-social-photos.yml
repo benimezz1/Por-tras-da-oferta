@@ -6,6 +6,7 @@ on:
       - '.github/workflows/import-social-photos.yml'
       - 'tools/download_social_photos.py'
       - 'index.html'
+      - 'public/editorial.js'
   workflow_dispatch:
 
 permissions:
@@ -37,6 +38,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Fotografias já estão presentes."
           else
-            git commit -m "assets: adiciona fotografias independentes dos 12 posts, 12 stories e perfis"
+            git commit -m "assets: adiciona fotografias independentes dos posts, stories e perfis ampliados"
             git push
           fi

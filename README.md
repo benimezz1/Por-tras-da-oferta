@@ -2,12 +2,21 @@
 
 Jogo educativo do Ciclo 4, Colégio Rio Branco. A **experiência principal** é a **semana até a viagem**: o jogador tem R$ 620 fictícios e precisa chegar ao sábado com R$ 400 para pagar a viagem da turma. Entre segunda e sexta, usa o **pulso.**, uma rede social com loja integrada que aplica, de forma imersiva, as estratégias psicológicas estudadas no relatório C3: cronômetros que reiniciam, estoque que nunca acaba, live de influenciadora, roleta de cupons, cartão "compre agora, pague depois", taxas tardias, opções pré-marcadas, grupos de amigos com FOMO e anúncios para quando a "vibe" está baixa. No sábado chegam a fatura, a viagem (ou não) e a revelação de cada estratégia, com quiz de reconhecimento. Design completo: [docs/SEMANA-ATE-A-VIAGEM.md](docs/SEMANA-ATE-A-VIAGEM.md).
 
-- **Fotografias da experiência:** 36 fotografias distintas de posts, stories, produtos e perfis, selecionadas do Pexels e importadas em JPEG otimizado para `public/assets/social/unique/`. Os 20 WebPs anteriores continuam disponíveis como reserva. Veja `docs/IMAGENS-JOGO.md`.
-- **Jogo atual:** abra a raiz do site (`/`). Cinco dias com feed infinito, oito lojas, conversas, live, roleta, Pulso Pay, surpresas, postagens próprias e um final com estimativa de tempo, extrato, por trás da oferta, quiz e raio-x (incluindo o Raio-X da atenção). Limite real de 30 minutos.
+- **Fotografias da experiência:** 86 fontes fotográficas distintas para posts, stories, produtos e perfis, selecionadas do Pexels e importadas em JPEG otimizado para `public/assets/social/unique/`. Os 20 WebPs anteriores continuam disponíveis como reserva. Veja `docs/IMAGENS-JOGO.md`.
+- **Jogo atual:** abra a raiz do site (`/`). Cinco dias com feed extenso e 480 novas publicações (sem reciclagem no dia), oito lojas, conversas, live, roleta, Pulso Pay, surpresas, postagens próprias e um final com estimativa de tempo, extrato, por trás da oferta, quiz e raio-x (incluindo o Raio-X da atenção). Limite de segurança ampliado para 6 horas.
 - **Versão anterior:** abra `/classico.html` para acessar a campanha React original de seis capítulos. O código e seus testes foram preservados.
 - **Privacidade:** marcas, pessoas, preços e compras são fictícios. Nenhum pagamento é realizado. Antes de jogar, a tela de login informa que o registro fictício será enviado automaticamente ao MCP quando o quiz terminar. A senha nunca integra o JSON; o jogador pode solicitar a exclusão do percurso. O conteúdo dentro do feed segue imersivo.
 
 O novo protótipo está em `index.html`; o modo clássico segue em `src/` e `classico.html`. O Vite gera as duas entradas no mesmo build. O backend/MCP é mantido no projeto separado [Por-tras-da-oferta-MCP](https://github.com/benimezz1/Por-tras-da-oferta-MCP).
+
+
+## Expansão editorial e relógio (C4)
+
+A versão ampliada inclui 480 novos posts e 64 stories distribuídos entre oito assuntos, com dezenas de novas fotos Pexels preparadas em arquivos locais. No mesmo dia, posts já exibidos não são reciclados: o feed pode alcançar 220 itens (mais eventos) antes de terminar. O catálogo é ilustrativo, editorial e varia conforme o interesse e os sinais do jogador.
+
+Cada novo dia narrativo começa às **19h**. A leitura de uma publicação inédita soma três minutos simulados. Ao atravessar a meia-noite, a indicação do dia muda discretamente; o botão **Dormir**, fora da área rolável, leva o participante às **19h do próximo dia narrativo**, ou às 19h do dia atual do calendário caso a rolagem já tenha atravessado a meia-noite. O encerramento de sexta continua levando ao sábado de resultados.
+
+O editor de post permite escolher entre 12 fotografias do catálogo, escrever e editar legenda, publicar mais de uma vez ao dia (até 10 posts), editar e excluir posts criados. As imagens devem estar importadas pelo fluxo GitHub Actions em `public/assets/social/unique` para funcionar sem dependência externa na apresentação. Confira as licenças e os IDs em `sources.json`.
 
 ## Identificação e sincronização automática com o MCP
 
