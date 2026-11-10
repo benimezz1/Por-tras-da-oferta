@@ -405,8 +405,10 @@ const Recommender=window.NoFeedRecommender;
 
 const Stream=window.NoFeedStream;
 let loadPending=false;
+const dayForTopic={fone:1,tenis:2,plano:3,mochila:4,powerbank:4,garrafa:4,luminaria:3,ingresso:5};
 const contentPool=()=>phases.flatMap((ph,themeIndex)=>
- ph.posts.map((p,postIndex)=>({...p,topic:ph.id,author:p.who,phase:Stream.release[ph.id]||0,order:postIndex*phases.length+themeIndex}))
+ ph.posts.filter(p=>(p.day||dayForTopic[ph.id]||1)===state.day)
+ .map((p,postIndex)=>({...p,topic:ph.id,author:p.who,phase:Stream.release[ph.id]||0,order:postIndex*phases.length+themeIndex}))
 );
 const storyPool=()=>phases.flatMap(ph=>
  ph.stories.map(s=>({...s,product:ph.id}))
@@ -524,13 +526,13 @@ phases.push(...window.NoFeedExpansion.moments);
 // Expand editorial variety; retain all existing gameplay mechanics.
 for(const ph of phases){
  ph.posts.push(...(window.NoFeedEditorial.posts[ph.id]||[]));
- ph.stories.push(...window.NoFeedEditorial.stories.filter(x=>x.topic===ph.id).map(x=>[x.user,x.emoji,x.text,x.art,x.topic,x.photo]));
+ ph.stories.push(...window.NoFeedEditorial.stories.filter(x=>x.topic===ph.id).map(x=>[x.user,x.emoji,x.text,x.art,x.topic,x.photo,x.day]));
 }
 const postMediaMap={"p1":"post_p1","p2":"post_p2","p3":"post_p3","p4":"post_p4","p5":"post_p5","p6":"post_p6","p7":"post_p7","p8":"post_p8","p9":"post_p9","p10":"post_p10","p11":"post_p11","p12":"post_p12"};
 const storyMediaMap={"fone":["story_fone_0","story_fone_1","story_fone_2"],"tenis":["story_tenis_0","story_tenis_1","story_tenis_2"],"plano":["story_plano_0","story_plano_1","story_plano_2"],"mochila":["story_mochila_0","story_mochila_1","story_mochila_2"]};
 let nextStoryIndex=0;
 phases.forEach(ph=>{
- ph.stories=ph.stories.map((s,i)=>({user:s[0],emoji:s[1],text:s[2],art:s[3],product:s[4],source:storySourceType(s[0]),idx:nextStoryIndex++,photo:s[5]||storyMediaMap[ph.id]?.[i]||s[3]}));
+ ph.stories=ph.stories.map((s,i)=>({user:s[0],emoji:s[1],text:s[2],art:s[3],product:s[4],day:s[6]||dayForTopic[ph.id]||1,source:storySourceType(s[0]),idx:nextStoryIndex++,photo:s[5]||storyMediaMap[ph.id]?.[i]||s[3]}));
  ph.posts=ph.posts.map(p=>({...p,source:postSourceType(p),photo:postMediaMap[p.id]||p.photo||p.art}));
 });
 // Handmade vector illustrations, embedded: works even offline.
@@ -605,6 +607,7 @@ function storyGroups(){
  const ranked=Recommender.rankStories(storyPool(),recommendationOptions());
  const authors=new Map();
  for(const item of ranked){
+  if(item.day!==state.day)continue;
   if(!authors.has(item.user))authors.set(item.user,{user:item.user,source:item.source,items:[]});
   authors.get(item.user).items.push(item);
  }
