@@ -1579,7 +1579,8 @@ function buy(ids){
  });
  Pressure.vibeBuy(state.vibe,trial?10:16+6*(ids.length-1),'Comprou '+label);
  state.flags.boughtToday=true;
- state.lastOrder={items:ids,total:paid,method:trial?'trial':method,n:q.n,each:q.each,cashback,coupon:q.coupon?.code||'',trial,at:Date.now()};
+ state.lastOrder={orderId:'pedido-'+state.runId.slice(0,8)+'-'+state.purchases.length,items:ids,total:paid,method:trial?'trial':method,n:q.n,each:q.each,cashback,coupon:q.coupon?.code||'',trial,at:Date.now()};
+ expose('prova_social','Após a compra, a rede sugeriu compartilhar o produto com amigos para receber curtidas e comentários.');
  state.payMethod=null;
  save();overlay={type:"receipt"};modal=null;renderGame(true);
  return true;
@@ -1601,8 +1602,57 @@ function receiptPage(){
  ${suggestions.length?`<div class="receipt-suggestions"><h3>Quem comprou isso também levou</h3>
  ${suggestions.map(id=>`<button class="shop-receipt-suggestion" data-action="product" data-product="${id}" data-source="pair">${art(products[id].kind,true)}<span><strong>${esc(productName(id))}</strong><small>${money(price(id).price)} · Ver na loja →</small></span></button>`).join("")}
  </div>`:""}
- <button class="primary full" data-action="close-overlay">Voltar ao feed →</button>
+ <section class="receipt-social-choice" aria-label="Compartilhar sua compra">
+ <h3>Quer mostrar sua compra? 📸</h3>
+ <p>Seus amigos podem ver, curtir e comentar. Você escolhe se quer publicar.</p>
+ <label for="purchase-share-caption">Legenda</label>
+ <textarea id="purchase-share-caption" maxlength="220" rows="2">${esc(o.trial?'Comecei a testar '+o.items.map(productName).join(' + ')+' 🎧':'Acabei de comprar '+o.items.map(productName).join(' + ')+' ✨')}</textarea>
+ <div class="purchase-share-grid">
+ <button class="secondary" data-action="purchase-share" data-channel="feed">▦ No feed</button>
+ <button class="secondary" data-action="purchase-share" data-channel="story">◉ No story</button>
+ <button class="primary" data-action="purchase-share" data-channel="ambos">♡ Nos dois</button>
+ <button class="tertiary" data-action="purchase-share" data-channel="nenhum">Não publicar</button>
+ </div><small>Simulação educativa: os perfis, comentários e curtidas são fictícios.</small>
+ </section>
  </section></div>`;
+}
+function sharePurchase(channel){
+ const modes=['feed','story','ambos','nenhum'],o=state.lastOrder;
+ if(!o||!modes.includes(channel))return;
+ const orderId=o.orderId||'pedido-antigo-'+String(o.at||0);
+ if(state.purchaseShares.some(x=>x.orderId===orderId)){overlay=null;renderGame(true);return;}
+ const product=o.items[0],photo='product_'+product;
+ const caption=String(document.getElementById('purchase-share-caption')?.value||'').trim().slice(0,220)
+    ||'Acabei de comprar '+o.items.map(productName).join(' + ')+' ✨';
+ const feed=channel==='feed'||channel==='ambos',storyShare=channel==='story'||channel==='ambos';
+ let postId=null,storyId=null;
+ if(feed){
+  postId='me-compra-'+orderId;
+  state.myPosts.push({id:postId,choice:'purchase-'+product,photo,topic:product,caption,
+    time:clockLabel(),day:state.day,clockViewed:state.clockViewed,at:Date.now(),boosted:true,
+    target:90+Pressure.hash(state.runId+postId)%120,comments:[],origin:'purchase'});
+  topOfToday([{kind:'mine',id:postId,day:state.day}]);
+ }
+ if(storyShare){
+  storyId='story-compra-'+orderId;
+  state.myStories.push({id:storyId,photo,product,day:state.day,text:caption,origin:'purchase'});
+ }
+ state.purchaseShares.push({orderId,day:state.day,products:[...o.items],channel,postId,storyId});
+ const choiceLabel={feed:'no feed',story:'nos stories',ambos:'no feed e nos stories',nenhum:'não compartilhar'}[channel];
+ pushEvent('compartilhamento_compra',`Após comprar ${o.items.map(productName).join(' + ')}, escolheu ${choiceLabel}.`);
+ if(feed||storyShare)expose('fomo','Uma compra foi apresentada como conteúdo para amigos: isso pode gerar comparação e receio de ficar de fora.');
+ overlay=null;modal=null;save();renderGame(!feed);
+ if(feed)document.querySelector('#feed-scroll')?.scrollTo(0,0);
+ toast(channel==='nenhum'?'Compra não publicada.':'Sua compra apareceu '+choiceLabel+'! 💜');
+}
+function shareOwnPostToStory(id){
+ const p=state.myPosts.find(x=>x.id===id);if(!p)return;
+ if(state.myStories.filter(x=>x.day===state.day).length>=20){toast('Limite de stories do dia atingido.');return;}
+ const c=postChoices().find(x=>x.id===p.choice);
+ state.myStories.push({id:'story-me-'+state.day+'-'+(state.myStories.length+1),photo:p.photo||c?.photo||'post_p1',
+  day:state.day,product:p.topic||c?.topic||'fone',text:p.caption||c?.caption||'Minha publicação',origin:'post'});
+ pushEvent('story_proprio','Compartilhou uma publicação própria nos stories.');
+ save();renderGame(true);toast('Compartilhado nos seus stories!');
 }
 
 /* ---------- assinatura: entrar é fácil, sair é difícil ---------- */
