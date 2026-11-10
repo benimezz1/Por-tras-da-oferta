@@ -1823,12 +1823,39 @@ const POST_CHOICES=[
  {id:'viagem',photo:'extra_23',topic:'mochila',caption:'prontos para sair 🚌'},
  {id:'paisagem',photo:'friends_trip',topic:'mochila',caption:'respirando outros ares 🌳'}
 ];
-const postChoices=()=>[
- ...POST_CHOICES,
- ...[...new Set(state.purchases.map(p=>p.id))].filter(id=>products[id]).map(id=>({
-  id:'purchase-'+id,photo:'product_'+id,topic:id,caption:'Minha compra: '+productName(id)+' ✨'
- }))
+// Galeria simulada: usa fotos do proprio jogo, sem acessar arquivos do celular.
+const galleryPhotoLogo=()=>`<svg class="gallery-photo-logo" viewBox="0 0 48 48" aria-hidden="true">
+ <rect x="1.5" y="1.5" width="45" height="45" rx="11" fill="#fff" stroke="#e5e5e9"/>
+ ${['#ff4e79','#ff9d38','#f4d249','#75c75a','#41bfba','#478ee9','#a06beb','#e56db0'].map((c,i)=>`<ellipse cx="24" cy="16" rx="5.5" ry="11" fill="${c}" opacity=".88" transform="rotate(${i*45} 24 24)"/>`).join('')}
+ <circle cx="24" cy="24" r="4.2" fill="white"/></svg>`;
+const GALLERY_SCENES=[
+ ['friends_park','garrafa','Dias bons com gente boa 🌿'],['friends_bus','mochila','No caminho de mais uma aventura 🚌'],
+ ['friends_trip','mochila','Um lugar para guardar na memória 💜'],['fashion_stairs','tenis','Detalhes do look de hoje ✨'],
+ ['study_music','plano','Estudo, música e um café ☕'],['trip_landscape','mochila','Esse lugar merece uma foto 🏞️'],
+ ['festival_lights','ingresso','A noite merece replay 🎶'],['festival_people','ingresso','O melhor do rolê foi a companhia 🪩'],
+ ['sneaker_worn','tenis','Meus passos de hoje 👟'],['park_trees','garrafa','Um respiro na rotina 🌳'],
+ ['study_close','luminaria','Organizando as ideias 📚'],['bus_close','mochila','Na estrada de novo 🚍']
 ];
+const postChoices=()=>{
+ const result=new Map();
+ const add=c=>{if(c?.photo&&!result.has(c.photo)&&mediaSrc(c.photo))result.set(c.photo,c);};
+ POST_CHOICES.forEach(add);
+ const samples=Object.values(window.NoFeedEditorial.posts).flat();
+ const captionsByPhoto=new Map();
+ for(const p of samples)if(p.photo&&!captionsByPhoto.has(p.photo))
+   captionsByPhoto.set(p.photo,{topic:p.topic,caption:String(p.caption).split(' — ')[0].slice(0,120)});
+ const topics=['garrafa','luminaria','fone','tenis','ingresso','mochila','plano'];
+ for(const photo of Object.keys(originalPhotoSources)){
+  if(!/^(extra_\d+|post_p\d+|story_(?:fone|tenis|plano|mochila)_\d+)$/.test(photo))continue;
+  const sample=captionsByPhoto.get(photo),t=sample?.topic||topics[result.size%topics.length];
+  add({id:'galeria-'+photo,photo,topic:t,caption:sample?.caption||'Um momento para guardar ✨'});
+ }
+ for(const [photo,topic,caption] of GALLERY_SCENES)add({id:'galeria-'+photo,photo,topic,caption});
+ for(const id of [...new Set(state.purchases.map(p=>p.id))].filter(id=>products[id])){
+  add({id:'purchase-'+id,photo:'product_'+id,topic:id,caption:'Chegou o '+productName(id)+'! 📦✨'});
+ }
+ return [...result.values()];
+};
 const ownPostAge=p=>Math.max(0,(state.day-p.day)*40+(state.clockViewed||0)-(p.clockViewed||0));
 const myLikes=p=>Math.min(p.target||30,Math.round((p.target||30)*Math.min(1,.25+ownPostAge(p)*.10)))+((state.mineLikes||[]).includes(p.id)?1:0);
 function ownPostComments(p){
@@ -2129,14 +2156,26 @@ function drawModal(){
   content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer"><div class="exit-gift">📸</div><h3>bia.m postou uma foto com você</h3><p>Ver agora?</p>
   <button class="primary full" data-action="hook-accept">Ver agora</button>
   <button class="tertiary full" data-action="hook-decline">Agora não</button></div>`;
- }else if(v.type==='new-post'||v.type==='edit-post'){
-  const editing=v.type==='edit-post',choices=postChoices(),chosen=choices.find(c=>c.id===v.choice)||choices[0];
-  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${editing?'Editar publicação':'Criar publicação'}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
-  <div class="sheet-scroll post-compose"><p class="small muted">Escolha uma foto e escreva sua legenda.</p>
-  <div class="post-choices">${choices.map(c=>`<button class="post-choice ${chosen.id===c.id?'chosen':''}" data-action="select-post-photo" data-choice="${c.id}" aria-pressed="${chosen.id===c.id}">${mediaPhoto(c.photo,'art-photo',c.caption)}<span>${esc(c.caption)}</span></button>`).join('')}</div>
-  <label for="my-post-caption">Legenda (até 220 caracteres)</label>
-  <textarea id="my-post-caption" maxlength="220" rows="3" placeholder="O que você quer compartilhar?">${esc(v.caption||chosen.caption)}</textarea>
-  <button class="primary full" data-action="${editing?'save-my-post':'publish'}" data-choice="${chosen.id}">${editing?'Salvar alterações':'Publicar no feed'}</button>
+ }else if(v.type==='gallery'){
+  const choices=postChoices(),selected=v.selectedChoice,section=v.filter||'todas';
+  const filtered=choices.filter(c=>section==='compras'?c.id.startsWith('purchase-'):
+    section==='recentes'?choices.indexOf(c)>=Math.max(0,choices.length-28):true);
+  content=`<div class="ios-gallery">
+  <div class="ios-gallery-toolbar"><button data-action="gallery-cancel" class="ios-gallery-back" aria-label="Voltar">‹ <span>Voltar</span></button><strong>Fotos</strong><button data-action="gallery-confirm" class="ios-gallery-done" ${selected?'':'disabled'} aria-label="Confirmar foto selecionada">✓</button></div>
+  <div class="ios-gallery-title"><h2>Biblioteca</h2><small>${choices.length} fotos · galeria fictícia do jogo</small></div>
+  <div class="ios-gallery-filters">${[['todas','Todas'],['recentes','Recentes'],['compras','Compras']].map(([k,t])=>`<button class="${section===k?'active':''}" data-action="gallery-filter" data-filter="${k}">${t}</button>`).join('')}</div>
+  <div class="ios-gallery-grid" role="group" aria-label="Escolher foto">${filtered.map(c=>`<button class="ios-gallery-tile ${selected===c.id?'selected':''}" data-action="gallery-select" data-choice="${esc(c.id)}" aria-pressed="${selected===c.id}" aria-label="${esc(c.caption)}">${mediaPhoto(c.photo,'art-photo',c.caption)}<span class="gallery-mark">${selected===c.id?'✓':''}</span></button>`).join('')||'<p class="small muted">As fotos dos produtos aparecem após suas compras.</p>'}</div>
+  <footer class="ios-gallery-footer">${selected?'1 foto selecionada':'Selecione uma foto'}</footer></div>`;
+ }else if(v.type==='new-post'||v.type==='edit-post'||v.type==='new-story'){
+  const editing=v.type==='edit-post',isStory=v.type==='new-story';
+  const chosen=postChoices().find(c=>c.id===v.choice);
+  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${editing?'Editar publicação':isStory?'Novo story':'Criar publicação'}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
+  <div class="sheet-scroll post-compose">
+  <button class="gallery-launch" data-action="open-gallery">${galleryPhotoLogo()}<span><strong>Ver Galeria</strong><small>Escolha uma foto do álbum</small></span><b>›</b></button>
+  ${chosen?`<div class="compose-selected">${mediaPhoto(chosen.photo,'art-photo',chosen.caption)}<span>Foto selecionada ✓</span></div>`:'<div class="compose-no-photo">📷<span>Abra a galeria para escolher uma foto</span></div>'}
+  <label for="my-post-caption">Legenda <small>(até 220 caracteres · sugestão editável)</small></label>
+  <textarea id="my-post-caption" maxlength="220" rows="3" placeholder="Escreva sobre esse momento...">${esc(v.caption||chosen?.caption||'')}</textarea>
+  <button class="primary full" data-action="${editing?'save-my-post':isStory?'publish-own-story':'publish'}" ${chosen?'':'disabled'}>${editing?'Salvar alterações':isStory?'Publicar no story':'Publicar no feed'}</button>
   ${editing?`<button class="tertiary full" data-action="remove-my-post" data-post="${v.postId}">Excluir publicação</button>`:''}
   </div>`;
  }
@@ -2560,8 +2599,12 @@ root.addEventListener('click',e=>{
  else if(a==='hook-accept'){const src=modal?.src;state.attention.exitHooks++;influenced(['gancho_saida'],'Ia sair, mas voltou para ver a foto em que foi marcado.');if(!state.feedItems.some(x=>x.id==='tag-'+state.day))topOfToday([{kind:'event',type:'tagged',id:'tag-'+state.day,day:state.day}]);modal=null;save();renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);void src;}
  else if(a==='hook-decline'){const src=modal?.src;modal=null;if(src==='end')sleep();else renderGame(true);}
  else if(a==='refresh-feed'){refreshFeed();}
- else if(a==='new-post'){modal={type:'new-post',choice:POST_CHOICES[0].id,caption:''};drawModal();}
- else if(a==='select-post-photo'){modal.caption=document.getElementById('my-post-caption')?.value||'';modal.choice=el.dataset.choice;drawModal();}
+ else if(a==='new-post'){modal={type:'new-post',choice:null,caption:''};drawModal();}
+ else if(a==='open-gallery'){const compose=modal;modal={type:'gallery',returnType:compose?.type||'new-post',postId:compose?.postId||null,previousChoice:compose?.choice||null,selectedChoice:compose?.choice||null,draft:document.getElementById('my-post-caption')?.value||compose?.caption||'',filter:'todas'};drawModal();}
+ else if(a==='gallery-cancel'){const g=modal;modal={type:g.returnType||'new-post',postId:g.postId,choice:g.previousChoice,caption:g.draft};drawModal();}
+ else if(a==='gallery-filter'){modal.filter=el.dataset.filter;drawModal();}
+ else if(a==='gallery-select'){const oldScroll=document.querySelector('.ios-gallery-grid')?.scrollTop||0;modal.selectedChoice=el.dataset.choice;drawModal();const grid=document.querySelector('.ios-gallery-grid');if(grid)grid.scrollTop=oldScroll;}
+ else if(a==='gallery-confirm'){const g=modal;const selected=postChoices().find(c=>c.id===g?.selectedChoice);if(!selected)return;modal={type:g.returnType||'new-post',postId:g.postId,choice:selected.id,caption:selected.id===g.previousChoice?g.draft:selected.caption};drawModal();}
  else if(a==='publish'){publishPost(modal?.choice||el.dataset.choice);}
  else if(a==='purchase-share'){sharePurchase(el.dataset.channel);}
  else if(a==='share-mine-story'){shareOwnPostToStory(post);}
@@ -2569,7 +2612,7 @@ root.addEventListener('click',e=>{
  else if(a==='bookmark-mine'){const k=state.bookmarks.indexOf(post);if(k<0)state.bookmarks.push(post);else state.bookmarks.splice(k,1);save();renderGame(true);}
  else if(a==='add-my-comment'){const p=state.myPosts.find(x=>x.id===post);const message=String(document.querySelector('#own-comment-input')?.value||'').trim().slice(0,180);if(p&&message&&p.comments.length<15){p.comments.push([identity?.username||'você',message,'agora']);pushEvent('comentario_proprio','Comentou em uma publicação própria.');save();drawModal();}else if(!message)toast('Escreva um comentário.');}
  else if(a==='edit-my-post'){const p=state.myPosts.find(x=>x.id===post);if(p){modal={type:'edit-post',postId:p.id,choice:p.choice,caption:p.caption||''};drawModal();}}
- else if(a==='save-my-post'){const p=state.myPosts.find(x=>x.id===modal?.postId);if(p){p.choice=modal.choice;p.caption=String(document.getElementById('my-post-caption')?.value||'').trim().slice(0,220)||POST_CHOICES[0].caption;save();}modal=null;renderGame(true);toast('Publicação atualizada.');}
+ else if(a==='save-my-post'){const p=state.myPosts.find(x=>x.id===modal?.postId);const selected=postChoices().find(c=>c.id===modal?.choice);if(p&&selected){p.choice=selected.id;p.photo=selected.photo;p.topic=selected.topic;p.caption=String(document.getElementById('my-post-caption')?.value||'').trim().slice(0,220)||selected.caption;save();}modal=null;renderGame(true);toast('Publicação atualizada.');}
  else if(a==='remove-my-post'){const pid=modal?.postId;state.myPosts=state.myPosts.filter(x=>x.id!==pid);state.feedItems=state.feedItems.filter(x=>x.id!==pid);modal=null;save();renderGame(true);toast('Publicação excluída.');}
  else if(a==='guess-time'){const v=Number(document.getElementById('time-guess')?.value)||10;state.attention.guess=v;save();renderEnd();}
  else if(a==='load-more'){if(appendNext())renderGame(true);}
