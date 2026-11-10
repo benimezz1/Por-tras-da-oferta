@@ -12,7 +12,7 @@
     "pressure","vibe","coins","coupons","card","invoice","subscriptions","timers",
     "stock","threads","notifs","variant","protection","streak","exitOffers","context",
     "fixes","anchors","endStep","quiz","flags","wake","wakeList","coinsOn",
-    "payMethod","runId","startedAt","finishedAt"
+    "payMethod","runId","startedAt","finishedAt","purchaseShares"
   ];
   const safeArray = v => Array.isArray(v) ? v : [];
   const num = v => Number.isFinite(Number(v)) ? Number(v) : 0;
@@ -27,6 +27,14 @@
     const snapshot = {};
     for (const key of FIELDS) if (Object.prototype.hasOwnProperty.call(state, key))
       snapshot[key] = state[key] === undefined ? null : clone(state[key]);
+    // Somente contagens de interacoes proprias sao enviadas, sem legenda ou texto
+    // de comentarios digitados pelo jogador. As decisoes sobre compartilhar
+    // compras sao registros da simulacao (nao atitudes reais).
+    snapshot.socialActivity = {
+      postsCriados: safeArray(state.myPosts).length,
+      storiesCriados: safeArray(state.myStories).length,
+      comentariosCriados: safeArray(state.myPosts).reduce((sum,p)=>sum+safeArray(p?.comments).length,0)
+    };
     const settlement = pressure.settle(state);
     const exposures = pressure.profile(state.pressure);
     const questions = pressure.quiz(state.pressure, 5);
@@ -54,6 +62,11 @@
           produtosVistos: safeArray(state.viewed).length,
           carrinho: safeArray(state.cart).length,
           assinaturasAtivas: safeArray(state.subscriptions).filter(x => x && x.active).length },
+        social: { compartilhamentosAposCompra: safeArray(state.purchaseShares).length,
+          feed: safeArray(state.purchaseShares).filter(x=>x?.channel==="feed").length,
+          story: safeArray(state.purchaseShares).filter(x=>x?.channel==="story").length,
+          ambos: safeArray(state.purchaseShares).filter(x=>x?.channel==="ambos").length,
+          nenhum: safeArray(state.purchaseShares).filter(x=>x?.channel==="nenhum").length },
         estrategias: exposures.map(p => ({ codigo: p.key, nome: p.name,
           exposicoes: p.exposed, acoesInfluenciadas: p.influenced })),
         quiz: { total: questions.length, respondidas: answered.length,
