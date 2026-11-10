@@ -23,11 +23,11 @@ describe("fotografias independentes de feed e stories", () => {
     expect(keys.filter((k) => /^story_(fone|tenis|plano|mochila)_\d+$/.test(k))).toHaveLength(12);
     expect(keys.filter((k) => k.startsWith("product_"))).toHaveLength(5);
     expect(keys.filter((k) => k.startsWith("avatar_"))).toHaveLength(7);
-    expect(new Set(Object.values(sources)).size).toBe(88);
-    expect(Object.keys(extra)).toHaveLength(52);
+    expect(new Set(Object.values(sources)).size).toBe(86);
+    expect(Object.keys(extra)).toHaveLength(50);
   });
 
-  it("empacota 88 fotografias em JPEG local, leve e sem duplicações binárias", () => {
+  it("empacota 86 fotografias em JPEG local, leve e sem duplicações binárias", () => {
     const fingerprints: string[] = [];
     for (const key of Object.keys(sources)) {
       const photo = resolve(imageFolder, key.replaceAll("_", "-") + ".jpg");
@@ -47,8 +47,8 @@ describe("fotografias independentes de feed e stories", () => {
     const manifest = JSON.parse(readFileSync(resolve(imageFolder, "sources.json"), "utf8")) as {
       images: { asset: string; pexels_photo_id: number }[];
     };
-    expect(manifest.images).toHaveLength(88);
-    expect(new Set(manifest.images.map((item) => item.asset)).size).toBe(88);
+    expect(manifest.images).toHaveLength(86);
+    expect(new Set(manifest.images.map((item) => item.asset)).size).toBe(86);
     for (const item of manifest.images) {
       const key = item.asset.replace(/\.jpg$/, "").replaceAll("-", "_");
       expect(sources[key], item.asset).toBe(item.pexels_photo_id);
