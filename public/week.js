@@ -5,23 +5,23 @@
  "use strict";
 
  const DAYS=[
-  {n:1,label:"Segunda-feira",short:"SEG",start:18*60+12,title:"O fone quebrou",
+  {n:1,label:"Segunda-feira",short:"SEG",start:19*60,title:"O fone quebrou",
    context:"Seu fone parou de funcionar no intervalo. Amanhã são 50 minutos de ônibus até a escola sem música.",
    focus:["fone"],allow:["fone","tenis","plano","mochila"],minQuota:7,
    events:[{at:0,type:"checkin"},{at:[1,2],type:"chat",thread:"pulso"},{at:[2,4],type:"chat",thread:"lucca"},{at:[2,6],type:"roleta"},{at:[4,7],type:"compare",post:"c1"}]},
-  {n:2,label:"Terça-feira",short:"TER",start:17*60+48,title:"A live da Lívia",
+  {n:2,label:"Terça-feira",short:"TER",start:19*60,title:"A live da Lívia",
    context:"Na escola, metade da turma estava falando do mesmo tênis. A Lívia, que você segue, avisou que vai entrar ao vivo.",
    focus:["tenis"],allow:["fone","tenis","plano","mochila","powerbank"],minQuota:7,
    events:[{at:0,type:"checkin"},{at:[1,2],type:"chat",thread:"livia"},{at:[2,4],type:"card"},{at:[2,5],type:"compare",post:"c2"},{at:[4,6],type:"live"},{at:[5,7],type:"chat",thread:"turma"}]},
-  {n:3,label:"Quarta-feira",short:"QUA",start:19*60+5,title:"Semana de provas",
+  {n:3,label:"Quarta-feira",short:"QUA",start:19*60,title:"Semana de provas",
    context:"Prova de matemática amanhã. Você abre o celular “só para colocar uma música” enquanto estuda.",
    focus:["plano","luminaria"],allow:["fone","tenis","plano","mochila","powerbank","garrafa","luminaria"],minQuota:7,
    events:[{at:0,type:"checkin"},{at:[1,3],type:"trial"},{at:[3,5],type:"compare",post:"c3"},{at:[6,7],type:"mood"}]},
-  {n:4,label:"Quinta-feira",short:"QUI",start:18*60+30,title:"Mega Liquida 48h",
+  {n:4,label:"Quinta-feira",short:"QUI",start:19*60,title:"Mega Liquida 48h",
    context:"A viagem é depois de amanhã. O Pulso Shop anuncia a maior liquidação do semestre.",
    focus:["mochila","powerbank","garrafa"],allow:["fone","tenis","plano","mochila","powerbank","garrafa","luminaria","ingresso"],minQuota:7,
    events:[{at:0,type:"checkin"},{at:[1,2],type:"flash"},{at:[2,4],type:"chat",thread:"lucca"},{at:[3,5],type:"compare",post:"c4"},{at:[4,6],type:"cartnudge"},{at:[5,7],type:"chat",thread:"turma"}]},
-  {n:5,label:"Sexta-feira",short:"SEX",start:17*60+20,title:"Véspera da viagem",
+  {n:5,label:"Sexta-feira",short:"SEX",start:19*60,title:"Véspera da viagem",
    context:"Amanhã às 6h30 o ônibus da viagem sai do portão da escola. Hoje à noite tem Pocket Fest, e todo mundo está comentando.",
    focus:["ingresso","tenis"],allow:["fone","tenis","plano","mochila","powerbank","garrafa","luminaria","ingresso"],minQuota:7,
    events:[{at:0,type:"checkin"},{at:[1,3],type:"chat",thread:"fest"},{at:[2,4],type:"compare",post:"c5"},{at:[4,6],type:"lastcall"}]}
