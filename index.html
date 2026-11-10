@@ -446,6 +446,13 @@
 .own-story-container .story-ring{display:grid;place-items:center}
 .own-story-container .story-face>span{display:grid;place-items:center;width:100%;height:100%;font-size:22px}
 </style>
+
+<style>
+.social-comment-count,.social-comment-add{display:block;width:100%;text-align:left;border:0;background:none;color:#827688;font-size:12px;padding:5px 15px;cursor:pointer}
+.social-comment-preview{font-size:12px;padding:0 15px 3px}
+.social-comment-preview p{margin:5px 0;overflow-wrap:anywhere}
+.social-comment-add{padding-bottom:12px}
+</style>
 </head>
 <body>
 <div id="app"></div>
@@ -510,6 +517,8 @@ function postInfo(id){
  }
   const c=Week.COMPARE_POSTS[id];
  if(c)return {...c,phase:0,order:0,author:c.who};
+ const tagged=Object.values(TAGGED_EVENTS).find(t=>t.id===id);
+ if(tagged)return {...tagged,phase:0,order:0,author:tagged.who};
  return null;
 }
 function trackModel(type,topic,id,author=""){
@@ -531,7 +540,7 @@ function newRunId(){
  return "c4-"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
- pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],clockViewed:0,clockSeen:[]});
+ pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[]});
 let state=makeInitial();
 function restoreForPlayer(player) {
  state=makeInitial();
@@ -545,6 +554,7 @@ function restoreForPlayer(player) {
    if(!Array.isArray(state.myStories))state.myStories=[];
    if(!Array.isArray(state.purchaseShares))state.purchaseShares=[];
    if(!Array.isArray(state.mineLikes))state.mineLikes=[];
+   if(!state.postComments||typeof state.postComments!=='object'||Array.isArray(state.postComments))state.postComments={};
    for(const p of state.myPosts){if(!Array.isArray(p.comments))p.comments=[];}
    if(!Array.isArray(state.clockSeen))state.clockSeen=[];
    if(!Number.isFinite(state.clockViewed))state.clockViewed=0;
@@ -774,12 +784,21 @@ function shopStrip(){
   return `<button class="shop-mini-card" data-action="product" data-product="${id}" aria-label="Ver ${esc(p.name)} na loja">${art(p.kind,true,p.brand)}<strong>${esc(p.name)}</strong><b>${money(p.price)}${id==='plano'?'/mês':''}</b><small>Ver na loja →</small></button>`;
  }).join('')}</div></aside>`;
 }
+function commentRows(id,original=[]){
+ return [...original,...(state.postComments[id]||[])];
+}
+function commentTeaser(id,original=[]){
+ const rows=commentRows(id,original);
+ return `<button class="social-comment-count" data-action="comments" data-post="${esc(id)}">Ver todos os ${rows.length} comentários</button>
+ <div class="social-comment-preview">${rows.slice(0,2).map(x=>`<p><strong>${esc(x[0])}</strong> ${esc(x[1])}</p>`).join('')}</div>
+ <button class="social-comment-add" data-action="comments" data-post="${esc(id)}">Adicione um comentário...</button>`;
+}
 function postCard(post){
  const liked=state.liked.includes(post.id),saved=state.bookmarks.includes(post.id),isPage=post.source==="page";
  const link=relatedPostLinks[post.id];
  const button=link?`<button class="post-shop-link" data-action="product" data-product="${link.topic}" data-source="post">${esc(link.label)} · ${money(price(link.topic).price)} <span aria-hidden="true">→</span></button>`:"";
  const photoAction=link?` data-action="open-photo" data-product="${link.topic}" data-source="post"`:"";
- return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":"amigo"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${post.who}</strong> ${post.caption}</p>${button}</article>`;
+ return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":"amigo"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(post.who)}</strong> ${esc(post.caption)}</p>${commentTeaser(post.id,post.comments||[])}${button}</article>`;
 }
 function setupFeedAssist(){
  const scroller=document.querySelector('#feed-scroll'),cue=document.querySelector('.scroll-cue');
@@ -1979,7 +1998,7 @@ function taggedCard(){
 function comparePostCard(c){
  const liked=state.liked.includes(c.id);
  const media=c.productArt?art(c.productArt,true):art(c.topic,false,'',c.photo);
- return `<article class="post compare-post" id="${c.id}" data-rec-id="${c.id}" data-rec-topic="${c.topic}" data-rec-author="${esc(c.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(c.who,c.photo,false)}</span><div class="user-info"><div class="username">${esc(c.who)}</div><div class="post-sub">${esc(c.when)}<span class="meta-tag">amigo</span></div></div></div><div class="post-media feed-photo" data-like-post="${c.id}" role="group" aria-label="Foto de ${esc(c.who)}. Dois toques para curtir.">${media}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${c.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${c.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button></div><p class="likecount">${c.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(c.who)}</strong> ${esc(c.caption)}</p><button class="post-shop-link" data-action="product" data-product="${c.topic}" data-source="compare">Ver produto do post · ${money(price(c.topic).price)} <span aria-hidden="true">→</span></button></article>`;
+ return `<article class="post compare-post" id="${c.id}" data-rec-id="${c.id}" data-rec-topic="${c.topic}" data-rec-author="${esc(c.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(c.who,c.photo,false)}</span><div class="user-info"><div class="username">${esc(c.who)}</div><div class="post-sub">${esc(c.when)}<span class="meta-tag">amigo</span></div></div></div><div class="post-media feed-photo" data-like-post="${c.id}" role="group" aria-label="Foto de ${esc(c.who)}. Dois toques para curtir.">${media}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${c.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${c.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button></div><p class="likecount">${c.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(c.who)}</strong> ${esc(c.caption)}</p>${commentTeaser(c.id,c.comments||[])}<button class="post-shop-link" data-action="product" data-product="${c.topic}" data-source="compare">Ver produto do post · ${money(price(c.topic).price)} <span aria-hidden="true">→</span></button></article>`;
 }
 function nightCard(item){
  const last=item.day>=Week.DAYS.length;
@@ -2124,7 +2143,7 @@ function adCard(id,retarget=false,item={}){
  const text=campaign==="pair"&&last?`Quem comprou ${productName(last.id)} também levou o ${pr.name}.`:campaign==="retarget"?`Ainda pensando no ${pr.name}? Ele está te esperando${pr.off?` com ${pr.off}% OFF`:''}.`:Week.PITCH[id]||p.ad;
  const inst=Pressure.installment(pr.price,10,Pressure.FEES.cardRate);
  const handle=esc(p.brand.toLowerCase().replaceAll(" ","."));
- return `<article class="post ad-post" data-rec-id="${adId}" data-rec-topic="${id}" data-campaign="${campaign}"><div class="post-top"><span class="avatar brand-av">${esc(p.brand.split(" ")[0].slice(0,4))}</span><div class="user-info"><div class="username">${handle}</div><div class="post-sub"><span class="sponsored-label">Patrocinado</span></div></div><button class="icon-button" data-action="ad-more" data-product="${id}" data-post="${adId}" aria-label="Opções do anúncio">${icon("more")}</button></div><div class="post-media feed-photo" data-action="open-photo" data-product="${id}" data-source="${campaign}" data-like-ad="${adId}" role="group" aria-label="Anúncio de ${esc(pr.name)}. Um toque abre a loja; dois toques curtem.">${art(p.kind,true,p.brand)}<span class="photo-tag">${esc(channel)}</span></div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like-ad" data-product="${id}" data-ad="${adId}" aria-label="${liked?"Descurtir":"Curtir"} anúncio" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${adId}" aria-label="Ver avaliações">${icon("comment")}</button><button class="icon-button push" data-action="product" data-product="${id}" data-source="${campaign}" aria-label="Visitar loja">${icon("eye")}</button></div><p class="post-caption"><strong>${handle}</strong> ${esc(text)}</p><div class="ad-price"><span>${pr.old?`<del>${money(pr.old)}</del> `:''}<b>${money(pr.price)}${id==='plano'?'/mês':''}</b>${id==='plano'?'':` <small>ou 10x de ${money(inst.each)}</small>`}</span></div><button class="ad-shop-button" data-action="product" data-product="${id}" data-source="${campaign}">${id==='plano'?'Testar grátis':'Comprar agora'} →</button></article>`;
+ return `<article class="post ad-post" data-rec-id="${adId}" data-rec-topic="${id}" data-campaign="${campaign}"><div class="post-top"><span class="avatar brand-av">${esc(p.brand.split(" ")[0].slice(0,4))}</span><div class="user-info"><div class="username">${handle}</div><div class="post-sub"><span class="sponsored-label">Patrocinado</span></div></div><button class="icon-button" data-action="ad-more" data-product="${id}" data-post="${adId}" aria-label="Opções do anúncio">${icon("more")}</button></div><div class="post-media feed-photo" data-action="open-photo" data-product="${id}" data-source="${campaign}" data-like-ad="${adId}" role="group" aria-label="Anúncio de ${esc(pr.name)}. Um toque abre a loja; dois toques curtem.">${art(p.kind,true,p.brand)}<span class="photo-tag">${esc(channel)}</span></div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like-ad" data-product="${id}" data-ad="${adId}" aria-label="${liked?"Descurtir":"Curtir"} anúncio" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${adId}" aria-label="Ver comentários e avaliações">${icon("comment")}</button><button class="icon-button push" data-action="product" data-product="${id}" data-source="${campaign}" aria-label="Visitar loja">${icon("eye")}</button></div><p class="post-caption"><strong>${handle}</strong> ${esc(text)}</p><div class="ad-price"><span>${pr.old?`<del>${money(pr.old)}</del> `:''}<b>${money(pr.price)}${id==='plano'?'/mês':''}</b>${id==='plano'?'':` <small>ou 10x de ${money(inst.each)}</small>`}</span></div>${commentTeaser(adId,[['ana.lu','Gostei da ideia, mas vou comparar antes de comprar.','há 2 h']])}<button class="ad-shop-button" data-action="product" data-product="${id}" data-source="${campaign}">${id==='plano'?'Testar grátis':'Comprar agora'} →</button></article>`;
 }
 function drawOverlay(){
  const phone=document.querySelector(".phone");if(!phone||!overlay)return;
