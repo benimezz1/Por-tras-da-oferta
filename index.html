@@ -1024,7 +1024,7 @@ const dayItems=(d=state.day)=>state.feedItems.filter(x=>(x.day||1)===d);
 const streamItems=()=>state.feedItems.filter(x=>x.kind==='post'||x.kind==='ad');
 const dayStreamCount=()=>dayItems().filter(x=>x.kind==='post'||x.kind==='ad').length;
 const pad2=n=>String(n).padStart(2,'0');
-function clockMinutes(){return 19*60 + (state.clockViewed||0)*3;}
+function clockMinutes(){return 19*60 + (state.clockViewed||0)*8;}
 function clockLabel(){const m=clockMinutes()%(24*60);return pad2(Math.floor(m/60))+':'+pad2(m%60);}
 function afterMidnight(){return clockMinutes()>=24*60;}
 function clockDayLabel(){return afterMidnight()?(Week.DAYS[state.day]?.short||'SÁB'):dayInfo().short;}
