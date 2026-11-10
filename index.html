@@ -410,9 +410,10 @@ const contentPool=()=>phases.flatMap((ph,themeIndex)=>
  ph.posts.filter(p=>(p.day||dayForTopic[ph.id]||1)===state.day)
  .map((p,postIndex)=>({...p,topic:ph.id,author:p.who,phase:Stream.release[ph.id]||0,order:postIndex*phases.length+themeIndex}))
 );
-const storyPool=()=>phases.flatMap(ph=>
- ph.stories.map(s=>({...s,product:ph.id}))
-);
+const storyPool=()=>[
+ ...phases.flatMap(ph=>ph.stories.map(s=>({...s,product:ph.id}))),
+ ...(state.myStories||[]).map((entry,i)=>({...entry,user:'você',source:'friend',idx:nextStoryIndex+i,day:entry.day,product:entry.product||'fone'}))
+];
 let feedObserver=null;
 const impressionTimers=new Map();
 function recommendationOptions(){return {profile:state.algorithm,phase:state.phase,personalized:state.personalized};}
@@ -448,7 +449,7 @@ function newRunId(){
  return "c4-"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
- pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),myPosts:[],clockViewed:0,clockSeen:[]});
+ pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],clockViewed:0,clockSeen:[]});
 let state=makeInitial();
 function restoreForPlayer(player) {
  state=makeInitial();
@@ -459,6 +460,10 @@ function restoreForPlayer(player) {
    state.attention={...emptyAttention(),...(saved.attention||{})};
    if(!Array.isArray(state.attention.exitHookDays))state.attention.exitHookDays=[];
    if(!Array.isArray(state.myPosts))state.myPosts=[];
+   if(!Array.isArray(state.myStories))state.myStories=[];
+   if(!Array.isArray(state.purchaseShares))state.purchaseShares=[];
+   if(!Array.isArray(state.mineLikes))state.mineLikes=[];
+   for(const p of state.myPosts){if(!Array.isArray(p.comments))p.comments=[];}
    if(!Array.isArray(state.clockSeen))state.clockSeen=[];
    if(!Number.isFinite(state.clockViewed))state.clockViewed=0;
    if(!Array.isArray(state.liked))state.liked=[];
@@ -1024,7 +1029,7 @@ const dayItems=(d=state.day)=>state.feedItems.filter(x=>(x.day||1)===d);
 const streamItems=()=>state.feedItems.filter(x=>x.kind==='post'||x.kind==='ad');
 const dayStreamCount=()=>dayItems().filter(x=>x.kind==='post'||x.kind==='ad').length;
 const pad2=n=>String(n).padStart(2,'0');
-function clockMinutes(){return 19*60 + (state.clockViewed||0)*8;}
+function clockMinutes(){return 19*60 + (state.clockViewed||0)*18;}
 function clockLabel(){const m=clockMinutes()%(24*60);return pad2(Math.floor(m/60))+':'+pad2(m%60);}
 function afterMidnight(){return clockMinutes()>=24*60;}
 function clockDayLabel(){return afterMidnight()?(Week.DAYS[state.day]?.short||'SÁB'):dayInfo().short;}
