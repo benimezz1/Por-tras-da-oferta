@@ -320,8 +320,15 @@ test("novos stories mantêm a autoria e levam às novas lojas fictícias", async
 test("editor de post permite escolher foto, personalizar legenda e editar publicação", async ({page}) => {
   await enter(page);
   await page.locator('[data-action="new-post"]').click();
-  await expect(page.locator('.post-compose .post-choice')).toHaveCount(12);
-  await page.locator('.post-compose [data-action="select-post-photo"]').nth(5).click();
+  await expect(page.locator('.gallery-launch')).toContainText('Ver Galeria');
+  await page.locator('[data-action="open-gallery"]').click();
+  await expect(page.locator('.ios-gallery-grid .ios-gallery-tile').first()).toBeVisible();
+  expect(await page.locator('.ios-gallery-tile').count()).toBeGreaterThan(70);
+  await expect(page.locator('.ios-gallery-done')).toBeDisabled();
+  await page.locator('.ios-gallery-tile').nth(5).click();
+  await expect(page.locator('.ios-gallery-done')).toBeEnabled();
+  await page.locator('.ios-gallery-done').click();
+  await expect(page.locator('#my-post-caption')).not.toBeEmpty();
   await page.locator('#my-post-caption').fill('Minha legenda especial para a turma');
   await page.locator('.post-compose [data-action="publish"]').click();
   await expect(page.locator('.mine-post')).toContainText('Minha legenda especial para a turma');
@@ -369,10 +376,10 @@ test("compra oferece quatro opções de compartilhamento; feed e story aparecem 
   await page.locator('.shop-product[data-product="garrafa"]').click();
   await page.locator('.shop-footer [data-action="checkout"]').click();
   await page.locator('.shop-footer [data-action="buy"]').click();
-  const options=page.locator('.receipt-social-choice [data-action="purchase-share"]');
+  const options=page.locator('.purchase-modal [data-action="purchase-share"]');
   await expect(options).toHaveCount(4);
   await page.locator('#purchase-share-caption').fill('Comprei uma garrafa para a viagem 💧');
-  await page.locator('.receipt-social-choice [data-channel="ambos"]').click();
+  await page.locator('.purchase-modal [data-channel="ambos"]').click();
   const post=page.locator('.mine-post').first();
   await expect(post).toContainText('Comprei uma garrafa para a viagem');
   await expect(post.locator('.js-my-likes')).not.toBeEmpty();
@@ -398,10 +405,70 @@ test("não publicar compra preserva escolha sem fabricar post ou story", async (
   await page.locator('.shop-product[data-product="garrafa"]').click();
   await page.locator('.shop-footer [data-action="checkout"]').click();
   await page.locator('.shop-footer [data-action="buy"]').click();
-  await page.locator('.receipt-social-choice [data-channel="nenhum"]').click();
-  await expect(page.locator('.receipt-social-choice')).toHaveCount(0);
+  await page.locator('.purchase-modal [data-channel="nenhum"]').click();
+  await expect(page.locator('.purchase-modal')).toHaveCount(0);
   const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')||'{}'));
   expect(data.purchaseShares[0].channel).toBe('nenhum');
   expect(data.myPosts).toHaveLength(0);
   expect(data.myStories).toHaveLength(0);
+});
+
+test("Seu story aparece sempre primeiro, mesmo antes de publicar, e pode ser criado pela galeria", async ({page}) => {
+  await enter(page);
+  await expect(page.locator('.story-rail .stories').first()).toBeVisible();
+  await expect(page.locator('.story-rail .stories > .own-story-container')).toBeVisible();
+  await expect(page.locator('.own-story-slot')).toHaveAttribute('data-action','new-story');
+  await page.locator('.own-story-slot').click();
+  await page.locator('.gallery-launch').click();
+  await page.locator('.ios-gallery-tile').nth(3).click();
+  await page.locator('.ios-gallery-done').click();
+  await expect(page.locator('#my-post-caption')).not.toBeEmpty();
+  await page.locator('[data-action="publish-own-story"]').click();
+  await expect(page.locator('.own-story-slot.has-story')).toHaveAttribute('data-action','story');
+  await page.locator('.own-story-slot.has-story').click();
+  await expect(page.locator('.story-layer')).toHaveAttribute('data-story-user','você');
+});
+
+test("é possível comentar no post de amigo e no anúncio com texto próprio", async ({page}) => {
+  await enter(page);
+  const common=page.locator('.post:not(.ad-post):not(.mine-post):not(.tagged-post)').first();
+  await expect(common).toBeVisible();
+  await common.locator('[data-action="comments"]').first().click();
+  await page.locator('#own-comment-input').fill('Comentário de teste na foto da turma!');
+  await page.locator('[data-action="add-my-comment"]').click();
+  await expect(page.locator('.bottom-sheet')).toContainText('Comentário de teste na foto da turma!');
+  await page.locator('[data-action="close-modal"]').click();
+  await expect(common.locator('.social-comment-preview')).toContainText('Comentário de teste na foto da turma!');
+  const ad=page.locator('.ad-post').first();
+  for(let i=0;i<4&&!await ad.count();i++)await page.locator('.load-more').evaluate(el=>el.click());
+  await expect(ad).toBeVisible();
+  await ad.locator('[data-action="comments"]').click();
+  await page.locator('#own-comment-input').fill('Vou comparar preços antes de decidir');
+  await page.locator('[data-action="add-my-comment"]').click();
+  await expect(page.locator('.bottom-sheet')).toContainText('Vou comparar preços antes de decidir');
+  await page.locator('[data-action="close-modal"]').click();
+  expect(Object.values(await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')||'{}').postComments)).flat().length).toBeGreaterThanOrEqual(2);
+});
+
+test("gancho de saida da segunda mostra foto da Bia e sexta outra pessoa", async ({page}) => {
+  await enter(page);
+  await page.locator('.day-sleep-control').click();
+  await expect(page.locator('.bottom-sheet')).toContainText('Bia publicou uma foto com você');
+  await page.locator('[data-action="hook-accept"]').click();
+  await expect(page.locator('.tagged-post')).toContainText('bia.m');
+  await page.locator('.tagged-post [data-action="comments"]').click();
+  await page.locator('#own-comment-input').fill('Adorei nossa foto!');
+  await page.locator('[data-action="add-my-comment"]').click();
+  await expect(page.locator('.bottom-sheet')).toContainText('Adorei nossa foto!');
+  await page.locator('[data-action="close-modal"]').click();
+  await page.locator('.day-sleep-control').click();
+  for(let day=2;day<=4;day++){
+    await page.locator('[data-action="open-day"]').click();
+    await page.locator('.day-sleep-control').click();
+    await expect(page.locator('.bottom-sheet')).not.toContainText('Bia publicou uma foto com você');
+    await page.locator('[data-action="hook-decline"]').click();
+  }
+  await page.locator('[data-action="open-day"]').click();
+  await page.locator('.day-sleep-control').click();
+  await expect(page.locator('.bottom-sheet')).toContainText('Gabi publicou uma foto com você');
 });
