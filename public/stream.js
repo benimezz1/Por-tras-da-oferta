@@ -6,7 +6,7 @@
   "use strict";
   const topics=model.topics;
   const release={fone:0,tenis:0,plano:0,mochila:0,powerbank:1,garrafa:2,luminaria:3,ingresso:4};
-  const MAX_FEED_ITEMS=58;
+  const MAX_FEED_ITEMS=220;
   const hash=value=>model.stableNumber(value)/4294967295;
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number.isFinite(v)?v:0));
   const count=(items,pred)=>items.filter(pred).length;
@@ -138,7 +138,7 @@
    }
    return result;
   }
-  /* Feed infinito: quando os posts inéditos acabam, conteúdos antigos voltam
+  /* Fallback legado, não usado no modo principal: ao esgotar posts, antigos voltam
    * como "Sugerido para você", evitando os que já estão no dia atual. */
   function recycle(posts,args){
    const shown=args.shown||[],recent=new Set(shown.slice(-10).map(x=>x.id)),exclude=new Set(args.exclude||[]);
