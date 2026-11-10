@@ -453,6 +453,8 @@
 .social-comment-preview p{margin:5px 0;overflow-wrap:anywhere}
 .social-comment-add{padding-bottom:12px}
 </style>
+
+<style>.exit-hook-photo{max-width:240px;width:100%;height:150px;overflow:hidden;margin:15px auto;border-radius:12px;background:#eee}.exit-hook-photo img{width:100%;height:100%;object-fit:cover}</style>
 </head>
 <body>
 <div id="app"></div>
@@ -1832,12 +1834,24 @@ function wakePage(){
  ${list.length?`<div class="wake-notifs"><small>NOTIFICAÇÕES</small>${list.map(n=>`<div class="wake-n"><span>${n.icon}</span><p>${esc(n.text)}</p></div>`).join('')}</div>`:''}
  <button class="primary full wake-open" data-action="open-day">Abrir o pulso. →</button></div>`;
 }
-/* Gancho de saída: uma vez por dia, quando a pessoa tenta sair. */
+/* Ganchos de saida com acontecimentos diferentes a cada noite. */
+const EXIT_HOOK_DAYS={
+ 1:{kind:'tag',who:'bia.m',title:'Bia publicou uma foto com você',text:'Olha essa lembrança da turma! 🥹',button:'Ver a foto',photo:'post_p10'},
+ 2:{kind:'message',who:'lucca.r',title:'Lucca mandou mensagem no grupo',text:'Tem assunto novo sobre a viagem 💬',button:'Abrir mensagens'},
+ 3:{kind:'feed',who:'mia',title:'Mia comentou sobre as fotos de hoje',text:'O feed não para de atualizar ✨',button:'Ver novidades'},
+ 4:{kind:'message',who:'gabi.n',title:'Gabi mandou mensagem sobre sábado',text:'A turma está combinando os detalhes 🎒',button:'Abrir mensagens'},
+ 5:{kind:'tag',who:'gabi.n',title:'Gabi publicou uma foto com você',text:'Última noite antes da viagem! 💜',button:'Ver a foto',photo:'friends_park'}
+};
+const TAGGED_EVENTS={
+ 1:{id:'tag-1',day:1,who:'bia.m',topic:'mochila',photo:'post_p10',likes:284,caption:'Saudade dessa turma e desse dia 🥹 @você',comments:[['lucca.r','essa foto ficou muito boa 😂','2 min'],['gabi.n','quero outra igual! 💕','5 min']]},
+ 5:{id:'tag-5',day:5,who:'gabi.n',topic:'ingresso',photo:'friends_park',likes:167,caption:'Amanhã é o grande dia! Nossa última foto antes da viagem 📸 @você',comments:[['bia.m','a melhor turma 💜','1 min'],['lucca.r','amanhã vai ser épico!','3 min']]}
+};
 function tryExitHook(src){
  if(!state.started||state.finished||state.wake||state.attention.exitHookDays.includes(state.day))return false;
  if(src!=='end'&&(overlay||modal||story))return false;
+ const hook=EXIT_HOOK_DAYS[state.day];if(!hook)return false;
  state.attention.exitHookDays.push(state.day);
- expose('gancho_saida','Quando você tentou sair, apareceu “a Bia postou uma foto com você, ver agora?”.');
+ expose('gancho_saida',`Tentou sair, mas recebeu nova atividade de ${hook.who}: ${hook.title}.`);
  save();modal={type:'exit-hook',src};drawModal();return true;
 }
 function topOfToday(items){
@@ -1879,7 +1893,7 @@ function eventCard(item){
  if(t==='card')return state.card.active?'':`<section class="ev ev-card"><div class="mini-card">pulso<b>.</b> pay</div><div><strong>Você foi pré-aprovado! 💳</strong><p>${money(state.card.limit)} de limite. Compre agora, pague depois.</p></div><button class="ev-btn" data-action="pay">Ativar</button></section>`;
  if(t==='compare'){const c=Week.COMPARE_POSTS[item.post];return c?comparePostCard(c):'';}
  if(t==='surprise')return surpriseCard(item);
- if(t==='tagged')return taggedCard();
+ if(t==='tagged')return taggedCard(item);
  if(t==='live')return `<section class="ev ev-live" data-action="live" role="button" tabindex="0" aria-label="Entrar na live da Lívia"><div class="ev-live-photo" style="background-image:url('${mediaSrc('story_tenis_1')}')"><span class="live-badge">AO VIVO</span><span class="ev-live-viewers">👀 1,2 mil</span></div><div class="ev-live-text"><span class="avatar photo-avatar">${mediaPhoto('avatar_livia','avatar-photo','Foto de perfil da Lívia')}</span><div><strong>livia.looks está ao vivo</strong><p>“Cupom exclusivo só pra quem está aqui agora 🔥”</p></div></div><button class="ev-btn live" data-action="live">Entrar na live</button></section>`;
  if(t==='trial')return bought('plano')?'':`<section class="ev ev-trial"><span class="ev-emoji big">🎧</span><div><strong>Estudar com foco? MODO+ 3 dias GRÁTIS</strong><p>Sem anúncios entre as músicas. Cancele quando quiser.</p></div><button class="ev-btn" data-action="product" data-product="plano" data-source="trial">Testar grátis</button></section>`;
  if(t==='mood'){
@@ -1992,8 +2006,17 @@ function surpriseCard(item){
  if(v==='drop'&&item.product)return `<section class="ev ev-surprise"><span class="ev-emoji big">📉</span><div><strong>Baixou! ${esc(productName(item.product))} com 15% OFF</strong><p>Só pra você, só hoje.</p></div><button class="ev-btn" data-action="product" data-product="${item.product}" data-source="surprise">Ver</button></section>`;
  return `<section class="ev ev-surprise empty"><span class="ev-emoji big">🎁</span><div><strong>Nada por aqui… desta vez</strong><p>Continue rolando.</p></div></section>`;
 }
-function taggedCard(){
- return `<article class="post compare-post tagged-post"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar('bia.m','post_p10',false)}</span><div class="user-info"><div class="username">bia.m <span class="meta-tag">marcou você</span></div><div class="post-sub">agora</div></div></div><div class="post-media feed-photo">${mediaPhoto('post_p10','art-photo','Foto da turma')}</div><div class="post-caption"><strong>bia.m</strong> saudade dessa turma 🥹 @você</div></article>`;
+function taggedCard(item){
+ const c=TAGGED_EVENTS[item?.day],id=c?.id;
+ if(!c)return '';
+ const liked=state.liked.includes(id),saved=state.bookmarks.includes(id);
+ return `<article class="post compare-post tagged-post" id="${id}" data-rec-id="${id}" data-rec-topic="${c.topic}" data-rec-author="${esc(c.who)}">
+ <div class="post-top"><span class="avatar photo-avatar">${profileAvatar(c.who,c.photo,false)}</span><div class="user-info"><div class="username">${esc(c.who)} <span class="meta-tag">marcou você</span></div><div class="post-sub">há poucos minutos · amigo</div></div><button class="icon-button" data-action="post-more" data-post="${id}" aria-label="Mais opções">${icon('more')}</button></div>
+ <div class="post-media feed-photo" data-like-post="${id}" role="group" aria-label="Foto de ${esc(c.who)} com você. Dois toques para curtir.">${mediaPhoto(c.photo,'art-photo','Foto da turma')}</div>
+ <div class="post-actions"><button class="icon-button like-button ${liked?'is-liked':''}" data-action="like" data-post="${id}" aria-label="Curtir a foto" aria-pressed="${liked}">${icon('heart',liked?'heart-filled':'')}</button>
+ <button class="icon-button" data-action="comments" data-post="${id}" aria-label="Ver comentários">${icon('comment')}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon('send')}</button>
+ <button class="icon-button push" data-action="bookmark" data-post="${id}" aria-label="${saved?'Remover dos salvos':'Salvar publicação'}" style="color:${saved?'#e84a80':'inherit'}">${icon('bookmark')}</button></div>
+ <p class="likecount">${c.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(c.who)}</strong> ${esc(c.caption)}</p>${commentTeaser(id,c.comments)}</article>`;
 }
 function comparePostCard(c){
  const liked=state.liked.includes(c.id);
@@ -2243,9 +2266,14 @@ function drawModal(){
   <button class="secondary full" data-action="end-day">${state.day>=Week.DAYS.length?'Dormir e acordar no sábado 🚌':'Encerrar o dia 💤'}</button>
   <button class="tertiary full" style="margin-top:10px" data-action="close-modal">Continuar no feed</button></div>`;
  }else if(v.type==='exit-hook'){
-  content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer"><div class="exit-gift">📸</div><h3>bia.m postou uma foto com você</h3><p>Ver agora?</p>
-  <button class="primary full" data-action="hook-accept">Ver agora</button>
-  <button class="tertiary full" data-action="hook-decline">Agora não</button></div>`;
+  const hook=EXIT_HOOK_DAYS[state.day]||EXIT_HOOK_DAYS[1];
+  content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer">
+   <div class="exit-gift">${hook.kind==='tag'?'📸':hook.kind==='message'?'💬':'✨'}</div>
+   <h3>${esc(hook.title)}</h3><p>${esc(hook.text)}</p>
+   ${hook.photo?`<div class="exit-hook-photo">${mediaPhoto(hook.photo,'art-photo','Foto compartilhada pela turma')}</div>`:''}
+   <button class="primary full" data-action="hook-accept">${esc(hook.button)}</button>
+   <button class="tertiary full" data-action="hook-decline">Agora não</button>
+   </div>`;
  }else if(v.type==='gallery'){
   const choices=postChoices(),selected=v.selectedChoice,section=v.filter||'todas';
   const filtered=choices.filter(c=>section==='compras'?c.id.startsWith('purchase-'):
@@ -2686,7 +2714,15 @@ root.addEventListener('click',e=>{
  else if(a==='sleep'){sleep();}
  else if(a==='day-menu'){modal={type:'day-menu'};drawModal();}
  else if(a==='end-day'){modal=null;document.querySelector('.layer-backdrop')?.remove();if(!tryExitHook('end'))sleep();}
- else if(a==='hook-accept'){const src=modal?.src;state.attention.exitHooks++;influenced(['gancho_saida'],'Ia sair, mas voltou para ver a foto em que foi marcado.');if(!state.feedItems.some(x=>x.id==='tag-'+state.day))topOfToday([{kind:'event',type:'tagged',id:'tag-'+state.day,day:state.day}]);modal=null;save();renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);void src;}
+ else if(a==='hook-accept'){
+  const hook=EXIT_HOOK_DAYS[state.day];state.attention.exitHooks++;
+  influenced(['gancho_saida'],`Ia sair, mas abriu a atividade de ${hook.who}.`);
+  if(hook.kind==='tag'&&!state.feedItems.some(x=>x.id==='tag-'+state.day))
+    topOfToday([{kind:'event',type:'tagged',id:'tag-'+state.day,day:state.day}]);
+  modal=null;save();
+  if(hook.kind==='message'){overlay={type:'inbox'};renderGame(true);}
+  else{renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);}
+ }
  else if(a==='hook-decline'){const src=modal?.src;modal=null;if(src==='end')sleep();else renderGame(true);}
  else if(a==='refresh-feed'){refreshFeed();}
  else if(a==='new-post'){modal={type:'new-post',choice:null,caption:''};drawModal();}
