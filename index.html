@@ -351,6 +351,19 @@
 .post-choice img,.post-choice .art-photo{width:100%;aspect-ratio:1;object-fit:cover;display:block}.post-choice span{padding:0 8px 8px;font-size:13px}
 .time-guess input{width:100%}.time-guess p{text-align:center;font-size:18px}
 </style>
+
+<style>
+.day-sleep-control{position:fixed;right:max(20px,calc((100vw - 1140px)/2));bottom:28px;z-index:12;display:flex;align-items:center;gap:9px;padding:12px 19px;border:1px solid #dbc9e9;border-radius:999px;background:#211833;color:#fff;box-shadow:0 6px 26px #15102945;cursor:pointer;font-weight:700;font-size:15px}
+.day-sleep-control small{color:#d3bcea;font-size:11px;font-weight:500}
+.overnight-day{font-size:10px;opacity:.8;margin-left:6px}
+.post-compose{display:flex;flex-direction:column;gap:12px;max-height:65svh;overflow-y:auto}
+.post-compose .post-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.post-compose .post-choice{border:2px solid transparent;min-width:0}
+.post-compose .post-choice.chosen{border-color:#dc4386}
+.post-compose textarea{width:100%;min-height:75px;border:1px solid #c9b4cb;border-radius:9px;padding:11px;font:inherit;resize:vertical;background:#fff;color:#292034}
+.post-compose label{font-size:13px;font-weight:700}
+@media(max-width:720px){.day-sleep-control{right:12px;bottom:78px;padding:9px 13px;font-size:13px;box-shadow:0 5px 17px #15102955}.day-sleep-control small{font-size:10px}}
+</style>
 </head>
 <body>
 <div id="app"></div>
@@ -368,6 +381,7 @@
 </div>
 
 <script src="/expansion.js"></script>
+<script src="/editorial.js"></script>
 <script src="/recommendation.js"></script>
 <script src="/stream.js"></script>
 <script src="/pressure.js"></script>
@@ -382,9 +396,9 @@ const ContaC4=window.PorTrasContaC4;
 let identity=null,syncInFlight=false,syncMessage='';
 const Pressure=window.PorTrasPressure,Week=window.PorTrasWeek,ExportC4=window.PorTrasExportC4;
 // O feed agora é infinito: o histórico salvo só tem um teto de segurança.
-const MAX_WEEK_HISTORY_ITEMS=2000;
+const MAX_WEEK_HISTORY_ITEMS=2500;
 // Limite real da partida (30 min). Plataformas reais não fazem isso.
-const TIME_LIMIT_MS=30*60*1000;
+const TIME_LIMIT_MS=6*60*60*1000;
 const emptyAttention=()=>({extraItems:0,realMs:0,exitHooks:0,exitHookDays:[],surprises:0,adSwaps:0,refreshes:0,lateNights:0,guess:null});
 
 const Recommender=window.NoFeedRecommender;
@@ -505,11 +519,16 @@ const phases=[
  {day:'QUINTA • 17:40',name:'Última oportunidade?',context:'A viagem da escola está mais perto. Agora a publicidade combina sua rotina, seus interesses e ofertas com desconto.',question:'E a mochila em promoção?',hook:'Preços riscados e ofertas com prazo curto podem fazer uma decisão parecer urgente.',id:'mochila',emoji:'🎒',stories:[['gabi','🧳','"Já tô organizando tudo pra viagem."','campus','mochila'],['loja.noma','🎒','"A promoção termina hoje!"','backpack','mochila'],['lucca','📷','"Quem vai levar câmera?"','campus','mochila']],posts:[{id:'p10',who:'gabi.n',emoji:'✨',when:'há 11 min',art:'campus',caption:'Ansiosa pra viagem da escola! O que não pode faltar na mochila?',likes:316,comments:[['bia','Carregador sempre'],['nina','Água e protetor!']]},{id:'p11',who:'rota.do.fim',emoji:'🌿',when:'há 1 h',art:'campus',caption:'Os melhores dias começam com uma boa companhia e pouco peso.',likes:1408,comments:[['mari','Que lugar lindo!'],['luca','Queria estar aí']]},{id:'p12',who:'duda.m',emoji:'🌈',when:'há 2 h',art:'backpack',caption:'Separando roupas e fazendo listas pro passeio. Organização é tudo.',likes:171,comments:[['ana','Também tô fazendo'],['leo','Só não esquece o casaco']]}]}
 ];
 phases.push(...window.NoFeedExpansion.moments);
+// Expand editorial variety; retain all existing gameplay mechanics.
+for(const ph of phases){
+ ph.posts.push(...(window.NoFeedEditorial.posts[ph.id]||[]));
+ ph.stories.push(...window.NoFeedEditorial.stories.filter(x=>x.topic===ph.id).map(x=>[x.user,x.emoji,x.text,x.art,x.topic,x.photo]));
+}
 const postMediaMap={"p1":"post_p1","p2":"post_p2","p3":"post_p3","p4":"post_p4","p5":"post_p5","p6":"post_p6","p7":"post_p7","p8":"post_p8","p9":"post_p9","p10":"post_p10","p11":"post_p11","p12":"post_p12"};
 const storyMediaMap={"fone":["story_fone_0","story_fone_1","story_fone_2"],"tenis":["story_tenis_0","story_tenis_1","story_tenis_2"],"plano":["story_plano_0","story_plano_1","story_plano_2"],"mochila":["story_mochila_0","story_mochila_1","story_mochila_2"]};
 let nextStoryIndex=0;
 phases.forEach(ph=>{
- ph.stories=ph.stories.map((s,i)=>({user:s[0],emoji:s[1],text:s[2],art:s[3],product:s[4],source:storySourceType(s[0]),idx:nextStoryIndex++,photo:storyMediaMap[ph.id]?.[i]||s[5]||s[3]}));
+ ph.stories=ph.stories.map((s,i)=>({user:s[0],emoji:s[1],text:s[2],art:s[3],product:s[4],source:storySourceType(s[0]),idx:nextStoryIndex++,photo:s[5]||storyMediaMap[ph.id]?.[i]||s[3]}));
  ph.posts=ph.posts.map(p=>({...p,source:postSourceType(p),photo:postMediaMap[p.id]||p.photo||p.art}));
 });
 // Handmade vector illustrations, embedded: works even offline.
@@ -544,6 +563,7 @@ const mediaAssets={"product_powerbank":"assets/products/volt-10k.webp","product_
 // Fotografias distintas para os 12 posts, 12 stories, anuncios e retratos de perfis.
 // Cada ID pertence a uma fotografia independente; nao reutilizar recortes como se fossem fotos novas.
 const originalPhotoSources={"post_p1":36714236,"post_p2":39741985,"post_p3":32178982,"post_p4":12488416,"post_p5":4089518,"post_p6":15141225,"post_p7":8197345,"post_p8":6496063,"post_p9":4017436,"post_p10":18255804,"post_p11":2014422,"post_p12":7368218,"story_fone_0":35652757,"story_fone_1":30756159,"story_fone_2":35710689,"story_tenis_0":28459540,"story_tenis_1":12002581,"story_tenis_2":35773477,"story_plano_0":36175905,"story_plano_1":4547847,"story_plano_2":4384147,"story_mochila_0":9186025,"story_mochila_1":7969099,"story_mochila_2":14277713,"product_fone":3776555,"product_tenis":11123066,"product_plano":7035158,"product_mochila":6283154,"product_accessory":5077420,"avatar_bia":3891232,"avatar_lucca":4597995,"avatar_gabi":3906213,"avatar_livia":3776139,"avatar_dj":17953945,"avatar_mia":7229061,"avatar_duda":8722118};
+Object.assign(originalPhotoSources,window.NoFeedEditorial.photos);
 const photoFallbackKeys={"post_p1":"friends_park","post_p2":"festival_lights","post_p3":"friends_bus","post_p4":"fashion_stairs","post_p5":"sneaker_worn","post_p6":"friends_festival","post_p7":"study_music","post_p8":"study_close","post_p9":"festival_lights","post_p10":"friends_trip","post_p11":"trip_landscape","post_p12":"backpack","story_fone_0":"park_close","story_fone_1":"bus_close","story_fone_2":"festival_lights","story_tenis_0":"fashion_detail","story_tenis_1":"sneaker_detail","story_tenis_2":"festival_people","story_plano_0":"festival_lights","story_plano_1":"study_music","story_plano_2":"study_close","story_mochila_0":"trip_close","story_mochila_1":"backpack","story_mochila_2":"trip_landscape","product_fone":"headphones","product_tenis":"sneakers","product_plano":"study_music","product_mochila":"backpack","product_accessory":"headphones","avatar_bia":"friends_park","avatar_lucca":"friends_bus","avatar_gabi":"friends_trip","avatar_livia":"fashion_stairs","avatar_dj":"festival_people","avatar_mia":"study_music","avatar_duda":"backpack"};
 const avatarMediaMap={"bia":"avatar_bia","bia.m":"avatar_bia","lucca":"avatar_lucca","lucca.r":"avatar_lucca","gabi":"avatar_gabi","gabi.n":"avatar_gabi","livia":"avatar_livia","livia.looks":"avatar_livia","dj.andre":"avatar_dj","mia":"avatar_mia","duda.m":"avatar_duda"};
 function mediaSrc(kind){return originalPhotoSources[kind]?`assets/social/unique/${kind.replaceAll('_','-')}.jpg`:(mediaAssets[kind]||'');}
@@ -997,8 +1017,10 @@ const dayItems=(d=state.day)=>state.feedItems.filter(x=>(x.day||1)===d);
 const streamItems=()=>state.feedItems.filter(x=>x.kind==='post'||x.kind==='ad');
 const dayStreamCount=()=>dayItems().filter(x=>x.kind==='post'||x.kind==='ad').length;
 const pad2=n=>String(n).padStart(2,'0');
-function clockMinutes(){const d=dayInfo();return d.start+dayItems().length*14;}
+function clockMinutes(){return 19*60 + Math.max(0,dayItems().length-1)*3;}
 function clockLabel(){const m=clockMinutes()%(24*60);return pad2(Math.floor(m/60))+':'+pad2(m%60);}
+function afterMidnight(){return clockMinutes()>=24*60;}
+function clockDayLabel(){return (Week.DAYS[Math.min(Week.DAYS.length-1,state.day-1+(afterMidnight()?1:0))]||dayInfo()).short;}
 function expose(key,moment){if(Pressure.expose(state.pressure,key,moment))save();}
 function influenced(keys,action){for(const k of [...new Set(keys)])Pressure.influence(state.pressure,k,typeof action==='function'?action(k):action);save();}
 function vibe(delta,tag,label){Pressure.vibeChange(state.vibe,delta,tag,label);save();pulseVibe(delta);}
@@ -1085,13 +1107,13 @@ function evAt(ev,d){
 let scrollFastAt=0,lastScroll=null;
 const fastScroll=()=>Date.now()-scrollFastAt<4000;
 function streamArgs(d){
- return {shown:streamItems(),profile:state.algorithm,personalized:state.personalized,phase:state.phase,cart:state.cart,viewed:state.viewed,purchased:state.purchases.map(p=>p.id),allowed:d.allow,focus:d.focus,
-  infinite:true,exclude:dayItems().filter(x=>x.kind==='post').map(x=>x.id),fastScroll:fastScroll(),lowVibe:state.vibe.value<40};
+ return {shown:dayItems().filter(x=>x.kind==='post'||x.kind==='ad'),profile:state.algorithm,personalized:state.personalized,phase:state.phase,cart:state.cart,viewed:state.viewed,purchased:state.purchases.map(p=>p.id),allowed:d.allow,focus:d.focus,
+  infinite:false,exclude:dayItems().filter(x=>x.kind==='post').map(x=>x.id),fastScroll:fastScroll(),lowVibe:state.vibe.value<40};
 }
 function trackStreamItem(item,d){
  Pressure.vibeTick(state.vibe);
  if(item.swap){state.attention.adSwaps++;expose('rolagem_infinita','Quando você rolou rápido, o feed trocou um anúncio por post de amigo para te segurar.');}
- if(item.recycled)expose('rolagem_infinita','Os posts novos acabaram e o feed passou a repetir conteúdos como “Sugerido para você”.');
+ if(item.recycled)expose('rolagem_infinita','Uma publicação reapareceu na recomendação.');
  if(item.kind==='ad'){
   if(item.campaign==='retarget')expose('personalizacao',`${productName(item.topic)} voltou a aparecer depois que você demonstrou interesse.`);
   else if(item.campaign==='pair')expose('personalizacao',`Depois de uma compra, o feed sugeriu ${productName(item.topic)} “para combinar”.`);
@@ -1615,7 +1637,7 @@ function sleep(){
 }
 function wakePage(){
  const d=dayInfo(),left=6-d.n,list=state.wakeList||[];
- return `<div class="wake"><div class="wake-top"><span class="wake-day">${d.label.toUpperCase()} · ${pad2(Math.floor(d.start/60))}:${pad2(d.start%60)}</span><span class="wake-count">${left>1?`Faltam ${left} dias para a viagem`:'A viagem é amanhã!'}</span></div>
+ return `<div class="wake"><div class="wake-top"><span class="wake-day">${d.label.toUpperCase()} · 19:00</span><span class="wake-count">${left>1?`Faltam ${left} dias para a viagem`:'A viagem é amanhã!'}</span></div>
  <div class="week-dots">${Week.DAYS.map(x=>`<i class="${x.n<d.n?'done':x.n===d.n?'now':''}">${x.short}</i>`).join('')}<i class="trip">✈️ SÁB</i></div>
  <h2>${esc(d.title)}</h2><p>${esc(d.context)}</p>
  ${list.length?`<div class="wake-notifs"><small>NOTIFICAÇÕES</small>${list.map(n=>`<div class="wake-n"><span>${n.icon}</span><p>${esc(n.text)}</p></div>`).join('')}</div>`:''}
@@ -1650,9 +1672,10 @@ function refreshFeed(){
 }
 function publishPost(choice){
  const c=POST_CHOICES.find(x=>x.id===choice);if(!c)return;
- if(state.myPosts.some(p=>p.day===state.day)){modal=null;renderGame(true);toast('Você já postou hoje.');return;}
- const boosted=bought(c.topic),id='me-'+state.day;
- state.myPosts.push({id,choice,day:state.day,at:Date.now(),boosted,target:(12+Pressure.hash(state.runId+id)%14)*(boosted?3:1)});
+ if(state.myPosts.filter(p=>p.day===state.day).length>=10){toast('Você publicou bastante hoje. Continue amanhã.');return;}
+ const caption=String(document.getElementById('my-post-caption')?.value||c.caption).trim().slice(0,220)||c.caption;
+ const boosted=bought(c.topic),id='me-'+state.day+'-'+(state.myPosts.length+1);
+ state.myPosts.push({id,choice,caption,time:clockLabel(),day:state.day,at:Date.now(),boosted,target:(12+Pressure.hash(state.runId+id)%14)*(boosted?3:1)});
  topOfToday([{kind:'mine',id,day:state.day}]);
  expose('validacao_social',boosted?`Seu post com ${productName(c.topic)} rendeu 3x mais curtidas.`:`Seu post rendeu poucas curtidas, e o app sugeriu que com ${productName(c.topic)} renderia 3x mais.`);
  modal=null;save();renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);
@@ -1688,12 +1711,21 @@ const POST_CHOICES=[
  {id:'look',photo:'story_tenis_0',topic:'tenis',caption:'look de hoje 👟'},
  {id:'estudo',photo:'story_plano_0',topic:'plano',caption:'modo estudo ativado 📚'},
  {id:'role',photo:'post_p10',topic:'ingresso',caption:'fim de tarde com a galera ☀️'},
- {id:'musica',photo:'story_fone_0',topic:'fone',caption:'trilha sonora do dia 🎧'}];
+ {id:'musica',photo:'story_fone_0',topic:'fone',caption:'trilha sonora do dia 🎧'},
+ {id:'amigos',photo:'extra_1',topic:'ingresso',caption:'com a turma 💜'},
+ {id:'cafe',photo:'extra_2',topic:'garrafa',caption:'café e conversa ☕'},
+ {id:'revisao',photo:'extra_11',topic:'luminaria',caption:'estudo noturno 📚'},
+ {id:'livros',photo:'extra_14',topic:'plano',caption:'um pouco de foco 📖'},
+ {id:'skate',photo:'extra_22',topic:'tenis',caption:'tarde de skate 🛹'},
+ {id:'show',photo:'extra_21',topic:'ingresso',caption:'noite de música 🎶'},
+ {id:'viagem',photo:'extra_24',topic:'mochila',caption:'prontos para sair 🚌'},
+ {id:'paisagem',photo:'friends_trip',topic:'mochila',caption:'respirando outros ares 🌳'}
+];
 const myLikes=p=>Math.round(p.target*Math.min(1,Math.sqrt(Math.max(0,Date.now()-p.at)/120000)));
 function mineCard(item){
  const p=state.myPosts.find(x=>x.id===item.id);if(!p)return '';
  const c=POST_CHOICES.find(x=>x.id===p.choice)||POST_CHOICES[0];
- return `<article class="post mine-post"><div class="post-top"><span class="avatar">🙂</span><div class="user-info"><div class="username">você</div><div class="post-sub">agora</div></div></div><div class="post-media feed-photo">${mediaPhoto(c.photo,'art-photo','Sua publicação')}</div><div class="post-caption"><strong>❤️ <span class="js-my-likes" data-post="${p.id}">${myLikes(p)}</span> curtidas</strong> · ${esc(c.caption)}</div>${p.boosted?'':`<p class="small muted mine-hint">💡 Posts com ${esc(productName(c.topic))} estão rendendo 3x mais curtidas hoje.</p>`}</article>`;
+ return `<article class="post mine-post"><div class="post-top"><span class="avatar">🙂</span><div class="user-info"><div class="username">você</div><div class="post-sub">publicado às ${esc(p.time||clockLabel())}</div></div><button class="icon-button" data-action="edit-my-post" data-post="${p.id}" aria-label="Editar sua publicação">${icon("more")}</button></div><div class="post-media feed-photo">${mediaPhoto(c.photo,'art-photo','Sua publicação')}</div><div class="post-caption"><strong>❤️ <span class="js-my-likes" data-post="${p.id}">${myLikes(p)}</span> curtidas</strong><p>${esc(p.caption||c.caption)}</p></div>${p.boosted?'':`<p class="small muted mine-hint">💡 Posts com ${esc(productName(c.topic))} estão rendendo 3x mais curtidas hoje.</p>`}</article>`;
 }
 function surpriseCard(item){
  const v=item.variant;
@@ -1822,7 +1854,7 @@ function stageFeed(){
  const ended=items.some(x=>x.kind==='night');
  const extraToday=Math.max(0,dayStreamCount()-(d.minQuota||7));
  return `<div class="game">${asideLeft()}<main class="phone${state.vibe.value<40?' low-vibe':''}" aria-label="Simulador de rede social">
- <div class="status-bar"><span class="sb-time">${d.short} · ${clockLabel()}</span><span class="hud"><button class="hud-vibe" data-action="vibe-info" aria-label="Sua vibe: ${m.label}"><span class="hud-vibe-emoji">${m.emoji}</span><span class="hud-vibe-track"><span class="hud-vibe-fill" style="width:${state.vibe.value}%"></span></span></button><button class="hud-coins" data-action="coins-info" aria-label="Moedas Pulso">🪙 ${money(state.coins)}</button></span></div>
+ <div class="status-bar"><span class="sb-time">${clockDayLabel()} · ${clockLabel()}${afterMidnight()?' <small class="overnight-day">virou o dia</small>':''}</span><span class="hud"><button class="hud-vibe" data-action="vibe-info" aria-label="Sua vibe: ${m.label}"><span class="hud-vibe-emoji">${m.emoji}</span><span class="hud-vibe-track"><span class="hud-vibe-fill" style="width:${state.vibe.value}%"></span></span></button><button class="hud-coins" data-action="coins-info" aria-label="Moedas Pulso">🪙 ${money(state.coins)}</button></span></div>
  <header class="phone-head"><span class="phone-logo">pulso<b>.</b></span><div class="phone-actions">
  <button class="shop-entry" data-action="shop" aria-label="Abrir lojas">${state.day===4?'🔥 Liquida':'Ofertas'}</button><button class="icon-button" data-action="notifications" aria-label="Notificações" style="position:relative">${icon('heart')}${state.notifs.length?'<span class="notif-dot"></span>':''}</button>
  <button class="icon-button hud-dm" data-action="inbox" aria-label="Mensagens" style="position:relative">${icon('send')}${n?`<span class="cart-dot">${n}</span>`:''}</button>
@@ -1840,7 +1872,7 @@ function stageFeed(){
  <button class="icon-button" data-action="goal" aria-label="Minha meta">${icon('bookmark')}</button>
  <button class="icon-button" data-action="cart" aria-label="Carrinho">${icon('cart')}</button>
  <button class="icon-button" data-action="profile" aria-label="Meu perfil">${icon('user')}</button>
- </footer></main>${asideRight()}</div>`;
+ </footer></main><button class="day-sleep-control" data-action="end-day" title="${afterMidnight()?'Dormir até hoje, às 19h':'Dormir até amanhã, às 19h'}" aria-label="Dormir e avançar até as 19h">☾ Dormir <small>${afterMidnight()?'hoje · 19h':'amanhã · 19h'}</small></button>${asideRight()}</div>`;
 }
 function adCard(id,retarget=false,item={}){
  const p=products[id];if(!p)return "";
@@ -1944,8 +1976,16 @@ function drawModal(){
   content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer"><div class="exit-gift">📸</div><h3>bia.m postou uma foto com você</h3><p>Ver agora?</p>
   <button class="primary full" data-action="hook-accept">Ver agora</button>
   <button class="tertiary full" data-action="hook-decline">Agora não</button></div>`;
- }else if(v.type==='new-post'){
-  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Nova publicação</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header><div class="sheet-scroll post-choices">${POST_CHOICES.map(c=>`<button class="post-choice" data-action="publish" data-choice="${c.id}">${mediaPhoto(c.photo,'art-photo',c.caption)}<span>${esc(c.caption)}</span></button>`).join('')}</div>`;
+ }else if(v.type==='new-post'||v.type==='edit-post'){
+  const editing=v.type==='edit-post',chosen=POST_CHOICES.find(c=>c.id===v.choice)||POST_CHOICES[0];
+  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${editing?'Editar publicação':'Criar publicação'}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
+  <div class="sheet-scroll post-compose"><p class="small muted">Escolha uma foto e escreva sua legenda.</p>
+  <div class="post-choices">${POST_CHOICES.map(c=>`<button class="post-choice ${chosen.id===c.id?'chosen':''}" data-action="select-post-photo" data-choice="${c.id}" aria-pressed="${chosen.id===c.id}">${mediaPhoto(c.photo,'art-photo',c.caption)}<span>${esc(c.caption)}</span></button>`).join('')}</div>
+  <label for="my-post-caption">Legenda (até 220 caracteres)</label>
+  <textarea id="my-post-caption" maxlength="220" rows="3" placeholder="O que você quer compartilhar?">${esc(v.caption||chosen.caption)}</textarea>
+  <button class="primary full" data-action="${editing?'save-my-post':'publish'}" data-choice="${chosen.id}">${editing?'Salvar alterações':'Publicar no feed'}</button>
+  ${editing?`<button class="tertiary full" data-action="remove-my-post" data-post="${v.postId}">Excluir publicação</button>`:''}
+  </div>`;
  }
  const box=document.createElement('div');box.className='layer-backdrop';box.innerHTML=`<section class="bottom-sheet" role="dialog" aria-modal="true">${content}</section>`;phone.appendChild(box);
  tick();
@@ -2367,8 +2407,12 @@ root.addEventListener('click',e=>{
  else if(a==='hook-accept'){const src=modal?.src;state.attention.exitHooks++;influenced(['gancho_saida'],'Ia sair, mas voltou para ver a foto em que foi marcado.');if(!state.feedItems.some(x=>x.id==='tag-'+state.day))topOfToday([{kind:'event',type:'tagged',id:'tag-'+state.day,day:state.day}]);modal=null;save();renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);void src;}
  else if(a==='hook-decline'){const src=modal?.src;modal=null;if(src==='end')sleep();else renderGame(true);}
  else if(a==='refresh-feed'){refreshFeed();}
- else if(a==='new-post'){modal={type:'new-post'};drawModal();}
- else if(a==='publish'){publishPost(el.dataset.choice);}
+ else if(a==='new-post'){modal={type:'new-post',choice:POST_CHOICES[0].id,caption:''};drawModal();}
+ else if(a==='select-post-photo'){modal.caption=document.getElementById('my-post-caption')?.value||'';modal.choice=el.dataset.choice;drawModal();}
+ else if(a==='publish'){publishPost(modal?.choice||el.dataset.choice);}
+ else if(a==='edit-my-post'){const p=state.myPosts.find(x=>x.id===post);if(p){modal={type:'edit-post',postId:p.id,choice:p.choice,caption:p.caption||''};drawModal();}}
+ else if(a==='save-my-post'){const p=state.myPosts.find(x=>x.id===modal?.postId);if(p){p.choice=modal.choice;p.caption=String(document.getElementById('my-post-caption')?.value||'').trim().slice(0,220)||POST_CHOICES[0].caption;save();}modal=null;renderGame(true);toast('Publicação atualizada.');}
+ else if(a==='remove-my-post'){const pid=modal?.postId;state.myPosts=state.myPosts.filter(x=>x.id!==pid);state.feedItems=state.feedItems.filter(x=>x.id!==pid);modal=null;save();renderGame(true);toast('Publicação excluída.');}
  else if(a==='guess-time'){const v=Number(document.getElementById('time-guess')?.value)||10;state.attention.guess=v;save();renderEnd();}
  else if(a==='load-more'){if(appendNext())renderGame(true);}
  else if(a==='finish'){finishWeek();}
