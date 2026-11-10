@@ -364,6 +364,34 @@
 .post-compose label{font-size:13px;font-weight:700}
 @media(max-width:720px){.day-sleep-control{right:12px;bottom:78px;padding:9px 13px;font-size:13px;box-shadow:0 5px 17px #15102955}.day-sleep-control small{font-size:10px}}
 </style>
+
+<style>
+.receipt-social-choice{margin:20px 0 8px;padding:16px;background:#fff7fc;border:1px solid #ead4e6;border-radius:16px;text-align:left}
+.receipt-social-choice h3{margin:0 0 6px;font-size:17px;color:#342540}
+.receipt-social-choice p{font-size:13px;line-height:1.45;color:#65536a;margin:0 0 12px}
+.receipt-social-choice label{display:block;font-size:12px;font-weight:750;margin-bottom:6px}
+.receipt-social-choice textarea{width:100%;box-sizing:border-box;border:1px solid #ccbaca;border-radius:10px;padding:10px;font:inherit;color:#38283d;background:#fff;resize:vertical}
+.purchase-share-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.purchase-share-grid button{min-height:46px;padding:10px 8px;font-size:13px}
+.receipt-social-choice small{display:block;margin-top:9px;color:#796881;font-size:11px}
+.mine-post .post-caption{margin:9px 15px 5px}
+.mine-post .likecount{margin:9px 15px 2px;font-weight:700}
+.mine-post .mine-comment-count,.mine-post .mine-comment-add{display:block;text-align:left;border:0;background:transparent;color:#807487;font-size:12px;padding:5px 15px;cursor:pointer;width:100%}
+.mine-post .mine-comment-preview{padding:0 15px 7px;font-size:12px}
+.mine-post .mine-comment-preview p{margin:5px 0;overflow-wrap:anywhere}
+.mine-post .mine-comment-add{padding-bottom:13px}
+.own-comment-form{display:grid;gap:8px;padding:12px 16px 17px;border-top:1px solid #ece4ec;background:#fff}
+.own-comment-form label{font-size:13px;font-weight:750}
+.own-comment-form textarea{width:100%;box-sizing:border-box;border-radius:9px;border:1px solid #d4c4d1;padding:10px;font:inherit;color:#38283d}
+.profile-gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
+.profile-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:16px}
+.profile-gallery-tile{padding:0;border:0;position:relative;aspect-ratio:1;background:#eee;overflow:hidden;border-radius:6px;cursor:pointer}
+.profile-gallery-tile img{width:100%;height:100%;object-fit:cover}
+.profile-gallery-tile small{position:absolute;bottom:0;left:0;right:0;padding:4px 6px;background:linear-gradient(transparent,#251c307d);color:#fff;font-size:11px;text-align:left;font-weight:700}
+.own-post-view{padding:12px 0 25px;overflow:auto}
+.own-post-view .post{margin:0 8px}
+.post-compose .post-choices{max-height:260px;overflow-y:auto}
+</style>
 </head>
 <body>
 <div id="app"></div>
@@ -410,9 +438,10 @@ const contentPool=()=>phases.flatMap((ph,themeIndex)=>
  ph.posts.filter(p=>(p.day||dayForTopic[ph.id]||1)===state.day)
  .map((p,postIndex)=>({...p,topic:ph.id,author:p.who,phase:Stream.release[ph.id]||0,order:postIndex*phases.length+themeIndex}))
 );
-const storyPool=()=>phases.flatMap(ph=>
- ph.stories.map(s=>({...s,product:ph.id}))
-);
+const storyPool=()=>[
+ ...phases.flatMap(ph=>ph.stories.map(s=>({...s,product:ph.id}))),
+ ...(state.myStories||[]).map((entry,i)=>({...entry,user:'você',source:'friend',idx:nextStoryIndex+i,day:entry.day,product:entry.product||'fone'}))
+];
 let feedObserver=null;
 const impressionTimers=new Map();
 function recommendationOptions(){return {profile:state.algorithm,phase:state.phase,personalized:state.personalized};}
@@ -448,7 +477,7 @@ function newRunId(){
  return "c4-"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
- pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),myPosts:[],clockViewed:0,clockSeen:[]});
+ pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],clockViewed:0,clockSeen:[]});
 let state=makeInitial();
 function restoreForPlayer(player) {
  state=makeInitial();
@@ -459,6 +488,10 @@ function restoreForPlayer(player) {
    state.attention={...emptyAttention(),...(saved.attention||{})};
    if(!Array.isArray(state.attention.exitHookDays))state.attention.exitHookDays=[];
    if(!Array.isArray(state.myPosts))state.myPosts=[];
+   if(!Array.isArray(state.myStories))state.myStories=[];
+   if(!Array.isArray(state.purchaseShares))state.purchaseShares=[];
+   if(!Array.isArray(state.mineLikes))state.mineLikes=[];
+   for(const p of state.myPosts){if(!Array.isArray(p.comments))p.comments=[];}
    if(!Array.isArray(state.clockSeen))state.clockSeen=[];
    if(!Number.isFinite(state.clockViewed))state.clockViewed=0;
    if(!Array.isArray(state.liked))state.liked=[];
@@ -773,11 +806,14 @@ function setupFeedExposure() {
         if (impressionTimers.has(el)) { clearTimeout(impressionTimers.get(el)); impressionTimers.delete(el); }
         continue;
       }
+      // Relogio simulado avanca quando um post entra em cena, mesmo com rolagem rapida.
+      // O algoritmo ainda aguarda permanencia antes de registrar interesse.
+      if(document.visibilityState==='visible'&&!overlay&&!story&&!modal&&exitConfirm.hidden)
+        advanceClockForVisible(id);
       if (impressionTimers.has(el)) continue;
       impressionTimers.set(el,setTimeout(() => {
         impressionTimers.delete(el);
         if (!el.isConnected || document.visibilityState!=="visible" || overlay || modal || story || !exitConfirm.hidden) return;
-        advanceClockForVisible(id);
         if(!state.personalized){feedObserver?.unobserve(el);return;}
         const topic=el.dataset.recTopic, author=el.dataset.recAuthor||"";
         if (!topic) return;
@@ -1024,7 +1060,7 @@ const dayItems=(d=state.day)=>state.feedItems.filter(x=>(x.day||1)===d);
 const streamItems=()=>state.feedItems.filter(x=>x.kind==='post'||x.kind==='ad');
 const dayStreamCount=()=>dayItems().filter(x=>x.kind==='post'||x.kind==='ad').length;
 const pad2=n=>String(n).padStart(2,'0');
-function clockMinutes(){return 19*60 + (state.clockViewed||0)*8;}
+function clockMinutes(){return 19*60 + (state.clockViewed||0)*18;}
 function clockLabel(){const m=clockMinutes()%(24*60);return pad2(Math.floor(m/60))+':'+pad2(m%60);}
 function afterMidnight(){return clockMinutes()>=24*60;}
 function clockDayLabel(){return afterMidnight()?(Week.DAYS[state.day]?.short||'SÁB'):dayInfo().short;}
@@ -1574,7 +1610,8 @@ function buy(ids){
  });
  Pressure.vibeBuy(state.vibe,trial?10:16+6*(ids.length-1),'Comprou '+label);
  state.flags.boughtToday=true;
- state.lastOrder={items:ids,total:paid,method:trial?'trial':method,n:q.n,each:q.each,cashback,coupon:q.coupon?.code||'',trial,at:Date.now()};
+ state.lastOrder={orderId:'pedido-'+state.runId.slice(0,8)+'-'+state.purchases.length,items:ids,total:paid,method:trial?'trial':method,n:q.n,each:q.each,cashback,coupon:q.coupon?.code||'',trial,at:Date.now()};
+ expose('prova_social','Após a compra, a rede sugeriu compartilhar o produto com amigos para receber curtidas e comentários.');
  state.payMethod=null;
  save();overlay={type:"receipt"};modal=null;renderGame(true);
  return true;
@@ -1596,8 +1633,58 @@ function receiptPage(){
  ${suggestions.length?`<div class="receipt-suggestions"><h3>Quem comprou isso também levou</h3>
  ${suggestions.map(id=>`<button class="shop-receipt-suggestion" data-action="product" data-product="${id}" data-source="pair">${art(products[id].kind,true)}<span><strong>${esc(productName(id))}</strong><small>${money(price(id).price)} · Ver na loja →</small></span></button>`).join("")}
  </div>`:""}
- <button class="primary full" data-action="close-overlay">Voltar ao feed →</button>
+ <section class="receipt-social-choice" aria-label="Compartilhar sua compra">
+ <h3>Quer mostrar sua compra? 📸</h3>
+ <p>Seus amigos podem ver, curtir e comentar. Você escolhe se quer publicar.</p>
+ <label for="purchase-share-caption">Legenda</label>
+ <textarea id="purchase-share-caption" maxlength="220" rows="2">${esc(o.trial?'Comecei a testar '+o.items.map(productName).join(' + ')+' 🎧':'Acabei de comprar '+o.items.map(productName).join(' + ')+' ✨')}</textarea>
+ <div class="purchase-share-grid">
+ <button class="secondary" data-action="purchase-share" data-channel="feed">▦ No feed</button>
+ <button class="secondary" data-action="purchase-share" data-channel="story">◉ No story</button>
+ <button class="primary" data-action="purchase-share" data-channel="ambos">♡ Nos dois</button>
+ <button class="tertiary" data-action="purchase-share" data-channel="nenhum">Não publicar</button>
+ </div><small>Simulação educativa: os perfis, comentários e curtidas são fictícios.</small>
+ <button class="tertiary full receipt-back" data-action="close-overlay">Voltar ao feed sem publicar</button>
+ </section>
  </section></div>`;
+}
+function sharePurchase(channel){
+ const modes=['feed','story','ambos','nenhum'],o=state.lastOrder;
+ if(!o||!modes.includes(channel))return;
+ const orderId=o.orderId||'pedido-antigo-'+String(o.at||0);
+ if(state.purchaseShares.some(x=>x.orderId===orderId)){overlay=null;renderGame(true);return;}
+ const product=o.items[0],photo='product_'+product;
+ const caption=String(document.getElementById('purchase-share-caption')?.value||'').trim().slice(0,220)
+    ||'Acabei de comprar '+o.items.map(productName).join(' + ')+' ✨';
+ const feed=channel==='feed'||channel==='ambos',storyShare=channel==='story'||channel==='ambos';
+ let postId=null,storyId=null;
+ if(feed){
+  postId='me-compra-'+orderId;
+  state.myPosts.push({id:postId,choice:'purchase-'+product,photo,topic:product,caption,
+    time:clockLabel(),day:state.day,clockViewed:state.clockViewed,at:Date.now(),boosted:true,
+    target:90+Pressure.hash(state.runId+postId)%120,comments:[],origin:'purchase'});
+  topOfToday([{kind:'mine',id:postId,day:state.day}]);
+ }
+ if(storyShare){
+  storyId='story-compra-'+orderId;
+  state.myStories.push({id:storyId,photo,product,day:state.day,text:caption,origin:'purchase'});
+ }
+ state.purchaseShares.push({orderId,day:state.day,products:[...o.items],channel,postId,storyId});
+ const choiceLabel={feed:'no feed',story:'nos stories',ambos:'no feed e nos stories',nenhum:'não compartilhar'}[channel];
+ pushEvent('compartilhamento_compra',`Após comprar ${o.items.map(productName).join(' + ')}, escolheu ${choiceLabel}.`);
+ if(feed||storyShare)expose('fomo','Uma compra foi apresentada como conteúdo para amigos: isso pode gerar comparação e receio de ficar de fora.');
+ overlay=null;modal=null;save();renderGame(!feed);
+ if(feed)document.querySelector('#feed-scroll')?.scrollTo(0,0);
+ toast(channel==='nenhum'?'Compra não publicada.':'Sua compra apareceu '+choiceLabel+'! 💜');
+}
+function shareOwnPostToStory(id){
+ const p=state.myPosts.find(x=>x.id===id);if(!p)return;
+ if(state.myStories.filter(x=>x.day===state.day).length>=20){toast('Limite de stories do dia atingido.');return;}
+ const c=postChoices().find(x=>x.id===p.choice);
+ state.myStories.push({id:'story-me-'+state.day+'-'+(state.myStories.length+1),photo:p.photo||c?.photo||'post_p1',
+  day:state.day,product:p.topic||c?.topic||'fone',text:p.caption||c?.caption||'Minha publicação',origin:'post'});
+ pushEvent('story_proprio','Compartilhou uma publicação própria nos stories.');
+ save();renderGame(true);toast('Compartilhado nos seus stories!');
 }
 
 /* ---------- assinatura: entrar é fácil, sair é difícil ---------- */
@@ -1686,11 +1773,11 @@ function refreshFeed(){
  },1500);
 }
 function publishPost(choice){
- const c=POST_CHOICES.find(x=>x.id===choice);if(!c)return;
+ const c=postChoices().find(x=>x.id===choice);if(!c)return;
  if(state.myPosts.filter(p=>p.day===state.day).length>=10){toast('Você publicou bastante hoje. Continue amanhã.');return;}
  const caption=String(document.getElementById('my-post-caption')?.value||c.caption).trim().slice(0,220)||c.caption;
  const boosted=bought(c.topic),id='me-'+state.day+'-'+(state.myPosts.length+1);
- state.myPosts.push({id,choice,caption,time:clockLabel(),day:state.day,at:Date.now(),boosted,target:(12+Pressure.hash(state.runId+id)%14)*(boosted?3:1)});
+ state.myPosts.push({id,choice,caption,time:clockLabel(),day:state.day,clockViewed:state.clockViewed,at:Date.now(),boosted,target:(28+Pressure.hash(state.runId+id)%43)*(boosted?3:1),comments:[],origin:'organic'});
  topOfToday([{kind:'mine',id,day:state.day}]);
  expose('validacao_social',boosted?`Seu post com ${productName(c.topic)} rendeu 3x mais curtidas.`:`Seu post rendeu poucas curtidas, e o app sugeriu que com ${productName(c.topic)} renderia 3x mais.`);
  modal=null;save();renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);
@@ -1736,11 +1823,53 @@ const POST_CHOICES=[
  {id:'viagem',photo:'extra_23',topic:'mochila',caption:'prontos para sair 🚌'},
  {id:'paisagem',photo:'friends_trip',topic:'mochila',caption:'respirando outros ares 🌳'}
 ];
-const myLikes=p=>Math.round(p.target*Math.min(1,Math.sqrt(Math.max(0,Date.now()-p.at)/120000)));
+const postChoices=()=>[
+ ...POST_CHOICES,
+ ...[...new Set(state.purchases.map(p=>p.id))].filter(id=>products[id]).map(id=>({
+  id:'purchase-'+id,photo:'product_'+id,topic:id,caption:'Minha compra: '+productName(id)+' ✨'
+ }))
+];
+const ownPostAge=p=>Math.max(0,(state.day-p.day)*40+(state.clockViewed||0)-(p.clockViewed||0));
+const myLikes=p=>Math.min(p.target||30,Math.round((p.target||30)*Math.min(1,.25+ownPostAge(p)*.10)))+((state.mineLikes||[]).includes(p.id)?1:0);
+function ownPostComments(p){
+ const fromPurchase=p.origin==='purchase';
+ const templates=fromPurchase?
+   [['bia.m','amei! onde você comprou? 😍'],['lucca.r','o pessoal vai querer também 👀'],['mia','ficou lindo! 🔥'],['gabi.n','agora quero ver de perto ✨']]:
+   [['bia.m','ameeei essa foto 💜'],['lucca.r','que registro bom!'],['mia','arrasou ✨'],['gabi.n','precisamos repetir esse dia 🥹']];
+ const count=Math.min(4,1+Math.floor(ownPostAge(p)/3));
+ return [...templates.slice(0,count).map(([u,t],i)=>[u,t,`há ${i+1} min`]),...(p.comments||[])];
+}
+function toggleOwnLike(id,like){
+ const p=state.myPosts.find(x=>x.id===id);if(!p)return;
+ const index=state.mineLikes.indexOf(id);
+ if(like&&index<0)state.mineLikes.push(id);
+ if(!like&&index>=0)state.mineLikes.splice(index,1);
+ save();
+ const card=document.querySelector('.mine-post[data-rec-id="'+id+'"]');
+ if(!card)return;
+ const btn=card.querySelector('[data-action="like-mine"]');
+ if(btn){btn.classList.toggle('is-liked',like);btn.setAttribute('aria-pressed',String(like));btn.querySelector('.ico')?.classList.toggle('heart-filled',like);}
+ const likes=card.querySelector('.js-my-likes');if(likes)likes.textContent=myLikes(p);
+}
 function mineCard(item){
  const p=state.myPosts.find(x=>x.id===item.id);if(!p)return '';
- const c=POST_CHOICES.find(x=>x.id===p.choice)||POST_CHOICES[0];
- return `<article class="post mine-post"><div class="post-top"><span class="avatar">🙂</span><div class="user-info"><div class="username">você</div><div class="post-sub">publicado às ${esc(p.time||clockLabel())}</div></div><button class="icon-button" data-action="edit-my-post" data-post="${p.id}" aria-label="Editar sua publicação">${icon("more")}</button></div><div class="post-media feed-photo">${mediaPhoto(c.photo,'art-photo','Sua publicação')}</div><div class="post-caption"><strong>❤️ <span class="js-my-likes" data-post="${p.id}">${myLikes(p)}</span> curtidas</strong><p>${esc(p.caption||c.caption)}</p></div>${p.boosted?'':`<p class="small muted mine-hint">💡 Posts com ${esc(productName(c.topic))} estão rendendo 3x mais curtidas hoje.</p>`}</article>`;
+ const c=postChoices().find(x=>x.id===p.choice)||POST_CHOICES[0];
+ const photo=p.photo||c.photo,liked=(state.mineLikes||[]).includes(p.id);
+ const comments=ownPostComments(p),saved=state.bookmarks.includes(p.id);
+ return `<article class="post mine-post" data-rec-id="${esc(p.id)}">
+ <div class="post-top"><span class="avatar photo-avatar">${mediaPhoto(photo,'avatar-photo','Sua foto')}</span><div class="user-info"><div class="username">${esc(identity?.username||'você')} <span class="meta-tag">você</span></div><div class="post-sub">publicado às ${esc(p.time||clockLabel())}</div></div><button class="icon-button" data-action="edit-my-post" data-post="${esc(p.id)}" aria-label="Editar sua publicação">${icon("more")}</button></div>
+ <div class="post-media feed-photo" data-like-mine="${esc(p.id)}" role="group" aria-label="Sua foto. Dois toques para curtir.">${mediaPhoto(photo,'art-photo','Sua publicação')}</div>
+ <div class="post-actions">
+ <button class="icon-button like-button ${liked?'is-liked':''}" data-action="like-mine" data-post="${esc(p.id)}" aria-pressed="${liked}" aria-label="${liked?'Descurtir':'Curtir'} sua publicação">${icon('heart',liked?'heart-filled':'')}</button>
+ <button class="icon-button" data-action="comments" data-post="${esc(p.id)}" aria-label="Ver e escrever comentários">${icon('comment')}</button>
+ <button class="icon-button" data-action="share-mine-story" data-post="${esc(p.id)}" aria-label="Compartilhar nos stories">${icon('send')}</button>
+ <button class="icon-button push" data-action="bookmark-mine" data-post="${esc(p.id)}" aria-label="${saved?'Remover dos salvos':'Salvar sua publicação'}" style="color:${saved?'#e84a80':'inherit'}">${icon('bookmark')}</button></div>
+ <p class="likecount"><span class="js-my-likes" data-post="${esc(p.id)}">${myLikes(p)}</span> curtidas</p>
+ <p class="post-caption"><strong>${esc(identity?.username||'você')}</strong> ${esc(p.caption||c.caption)}</p>
+ <button class="mine-comment-count" data-action="comments" data-post="${esc(p.id)}">Ver todos os ${comments.length} comentários</button>
+ <div class="mine-comment-preview">${comments.slice(0,2).map(x=>`<p><strong>${esc(x[0])}</strong> ${esc(x[1])}</p>`).join('')}</div>
+ <button class="mine-comment-add" data-action="comments" data-post="${esc(p.id)}">Adicione um comentário...</button>
+ </article>`;
 }
 function surpriseCard(item){
  const v=item.variant;
@@ -1915,6 +2044,7 @@ function drawOverlay(){
  else if(t==="cart")wrap.innerHTML=cartPage();
  else if(t==="checkout")wrap.innerHTML=checkoutPage();
  else if(t==="receipt")wrap.innerHTML=receiptPage();
+ else if(t==="own-post")wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="profile" aria-label="Voltar ao perfil">${icon("arrow")}</button><strong>Sua publicação</strong></header><div class="layer-body own-post-view">${mineCard({id:overlay.id})}</div>`;
  else if(t==="goal")wrap.innerHTML=goalPanel();
  else if(t==="inbox")wrap.innerHTML=inboxPage();
  else if(t==="chat")wrap.innerHTML=chatPage();
@@ -1926,7 +2056,9 @@ function drawOverlay(){
  else if(t==="profile"){
   const s=Pressure.settle(state),sub=state.subscriptions.find(x=>x.active);
   wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon("arrow")}</button><strong>Meu perfil</strong></header><div class="layer-body" style="padding:22px">
-   <div style="text-align:center;padding:8px 0 18px"><div class="avatar" style="margin:auto;width:74px;height:74px;font-size:35px">🙂</div><h3 style="margin:12px 0 4px">você</h3><p class="small muted">${state.purchases.length} pedido(s) no Pulso Shop</p></div>
+   <div style="text-align:center;padding:8px 0 18px"><div class="avatar" style="margin:auto;width:74px;height:74px;font-size:35px">🙂</div><h3 style="margin:12px 0 4px">você</h3><p class="small muted">${state.myPosts.length} publicações · ${state.myStories.length} stories · ${state.purchases.length} compras fictícias</p></div>
+   <div class="profile-gallery-heading"><strong>Suas publicações</strong><button class="tiny-button" data-action="close-overlay">Ver feed →</button></div>
+   <div class="profile-gallery">${state.myPosts.slice(-9).reverse().map(p=>`<button class="profile-gallery-tile" data-action="profile-post" data-post="${esc(p.id)}" aria-label="Abrir sua publicação">${mediaPhoto(p.photo||postChoices().find(c=>c.id===p.choice)?.photo||'post_p1','art-photo','Sua publicação')}<small>♥ ${myLikes(p)}</small></button>`).join('')||'<p class="small muted">Suas fotos aparecerão aqui.</p>'}</div>
    <div class="end-box" style="padding:15px;margin:0 0 12px"><strong style="font-size:13px">Saldo na conta</strong><div style="font-size:24px;font-weight:850;margin:8px 0">${money(state.wallet)}</div>${state.card.active?`<p class="small muted">Pulso Pay: ${money(cardUsed())} usados de ${money(state.card.limit)}</p>`:''}<p class="small muted">🪙 ${money(state.coins)} em moedas</p></div>
    ${state.card.active?'':`<button class="reviews-shortcut" data-action="pay"><strong>💳 Pulso Pay pré-aprovado</strong>${icon("chevron")}</button>`}
    <button class="reviews-shortcut" data-action="subs"><strong>Assinaturas${sub?' · 1 ativa':''}</strong>${icon("chevron")}</button>
@@ -1961,9 +2093,15 @@ function drawModal(){
    comments=[['ana.lu','Melhor compra do ano!! Chegou super rápido 😍','2 h'],...comments];
    title=`⭐ ${r.stars.toFixed(1).replace('.',',')} · Avaliações de ${productName(id)}`;
    expose('prova_social',`Avaliações de ${productName(id)} ordenadas com as positivas primeiro.`);
+  }else if(state.myPosts.some(p=>p.id===v.post)){
+   const p=state.myPosts.find(x=>x.id===v.post);
+   comments=ownPostComments(p);title='Comentários na sua publicação';
   }else if(Week.COMPARE_POSTS[v.post]){comments=Week.COMPARE_POSTS[v.post].comments.map((c,i)=>[c[0],c[1],`${i+1} min`]);}
   else{for(const ph of phases){const post=ph.posts.find(x=>x.id===v.post);if(post){comments=post.comments.map((c,i)=>[c[0],c[1],`${i+1} h`]);break;}}}
-  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${esc(title)}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header><div class="sheet-scroll">${comments.map((c,i)=>`<div class="comment"><span class="avatar">${['🧑','👩','🧒','🙂'][i%4]}</span><div><strong>${esc(c[0])}</strong><p>${esc(c[1])}</p><small>${c[2]||'há pouco'}</small></div></div>`).join('')}</div>`;
+  const mine=state.myPosts.some(p=>p.id===v.post);
+  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${esc(title)} · ${comments.length}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
+  <div class="sheet-scroll">${comments.map((c,i)=>`<div class="comment"><span class="avatar">${['🧑','👩','🧒','🙂'][i%4]}</span><div><strong>${esc(c[0])}</strong><p>${esc(c[1])}</p><small>${esc(c[2]||'há pouco')}</small></div></div>`).join('')}</div>
+  ${mine?`<div class="own-comment-form"><label for="own-comment-input">Escrever comentário</label><textarea id="own-comment-input" maxlength="180" rows="2" placeholder="Adicione um comentário..."></textarea><button class="primary full" data-action="add-my-comment" data-post="${esc(v.post)}">Publicar comentário</button></div>`:''}`;
  }else if(v.type==='more'){
   content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Opções de publicação</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
   <div class="sheet-scroll"><p class="small muted">Você pode escolher não ver conteúdos semelhantes.</p>
@@ -1992,10 +2130,10 @@ function drawModal(){
   <button class="primary full" data-action="hook-accept">Ver agora</button>
   <button class="tertiary full" data-action="hook-decline">Agora não</button></div>`;
  }else if(v.type==='new-post'||v.type==='edit-post'){
-  const editing=v.type==='edit-post',chosen=POST_CHOICES.find(c=>c.id===v.choice)||POST_CHOICES[0];
+  const editing=v.type==='edit-post',choices=postChoices(),chosen=choices.find(c=>c.id===v.choice)||choices[0];
   content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${editing?'Editar publicação':'Criar publicação'}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
   <div class="sheet-scroll post-compose"><p class="small muted">Escolha uma foto e escreva sua legenda.</p>
-  <div class="post-choices">${POST_CHOICES.map(c=>`<button class="post-choice ${chosen.id===c.id?'chosen':''}" data-action="select-post-photo" data-choice="${c.id}" aria-pressed="${chosen.id===c.id}">${mediaPhoto(c.photo,'art-photo',c.caption)}<span>${esc(c.caption)}</span></button>`).join('')}</div>
+  <div class="post-choices">${choices.map(c=>`<button class="post-choice ${chosen.id===c.id?'chosen':''}" data-action="select-post-photo" data-choice="${c.id}" aria-pressed="${chosen.id===c.id}">${mediaPhoto(c.photo,'art-photo',c.caption)}<span>${esc(c.caption)}</span></button>`).join('')}</div>
   <label for="my-post-caption">Legenda (até 220 caracteres)</label>
   <textarea id="my-post-caption" maxlength="220" rows="3" placeholder="O que você quer compartilhar?">${esc(v.caption||chosen.caption)}</textarea>
   <button class="primary full" data-action="${editing?'save-my-post':'publish'}" data-choice="${chosen.id}">${editing?'Salvar alterações':'Publicar no feed'}</button>
@@ -2312,8 +2450,8 @@ function likeFeedPhoto(photo){
  if(!article)return;
  const ad=article.classList.contains("ad-post");
  const id=article.dataset.recId;
- setLikeState(ad?"ad":"post",id,true);
- reflectLike(article);
+ if(article.classList.contains('mine-post'))toggleOwnLike(id,true);
+ else{setLikeState(ad?"ad":"post",id,true);reflectLike(article);}
  const now=performance.now();
  if(lastLikeFlash.photo===photo&&now-lastLikeFlash.time<250)return;
  lastLikeFlash={photo,time:now};
@@ -2425,6 +2563,11 @@ root.addEventListener('click',e=>{
  else if(a==='new-post'){modal={type:'new-post',choice:POST_CHOICES[0].id,caption:''};drawModal();}
  else if(a==='select-post-photo'){modal.caption=document.getElementById('my-post-caption')?.value||'';modal.choice=el.dataset.choice;drawModal();}
  else if(a==='publish'){publishPost(modal?.choice||el.dataset.choice);}
+ else if(a==='purchase-share'){sharePurchase(el.dataset.channel);}
+ else if(a==='share-mine-story'){shareOwnPostToStory(post);}
+ else if(a==='like-mine'){toggleOwnLike(post,!state.mineLikes.includes(post));}
+ else if(a==='bookmark-mine'){const k=state.bookmarks.indexOf(post);if(k<0)state.bookmarks.push(post);else state.bookmarks.splice(k,1);save();renderGame(true);}
+ else if(a==='add-my-comment'){const p=state.myPosts.find(x=>x.id===post);const message=String(document.querySelector('#own-comment-input')?.value||'').trim().slice(0,180);if(p&&message&&p.comments.length<15){p.comments.push([identity?.username||'você',message,'agora']);pushEvent('comentario_proprio','Comentou em uma publicação própria.');save();drawModal();}else if(!message)toast('Escreva um comentário.');}
  else if(a==='edit-my-post'){const p=state.myPosts.find(x=>x.id===post);if(p){modal={type:'edit-post',postId:p.id,choice:p.choice,caption:p.caption||''};drawModal();}}
  else if(a==='save-my-post'){const p=state.myPosts.find(x=>x.id===modal?.postId);if(p){p.choice=modal.choice;p.caption=String(document.getElementById('my-post-caption')?.value||'').trim().slice(0,220)||POST_CHOICES[0].caption;save();}modal=null;renderGame(true);toast('Publicação atualizada.');}
  else if(a==='remove-my-post'){const pid=modal?.postId;state.myPosts=state.myPosts.filter(x=>x.id!==pid);state.feedItems=state.feedItems.filter(x=>x.id!==pid);modal=null;save();renderGame(true);toast('Publicação excluída.');}
@@ -2517,9 +2660,10 @@ root.addEventListener('click',e=>{
  }
  else if(a==='close-modal')closeModal()
  else if(a==='post-more'||a==='ad-more'){const card=el.closest('.post');modal={type:'more',post:card?.dataset.recId||'',topic:card?.dataset.recTopic||''};drawModal();}
- else if(a==='close-overlay')closeOverlay()
+ else if(a==='close-overlay'){if(overlay?.type==='receipt')sharePurchase('nenhum');else closeOverlay();}
  else if(a==='cart'){overlay={type:'cart'};drawOverlay();}
  else if(a==='profile'){overlay={type:'profile'};drawOverlay();}
+ else if(a==='profile-post'){overlay={type:'own-post',id:post};drawOverlay();}
  else if(a==='notifications'){overlay={type:'notifications'};drawOverlay();}
  else if(a==='share')toast('Link copiado ✓')
  else if(a==='feedtop')document.querySelector('#feed-scroll')?.scrollTo({top:0,behavior:'smooth'});

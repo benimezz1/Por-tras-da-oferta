@@ -22,6 +22,20 @@ function fixture() {
 }
 
 describe("arquivo JSON da Semana ate a viagem", () => {
+  it("inclui escolhas de publicacao sem enviar legendas ou comentarios privados", () => {
+    const state=fixture();
+    state.myPosts=[{id:'me-compra-1',caption:'minha legenda pessoal',comments:[['você','meu comentario pessoal','agora']]}];
+    state.myStories=[{id:'story-compra-1',text:'texto pessoal',day:1}];
+    state.purchaseShares=[{orderId:'pedido-um',day:1,products:['fone'],channel:'ambos',postId:'me-compra-1',storyId:'story-compra-1'}];
+    const payload=E.build(state,{pressure:P,recommender:R});
+    expect(payload.estado.purchaseShares).toHaveLength(1);
+    expect(payload.estado.socialActivity).toEqual({postsCriados:1,storiesCriados:1,comentariosCriados:1});
+    expect(payload.resumo.social.ambos).toBe(1);
+    const serialized=JSON.stringify(payload);
+    expect(serialized).not.toContain('minha legenda pessoal');
+    expect(serialized).not.toContain('meu comentario pessoal');
+    expect(serialized).not.toContain('texto pessoal');
+  });
   it("exporta o estado da campanha nova, as dez estrategias e o quiz", () => {
     const state = fixture();
     P.expose(state.pressure, "fomo", "Só falta você.");

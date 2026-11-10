@@ -340,7 +340,7 @@ test("dormir fica fora do feed, avança às 19h e a meia-noite muda discretament
   await page.evaluate(() => {
     const key='nofeed-simulator-v4:user:player-e2e';
     const v=JSON.parse(localStorage.getItem(key) || '{}');
-    v.clockViewed=38;
+    v.clockViewed=17;
     localStorage.setItem(key,JSON.stringify(v));
   });
   await page.reload();
@@ -361,4 +361,47 @@ test("cada novo dia mostra publicações inéditas e stories renovados", async (
   expect(secondPosts.every(id=>!firstPosts.includes(id))).toBe(true);
   expect(secondStories.length).toBeGreaterThan(0);
   expect(firstStories.length).toBeGreaterThan(0);
+});
+
+test("compra oferece quatro opções de compartilhamento; feed e story aparecem de verdade", async ({page}) => {
+  await enter(page);
+  await page.locator('.phone-head [data-action="shop"]').click();
+  await page.locator('.shop-product[data-product="garrafa"]').click();
+  await page.locator('.shop-footer [data-action="checkout"]').click();
+  await page.locator('.shop-footer [data-action="buy"]').click();
+  const options=page.locator('.receipt-social-choice [data-action="purchase-share"]');
+  await expect(options).toHaveCount(4);
+  await page.locator('#purchase-share-caption').fill('Comprei uma garrafa para a viagem 💧');
+  await page.locator('.receipt-social-choice [data-channel="ambos"]').click();
+  const post=page.locator('.mine-post').first();
+  await expect(post).toContainText('Comprei uma garrafa para a viagem');
+  await expect(post.locator('.js-my-likes')).not.toBeEmpty();
+  await expect(post.locator('.mine-comment-preview')).toContainText('bia.m');
+  await post.locator('[data-action="like-mine"]').click();
+  await expect(post.locator('[data-action="like-mine"]')).toHaveAttribute('aria-pressed','true');
+  await post.locator('[data-action="comments"]').click();
+  await page.locator('#own-comment-input').fill('Essa compra foi só uma simulação!');
+  await page.locator('[data-action="add-my-comment"]').click();
+  await expect(page.locator('.bottom-sheet')).toContainText('Essa compra foi só uma simulação!');
+  await page.locator('[data-action="close-modal"]').click();
+  await expect(page.locator('.story-rail .story[data-story-user="você"]')).toHaveCount(1);
+  const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')||'{}'));
+  expect(data.purchaseShares[0]).toMatchObject({channel:'ambos',products:['garrafa']});
+  expect(data.myPosts).toHaveLength(1);
+  expect(data.myStories).toHaveLength(1);
+  expect(data.myPosts[0].comments).toHaveLength(1);
+});
+
+test("não publicar compra preserva escolha sem fabricar post ou story", async ({page}) => {
+  await enter(page);
+  await page.locator('.phone-head [data-action="shop"]').click();
+  await page.locator('.shop-product[data-product="garrafa"]').click();
+  await page.locator('.shop-footer [data-action="checkout"]').click();
+  await page.locator('.shop-footer [data-action="buy"]').click();
+  await page.locator('.receipt-social-choice [data-channel="nenhum"]').click();
+  await expect(page.locator('.receipt-social-choice')).toHaveCount(0);
+  const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')||'{}'));
+  expect(data.purchaseShares[0].channel).toBe('nenhum');
+  expect(data.myPosts).toHaveLength(0);
+  expect(data.myStories).toHaveLength(0);
 });
