@@ -1741,7 +1741,7 @@ function refreshFeed(){
  },1500);
 }
 function publishPost(choice){
- const c=POST_CHOICES.find(x=>x.id===choice);if(!c)return;
+ const c=postChoices().find(x=>x.id===choice);if(!c)return;
  if(state.myPosts.filter(p=>p.day===state.day).length>=10){toast('Você publicou bastante hoje. Continue amanhã.');return;}
  const caption=String(document.getElementById('my-post-caption')?.value||c.caption).trim().slice(0,220)||c.caption;
  const boosted=bought(c.topic),id='me-'+state.day+'-'+(state.myPosts.length+1);
@@ -1791,6 +1791,12 @@ const POST_CHOICES=[
  {id:'viagem',photo:'extra_23',topic:'mochila',caption:'prontos para sair 🚌'},
  {id:'paisagem',photo:'friends_trip',topic:'mochila',caption:'respirando outros ares 🌳'}
 ];
+const postChoices=()=>[
+ ...POST_CHOICES,
+ ...[...new Set(state.purchases.map(p=>p.id))].filter(id=>products[id]).map(id=>({
+  id:'purchase-'+id,photo:'product_'+id,topic:id,caption:'Minha compra: '+productName(id)+' ✨'
+ }))
+];
 const ownPostAge=p=>Math.max(0,(state.day-p.day)*40+(state.clockViewed||0)-(p.clockViewed||0));
 const myLikes=p=>Math.min(p.target||30,Math.round((p.target||30)*Math.min(1,.25+ownPostAge(p)*.10)))+((state.mineLikes||[]).includes(p.id)?1:0);
 function ownPostComments(p){
@@ -1815,7 +1821,7 @@ function toggleOwnLike(id,like){
 }
 function mineCard(item){
  const p=state.myPosts.find(x=>x.id===item.id);if(!p)return '';
- const c=POST_CHOICES.find(x=>x.id===p.choice)||POST_CHOICES[0];
+ const c=postChoices().find(x=>x.id===p.choice)||POST_CHOICES[0];
  const photo=p.photo||c.photo,liked=(state.mineLikes||[]).includes(p.id);
  const comments=ownPostComments(p),saved=state.bookmarks.includes(p.id);
  return `<article class="post mine-post" data-rec-id="${esc(p.id)}">
@@ -2006,6 +2012,7 @@ function drawOverlay(){
  else if(t==="cart")wrap.innerHTML=cartPage();
  else if(t==="checkout")wrap.innerHTML=checkoutPage();
  else if(t==="receipt")wrap.innerHTML=receiptPage();
+ else if(t==="own-post")wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="profile" aria-label="Voltar ao perfil">${icon("arrow")}</button><strong>Sua publicação</strong></header><div class="layer-body own-post-view">${mineCard({id:overlay.id})}</div>`;
  else if(t==="goal")wrap.innerHTML=goalPanel();
  else if(t==="inbox")wrap.innerHTML=inboxPage();
  else if(t==="chat")wrap.innerHTML=chatPage();
@@ -2017,7 +2024,9 @@ function drawOverlay(){
  else if(t==="profile"){
   const s=Pressure.settle(state),sub=state.subscriptions.find(x=>x.active);
   wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon("arrow")}</button><strong>Meu perfil</strong></header><div class="layer-body" style="padding:22px">
-   <div style="text-align:center;padding:8px 0 18px"><div class="avatar" style="margin:auto;width:74px;height:74px;font-size:35px">🙂</div><h3 style="margin:12px 0 4px">você</h3><p class="small muted">${state.purchases.length} pedido(s) no Pulso Shop</p></div>
+   <div style="text-align:center;padding:8px 0 18px"><div class="avatar" style="margin:auto;width:74px;height:74px;font-size:35px">🙂</div><h3 style="margin:12px 0 4px">você</h3><p class="small muted">${state.myPosts.length} publicações · ${state.myStories.length} stories · ${state.purchases.length} compras fictícias</p></div>
+   <div class="profile-gallery-heading"><strong>Suas publicações</strong><button class="tiny-button" data-action="close-overlay">Ver feed →</button></div>
+   <div class="profile-gallery">${state.myPosts.slice(-9).reverse().map(p=>`<button class="profile-gallery-tile" data-action="profile-post" data-post="${esc(p.id)}" aria-label="Abrir sua publicação">${mediaPhoto(p.photo||postChoices().find(c=>c.id===p.choice)?.photo||'post_p1','art-photo','Sua publicação')}<small>♥ ${myLikes(p)}</small></button>`).join('')||'<p class="small muted">Suas fotos aparecerão aqui.</p>'}</div>
    <div class="end-box" style="padding:15px;margin:0 0 12px"><strong style="font-size:13px">Saldo na conta</strong><div style="font-size:24px;font-weight:850;margin:8px 0">${money(state.wallet)}</div>${state.card.active?`<p class="small muted">Pulso Pay: ${money(cardUsed())} usados de ${money(state.card.limit)}</p>`:''}<p class="small muted">🪙 ${money(state.coins)} em moedas</p></div>
    ${state.card.active?'':`<button class="reviews-shortcut" data-action="pay"><strong>💳 Pulso Pay pré-aprovado</strong>${icon("chevron")}</button>`}
    <button class="reviews-shortcut" data-action="subs"><strong>Assinaturas${sub?' · 1 ativa':''}</strong>${icon("chevron")}</button>
@@ -2052,9 +2061,15 @@ function drawModal(){
    comments=[['ana.lu','Melhor compra do ano!! Chegou super rápido 😍','2 h'],...comments];
    title=`⭐ ${r.stars.toFixed(1).replace('.',',')} · Avaliações de ${productName(id)}`;
    expose('prova_social',`Avaliações de ${productName(id)} ordenadas com as positivas primeiro.`);
+  }else if(state.myPosts.some(p=>p.id===v.post)){
+   const p=state.myPosts.find(x=>x.id===v.post);
+   comments=ownPostComments(p);title='Comentários na sua publicação';
   }else if(Week.COMPARE_POSTS[v.post]){comments=Week.COMPARE_POSTS[v.post].comments.map((c,i)=>[c[0],c[1],`${i+1} min`]);}
   else{for(const ph of phases){const post=ph.posts.find(x=>x.id===v.post);if(post){comments=post.comments.map((c,i)=>[c[0],c[1],`${i+1} h`]);break;}}}
-  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${esc(title)}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header><div class="sheet-scroll">${comments.map((c,i)=>`<div class="comment"><span class="avatar">${['🧑','👩','🧒','🙂'][i%4]}</span><div><strong>${esc(c[0])}</strong><p>${esc(c[1])}</p><small>${c[2]||'há pouco'}</small></div></div>`).join('')}</div>`;
+  const mine=state.myPosts.some(p=>p.id===v.post);
+  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${esc(title)} · ${comments.length}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
+  <div class="sheet-scroll">${comments.map((c,i)=>`<div class="comment"><span class="avatar">${['🧑','👩','🧒','🙂'][i%4]}</span><div><strong>${esc(c[0])}</strong><p>${esc(c[1])}</p><small>${esc(c[2]||'há pouco')}</small></div></div>`).join('')}</div>
+  ${mine?`<div class="own-comment-form"><label for="own-comment-input">Escrever comentário</label><textarea id="own-comment-input" maxlength="180" rows="2" placeholder="Adicione um comentário..."></textarea><button class="primary full" data-action="add-my-comment" data-post="${esc(v.post)}">Publicar comentário</button></div>`:''}`;
  }else if(v.type==='more'){
   content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Opções de publicação</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
   <div class="sheet-scroll"><p class="small muted">Você pode escolher não ver conteúdos semelhantes.</p>
@@ -2083,10 +2098,10 @@ function drawModal(){
   <button class="primary full" data-action="hook-accept">Ver agora</button>
   <button class="tertiary full" data-action="hook-decline">Agora não</button></div>`;
  }else if(v.type==='new-post'||v.type==='edit-post'){
-  const editing=v.type==='edit-post',chosen=POST_CHOICES.find(c=>c.id===v.choice)||POST_CHOICES[0];
+  const editing=v.type==='edit-post',choices=postChoices(),chosen=choices.find(c=>c.id===v.choice)||choices[0];
   content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${editing?'Editar publicação':'Criar publicação'}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
   <div class="sheet-scroll post-compose"><p class="small muted">Escolha uma foto e escreva sua legenda.</p>
-  <div class="post-choices">${POST_CHOICES.map(c=>`<button class="post-choice ${chosen.id===c.id?'chosen':''}" data-action="select-post-photo" data-choice="${c.id}" aria-pressed="${chosen.id===c.id}">${mediaPhoto(c.photo,'art-photo',c.caption)}<span>${esc(c.caption)}</span></button>`).join('')}</div>
+  <div class="post-choices">${choices.map(c=>`<button class="post-choice ${chosen.id===c.id?'chosen':''}" data-action="select-post-photo" data-choice="${c.id}" aria-pressed="${chosen.id===c.id}">${mediaPhoto(c.photo,'art-photo',c.caption)}<span>${esc(c.caption)}</span></button>`).join('')}</div>
   <label for="my-post-caption">Legenda (até 220 caracteres)</label>
   <textarea id="my-post-caption" maxlength="220" rows="3" placeholder="O que você quer compartilhar?">${esc(v.caption||chosen.caption)}</textarea>
   <button class="primary full" data-action="${editing?'save-my-post':'publish'}" data-choice="${chosen.id}">${editing?'Salvar alterações':'Publicar no feed'}</button>
@@ -2403,8 +2418,8 @@ function likeFeedPhoto(photo){
  if(!article)return;
  const ad=article.classList.contains("ad-post");
  const id=article.dataset.recId;
- setLikeState(ad?"ad":"post",id,true);
- reflectLike(article);
+ if(article.classList.contains('mine-post'))toggleOwnLike(id,true);
+ else{setLikeState(ad?"ad":"post",id,true);reflectLike(article);}
  const now=performance.now();
  if(lastLikeFlash.photo===photo&&now-lastLikeFlash.time<250)return;
  lastLikeFlash={photo,time:now};
@@ -2516,6 +2531,11 @@ root.addEventListener('click',e=>{
  else if(a==='new-post'){modal={type:'new-post',choice:POST_CHOICES[0].id,caption:''};drawModal();}
  else if(a==='select-post-photo'){modal.caption=document.getElementById('my-post-caption')?.value||'';modal.choice=el.dataset.choice;drawModal();}
  else if(a==='publish'){publishPost(modal?.choice||el.dataset.choice);}
+ else if(a==='purchase-share'){sharePurchase(el.dataset.channel);}
+ else if(a==='share-mine-story'){shareOwnPostToStory(post);}
+ else if(a==='like-mine'){toggleOwnLike(post,!state.mineLikes.includes(post));}
+ else if(a==='bookmark-mine'){const k=state.bookmarks.indexOf(post);if(k<0)state.bookmarks.push(post);else state.bookmarks.splice(k,1);save();renderGame(true);}
+ else if(a==='add-my-comment'){const p=state.myPosts.find(x=>x.id===post);const message=String(document.querySelector('#own-comment-input')?.value||'').trim().slice(0,180);if(p&&message&&p.comments.length<15){p.comments.push([identity?.username||'você',message,'agora']);pushEvent('comentario_proprio','Comentou em uma publicação própria.');save();drawModal();}else if(!message)toast('Escreva um comentário.');}
  else if(a==='edit-my-post'){const p=state.myPosts.find(x=>x.id===post);if(p){modal={type:'edit-post',postId:p.id,choice:p.choice,caption:p.caption||''};drawModal();}}
  else if(a==='save-my-post'){const p=state.myPosts.find(x=>x.id===modal?.postId);if(p){p.choice=modal.choice;p.caption=String(document.getElementById('my-post-caption')?.value||'').trim().slice(0,220)||POST_CHOICES[0].caption;save();}modal=null;renderGame(true);toast('Publicação atualizada.');}
  else if(a==='remove-my-post'){const pid=modal?.postId;state.myPosts=state.myPosts.filter(x=>x.id!==pid);state.feedItems=state.feedItems.filter(x=>x.id!==pid);modal=null;save();renderGame(true);toast('Publicação excluída.');}
@@ -2608,9 +2628,10 @@ root.addEventListener('click',e=>{
  }
  else if(a==='close-modal')closeModal()
  else if(a==='post-more'||a==='ad-more'){const card=el.closest('.post');modal={type:'more',post:card?.dataset.recId||'',topic:card?.dataset.recTopic||''};drawModal();}
- else if(a==='close-overlay')closeOverlay()
+ else if(a==='close-overlay'){if(overlay?.type==='receipt')sharePurchase('nenhum');else closeOverlay();}
  else if(a==='cart'){overlay={type:'cart'};drawOverlay();}
  else if(a==='profile'){overlay={type:'profile'};drawOverlay();}
+ else if(a==='profile-post'){overlay={type:'own-post',id:post};drawOverlay();}
  else if(a==='notifications'){overlay={type:'notifications'};drawOverlay();}
  else if(a==='share')toast('Link copiado ✓')
  else if(a==='feedtop')document.querySelector('#feed-scroll')?.scrollTo({top:0,behavior:'smooth'});
