@@ -1134,8 +1134,10 @@ function openComments(post){
  drawModal();
 }
 function closeModal(){
+ const was=modal?.type;
  modal=null;
  document.querySelector(".layer-backdrop")?.remove();
+ if(was==='comments')renderGame(true);
 }
 
 function scheduleShopFromPhoto(element){
