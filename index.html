@@ -1695,7 +1695,7 @@ function publishPost(choice){
  if(state.myPosts.filter(p=>p.day===state.day).length>=10){toast('Você publicou bastante hoje. Continue amanhã.');return;}
  const caption=String(document.getElementById('my-post-caption')?.value||c.caption).trim().slice(0,220)||c.caption;
  const boosted=bought(c.topic),id='me-'+state.day+'-'+(state.myPosts.length+1);
- state.myPosts.push({id,choice,caption,time:clockLabel(),day:state.day,at:Date.now(),boosted,target:(12+Pressure.hash(state.runId+id)%14)*(boosted?3:1)});
+ state.myPosts.push({id,choice,caption,time:clockLabel(),day:state.day,clockViewed:state.clockViewed,at:Date.now(),boosted,target:(28+Pressure.hash(state.runId+id)%43)*(boosted?3:1),comments:[],origin:'organic'});
  topOfToday([{kind:'mine',id,day:state.day}]);
  expose('validacao_social',boosted?`Seu post com ${productName(c.topic)} rendeu 3x mais curtidas.`:`Seu post rendeu poucas curtidas, e o app sugeriu que com ${productName(c.topic)} renderia 3x mais.`);
  modal=null;save();renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);
@@ -1741,11 +1741,47 @@ const POST_CHOICES=[
  {id:'viagem',photo:'extra_23',topic:'mochila',caption:'prontos para sair 🚌'},
  {id:'paisagem',photo:'friends_trip',topic:'mochila',caption:'respirando outros ares 🌳'}
 ];
-const myLikes=p=>Math.round(p.target*Math.min(1,Math.sqrt(Math.max(0,Date.now()-p.at)/120000)));
+const ownPostAge=p=>Math.max(0,(state.day-p.day)*40+(state.clockViewed||0)-(p.clockViewed||0));
+const myLikes=p=>Math.min(p.target||30,Math.round((p.target||30)*Math.min(1,.25+ownPostAge(p)*.10)))+((state.mineLikes||[]).includes(p.id)?1:0);
+function ownPostComments(p){
+ const fromPurchase=p.origin==='purchase';
+ const templates=fromPurchase?
+   [['bia.m','amei! onde você comprou? 😍'],['lucca.r','o pessoal vai querer também 👀'],['mia','ficou lindo! 🔥'],['gabi.n','agora quero ver de perto ✨']]:
+   [['bia.m','ameeei essa foto 💜'],['lucca.r','que registro bom!'],['mia','arrasou ✨'],['gabi.n','precisamos repetir esse dia 🥹']];
+ const count=Math.min(4,1+Math.floor(ownPostAge(p)/3));
+ return [...templates.slice(0,count).map(([u,t],i)=>[u,t,`há ${i+1} min`]),...(p.comments||[])];
+}
+function toggleOwnLike(id,like){
+ const p=state.myPosts.find(x=>x.id===id);if(!p)return;
+ const index=state.mineLikes.indexOf(id);
+ if(like&&index<0)state.mineLikes.push(id);
+ if(!like&&index>=0)state.mineLikes.splice(index,1);
+ save();
+ const card=document.querySelector('.mine-post[data-rec-id="'+id+'"]');
+ if(!card)return;
+ const btn=card.querySelector('[data-action="like-mine"]');
+ if(btn){btn.classList.toggle('is-liked',like);btn.setAttribute('aria-pressed',String(like));btn.querySelector('.ico')?.classList.toggle('heart-filled',like);}
+ const likes=card.querySelector('.js-my-likes');if(likes)likes.textContent=myLikes(p);
+}
 function mineCard(item){
  const p=state.myPosts.find(x=>x.id===item.id);if(!p)return '';
  const c=POST_CHOICES.find(x=>x.id===p.choice)||POST_CHOICES[0];
- return `<article class="post mine-post"><div class="post-top"><span class="avatar">🙂</span><div class="user-info"><div class="username">você</div><div class="post-sub">publicado às ${esc(p.time||clockLabel())}</div></div><button class="icon-button" data-action="edit-my-post" data-post="${p.id}" aria-label="Editar sua publicação">${icon("more")}</button></div><div class="post-media feed-photo">${mediaPhoto(c.photo,'art-photo','Sua publicação')}</div><div class="post-caption"><strong>❤️ <span class="js-my-likes" data-post="${p.id}">${myLikes(p)}</span> curtidas</strong><p>${esc(p.caption||c.caption)}</p></div>${p.boosted?'':`<p class="small muted mine-hint">💡 Posts com ${esc(productName(c.topic))} estão rendendo 3x mais curtidas hoje.</p>`}</article>`;
+ const photo=p.photo||c.photo,liked=(state.mineLikes||[]).includes(p.id);
+ const comments=ownPostComments(p),saved=state.bookmarks.includes(p.id);
+ return `<article class="post mine-post" data-rec-id="${esc(p.id)}">
+ <div class="post-top"><span class="avatar photo-avatar">${mediaPhoto(photo,'avatar-photo','Sua foto')}</span><div class="user-info"><div class="username">${esc(identity?.username||'você')} <span class="meta-tag">você</span></div><div class="post-sub">publicado às ${esc(p.time||clockLabel())}</div></div><button class="icon-button" data-action="edit-my-post" data-post="${esc(p.id)}" aria-label="Editar sua publicação">${icon("more")}</button></div>
+ <div class="post-media feed-photo" data-like-mine="${esc(p.id)}" role="group" aria-label="Sua foto. Dois toques para curtir.">${mediaPhoto(photo,'art-photo','Sua publicação')}</div>
+ <div class="post-actions">
+ <button class="icon-button like-button ${liked?'is-liked':''}" data-action="like-mine" data-post="${esc(p.id)}" aria-pressed="${liked}" aria-label="${liked?'Descurtir':'Curtir'} sua publicação">${icon('heart',liked?'heart-filled':'')}</button>
+ <button class="icon-button" data-action="comments" data-post="${esc(p.id)}" aria-label="Ver e escrever comentários">${icon('comment')}</button>
+ <button class="icon-button" data-action="share-mine-story" data-post="${esc(p.id)}" aria-label="Compartilhar nos stories">${icon('send')}</button>
+ <button class="icon-button push" data-action="bookmark-mine" data-post="${esc(p.id)}" aria-label="${saved?'Remover dos salvos':'Salvar sua publicação'}" style="color:${saved?'#e84a80':'inherit'}">${icon('bookmark')}</button></div>
+ <p class="likecount"><span class="js-my-likes" data-post="${esc(p.id)}">${myLikes(p)}</span> curtidas</p>
+ <p class="post-caption"><strong>${esc(identity?.username||'você')}</strong> ${esc(p.caption||c.caption)}</p>
+ <button class="mine-comment-count" data-action="comments" data-post="${esc(p.id)}">Ver todos os ${comments.length} comentários</button>
+ <div class="mine-comment-preview">${comments.slice(0,2).map(x=>`<p><strong>${esc(x[0])}</strong> ${esc(x[1])}</p>`).join('')}</div>
+ <button class="mine-comment-add" data-action="comments" data-post="${esc(p.id)}">Adicione um comentário...</button>
+ </article>`;
 }
 function surpriseCard(item){
  const v=item.variant;
