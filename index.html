@@ -806,11 +806,14 @@ function setupFeedExposure() {
         if (impressionTimers.has(el)) { clearTimeout(impressionTimers.get(el)); impressionTimers.delete(el); }
         continue;
       }
+      // Relogio simulado avanca quando um post entra em cena, mesmo com rolagem rapida.
+      // O algoritmo ainda aguarda permanencia antes de registrar interesse.
+      if(document.visibilityState==='visible'&&!overlay&&!story&&!modal&&exitConfirm.hidden)
+        advanceClockForVisible(id);
       if (impressionTimers.has(el)) continue;
       impressionTimers.set(el,setTimeout(() => {
         impressionTimers.delete(el);
         if (!el.isConnected || document.visibilityState!=="visible" || overlay || modal || story || !exitConfirm.hidden) return;
-        advanceClockForVisible(id);
         if(!state.personalized){feedObserver?.unobserve(el);return;}
         const topic=el.dataset.recTopic, author=el.dataset.recAuthor||"";
         if (!topic) return;
