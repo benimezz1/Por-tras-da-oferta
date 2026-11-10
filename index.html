@@ -455,6 +455,27 @@
 </style>
 
 <style>.exit-hook-photo{max-width:240px;width:100%;height:150px;overflow:hidden;margin:15px auto;border-radius:12px;background:#eee}.exit-hook-photo img{width:100%;height:100%;object-fit:cover}</style>
+
+<style>
+.layer-backdrop.is-purchase-share{align-items:center;justify-content:center;padding:18px;background:rgba(24,16,34,.68);backdrop-filter:blur(4px)}
+.purchase-share-sheet{height:auto;max-height:min(88%,690px);width:min(100%,395px);border-radius:22px;overflow:auto;box-shadow:0 18px 60px #140d2660}
+.purchase-modal{padding:21px;background:#fff;display:flex;flex-direction:column;gap:11px}
+.purchase-modal-heading{text-align:center}
+.purchase-modal-emoji{display:block;font-size:29px;margin-bottom:4px}
+.purchase-modal h3{font-size:22px;letter-spacing:-.04em;color:#251c2c;margin:0 0 6px}
+.purchase-modal-heading p{font-size:13px;color:#6b5971;line-height:1.5;margin:0}
+.purchase-modal-product{display:flex;align-items:center;gap:12px;background:#fbf4fb;border-radius:13px;padding:10px;margin:5px 0}
+.purchase-modal-product img{width:74px;height:74px;object-fit:cover;border-radius:9px}
+.purchase-modal-product div{display:flex;flex-direction:column;gap:5px}
+.purchase-modal-product strong{font-size:13px;color:#322038}
+.purchase-modal-product span{font-size:11px;color:#87788b}
+.purchase-modal label{font-weight:750;font-size:13px}
+.purchase-modal label small{font-weight:400;color:#806f83}
+.purchase-modal textarea{width:100%;box-sizing:border-box;border:1px solid #d8c6d8;border-radius:11px;font:inherit;color:#302436;padding:11px;resize:vertical}
+.purchase-modal-question{font-size:13px;font-weight:750;margin:1px 0 -2px}
+.purchase-modal .purchase-share-grid{margin-top:0}
+.purchase-modal>small{color:#786d7d;line-height:1.4;font-size:11px}
+</style>
 </head>
 <body>
 <div id="app"></div>
@@ -1692,7 +1713,7 @@ function buy(ids){
  state.lastOrder={orderId:'pedido-'+state.runId.slice(0,8)+'-'+state.purchases.length,items:ids,total:paid,method:trial?'trial':method,n:q.n,each:q.each,cashback,coupon:q.coupon?.code||'',trial,at:Date.now()};
  expose('prova_social','Após a compra, a rede sugeriu compartilhar o produto com amigos para receber curtidas e comentários.');
  state.payMethod=null;
- save();overlay={type:"receipt"};modal=null;renderGame(true);
+ save();overlay={type:"receipt"};modal={type:'purchase-share'};renderGame(true);
  return true;
 }
 function receiptPage(){
@@ -1712,29 +1733,31 @@ function receiptPage(){
  ${suggestions.length?`<div class="receipt-suggestions"><h3>Quem comprou isso também levou</h3>
  ${suggestions.map(id=>`<button class="shop-receipt-suggestion" data-action="product" data-product="${id}" data-source="pair">${art(products[id].kind,true)}<span><strong>${esc(productName(id))}</strong><small>${money(price(id).price)} · Ver na loja →</small></span></button>`).join("")}
  </div>`:""}
- <section class="receipt-social-choice" aria-label="Compartilhar sua compra">
- <h3>Quer mostrar sua compra? 📸</h3>
- <p>Seus amigos podem ver, curtir e comentar. Você escolhe se quer publicar.</p>
- <label for="purchase-share-caption">Legenda</label>
- <textarea id="purchase-share-caption" maxlength="220" rows="2">${esc(o.trial?'Comecei a testar '+o.items.map(productName).join(' + ')+' 🎧':'Acabei de comprar '+o.items.map(productName).join(' + ')+' ✨')}</textarea>
- <div class="purchase-share-grid">
- <button class="secondary" data-action="purchase-share" data-channel="feed">▦ No feed</button>
- <button class="secondary" data-action="purchase-share" data-channel="story">◉ No story</button>
- <button class="primary" data-action="purchase-share" data-channel="ambos">♡ Nos dois</button>
- <button class="tertiary" data-action="purchase-share" data-channel="nenhum">Não publicar</button>
- </div><small>Simulação educativa: os perfis, comentários e curtidas são fictícios.</small>
- <button class="tertiary full receipt-back" data-action="close-overlay">Voltar ao feed sem publicar</button>
- </section>
+ <button class="primary full" data-action="close-overlay">Voltar ao feed</button>
  </section></div>`;
 }
+const PURCHASE_CAPTIONS={
+ fone:'Fone novo para a playlist da viagem 🎧✨',
+ tenis:'Meu tênis novo chegou! 👟💜',
+ plano:'Testando uma playlist sem interrupções 🎵',
+ mochila:'Mochila pronta para a próxima aventura 🎒',
+ powerbank:'Bateria garantida para o rolê 🔋',
+ garrafa:'Hidratação em dia com minha garrafa nova 💧',
+ luminaria:'Um toque de luz novo no cantinho de estudos 💡',
+ ingresso:'Partiu festival! Já garanti o ingresso 🎟️🎉'
+};
+const purchaseCaption=o=>{
+ const id=o?.items?.[0];
+ const first=PURCHASE_CAPTIONS[id]||(o?.trial?'Comecei um teste grátis 🎧':'Minha compra chegou ✨');
+ return o?.items?.length>1?first+' + '+o.items.slice(1).map(productName).join(' + '):first;
+};
 function sharePurchase(channel){
  const modes=['feed','story','ambos','nenhum'],o=state.lastOrder;
  if(!o||!modes.includes(channel))return;
  const orderId=o.orderId||'pedido-antigo-'+String(o.at||0);
  if(state.purchaseShares.some(x=>x.orderId===orderId)){overlay=null;renderGame(true);return;}
  const product=o.items[0],photo='product_'+product;
- const caption=String(document.getElementById('purchase-share-caption')?.value||'').trim().slice(0,220)
-    ||'Acabei de comprar '+o.items.map(productName).join(' + ')+' ✨';
+ const caption=String(document.getElementById('purchase-share-caption')?.value||'').trim().slice(0,220)||purchaseCaption(o);
  const feed=channel==='feed'||channel==='ambos',storyShare=channel==='story'||channel==='ambos';
  let postId=null,storyId=null;
  if(feed){
@@ -2274,6 +2297,22 @@ function drawModal(){
    <button class="primary full" data-action="hook-accept">${esc(hook.button)}</button>
    <button class="tertiary full" data-action="hook-decline">Agora não</button>
    </div>`;
+ }else if(v.type==='purchase-share'){
+  const o=state.lastOrder||{items:[]},item=o.items[0];
+  content=`<div class="purchase-modal">
+  <div class="purchase-modal-heading"><span class="purchase-modal-emoji">🛍️</span><h3>Compra confirmada!</h3>
+   <p>Quer compartilhar essa novidade com seus amigos?</p></div>
+  ${item?`<div class="purchase-modal-product">${mediaPhoto('product_'+item,'art-photo',productName(item))}<div><strong>${esc(o.items.map(productName).join(' + '))}</strong><span>Simulação de compra</span></div></div>`:''}
+  <label for="purchase-share-caption">Sua legenda <small>(você pode editar)</small></label>
+  <textarea id="purchase-share-caption" maxlength="220" rows="3">${esc(purchaseCaption(o))}</textarea>
+  <p class="purchase-modal-question">Onde você quer publicar?</p>
+  <div class="purchase-share-grid">
+  <button class="secondary" data-action="purchase-share" data-channel="feed">▦ No feed</button>
+  <button class="secondary" data-action="purchase-share" data-channel="story">◉ No story</button>
+  <button class="primary" data-action="purchase-share" data-channel="ambos">♡ Nos dois</button>
+  <button class="tertiary" data-action="purchase-share" data-channel="nenhum">Não publicar</button>
+  </div><small>Publicações e reações são fictícias. Compartilhar é opcional.</small>
+  </div>`;
  }else if(v.type==='gallery'){
   const choices=postChoices(),selected=v.selectedChoice,section=v.filter||'todas';
   const filtered=choices.filter(c=>section==='compras'?c.id.startsWith('purchase-'):
@@ -2297,7 +2336,7 @@ function drawModal(){
   ${editing?`<button class="tertiary full" data-action="remove-my-post" data-post="${v.postId}">Excluir publicação</button>`:''}
   </div>`;
  }
- const box=document.createElement('div');box.className='layer-backdrop';box.innerHTML=`<section class="bottom-sheet ${v.type==='gallery'?'gallery-sheet':''}" role="dialog" aria-modal="true" aria-label="${v.type==='gallery'?'Galeria de fotos':'Opções da publicação'}">${content}</section>`;phone.appendChild(box);
+ const box=document.createElement('div');box.className='layer-backdrop'+(v.type==='purchase-share'?' is-purchase-share':'');box.innerHTML=`<section class="bottom-sheet ${v.type==='gallery'?'gallery-sheet':v.type==='purchase-share'?'purchase-share-sheet':''}" role="dialog" aria-modal="true" aria-label="${v.type==='gallery'?'Galeria de fotos':v.type==='purchase-share'?'Compartilhar compra':'Opções da publicação'}">${content}</section>`;phone.appendChild(box);
  tick();
 }
 function renderAccountGate(message=""){
@@ -2699,7 +2738,7 @@ root.addEventListener('submit',async e=>{
 root.addEventListener('click',e=>{
  const el=e.target.closest('[data-action]');
  if(!el){
-  if(e.target.classList.contains('layer-backdrop'))closeModal();
+  if(e.target.classList.contains('layer-backdrop')){if(modal?.type==='purchase-share')sharePurchase('nenhum');else closeModal();}
   return;
  }
  const a=el.dataset.action,id=el.dataset.product,post=el.dataset.post;
