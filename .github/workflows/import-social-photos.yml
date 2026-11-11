@@ -7,6 +7,7 @@ on:
       - 'tools/download_social_photos.py'
       - 'index.html'
       - 'public/editorial.js'
+      - 'public/library-v5.js'
   workflow_dispatch:
 
 permissions:
