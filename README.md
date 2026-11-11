@@ -10,6 +10,17 @@ Jogo educativo do Ciclo 4, Colégio Rio Branco. A **experiência principal** é 
 O novo protótipo está em `index.html`; o modo clássico segue em `src/` e `classico.html`. O Vite gera as duas entradas no mesmo build. O backend/MCP é mantido no projeto separado [Por-tras-da-oferta-MCP](https://github.com/benimezz1/Por-tras-da-oferta-MCP).
 
 
+## Biblioteca V5 — mais fotografias, feed variável e cronologia
+
+- **175 fotografias originais de fontes Pexels** no total: 86 anteriores + **89 novas**, baixadas no build como JPEGs locais e documentadas no manifesto `public/assets/social/unique/sources.json`.
+- **569 publicações editoriais adicionais/acumuladas** (480 V4 e 89 V5), além dos posts do enredo original, e **mais de 100 stories editoriais** (64 V4 e os novos V5), com imagens variadas de escola, amigos, música, pets, moda, café e cotidiano.
+- **Feed diferente a cada partida**: a semente `runId + dia` sorteia a ordenação de maneira estável, preservando o progresso quando recarrega. Evita o mesmo post e fotos repetidas em sequência.
+- **Bia e Gabi** passam a variar também suas fotos entre jogadores. Na segunda Bia marca você em foto da escola/turma; na sexta Gabi marca você em foto anterior à viagem. Nenhum post trata a viagem de sábado como já realizada.
+- A organização do conteúdo, elegibilidade temporal e aleatoriedade foi extraída para `public/library-v5.js` e `public/feed-variation.js`. **O algoritmo real de recomendação não foi desenvolvido nesta etapa**; apenas o motor educativo anterior recebe um fator de variedade.
+- Interface atual, histórico salvo, compras, comentários, postagem, stories, orçamento, quiz, Raio-X e MCP permanecem.
+
+Veja [documentação da Biblioteca V5 e contrato para o algoritmo futuro](docs/BIBLIOTECA-FEED-V5.md).
+
 ## Expansão editorial e relógio (C4)
 
 A versão ampliada inclui 480 novos posts e 64 stories distribuídos entre oito assuntos, com dezenas de novas fotos Pexels preparadas em arquivos locais. No mesmo dia, posts já exibidos não são reciclados: cada noite conta com cerca de 96 posts novos, além de ofertas e eventos, antes de terminar. O catálogo é ilustrativo, editorial e varia conforme o interesse e os sinais do jogador.
