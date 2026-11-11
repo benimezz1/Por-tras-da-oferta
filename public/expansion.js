@@ -70,7 +70,7 @@
    ]
   },
   {
-   id:"luminaria",name:"A rotina perfeita",day:"TERÇA · 20:50",emoji:"💡",
+   id:"luminaria",name:"A rotina perfeita",day:"QUARTA · 20:50",emoji:"💡",
    context:"Depois da diversão, o feed sugere acessórios para produtividade e estudo.",
    question:"Uma compra melhora seu foco?",hook:"A propaganda transforma organização em produto.",
    stories:[
