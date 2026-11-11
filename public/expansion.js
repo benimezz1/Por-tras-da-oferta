@@ -42,7 +42,7 @@
  };
  const moments=[
   {
-   id:"powerbank",name:"Antes de ficar sem bateria",day:"SEXTA · 19:10",emoji:"🔋",
+   id:"powerbank",name:"Antes de ficar sem bateria",day:"QUINTA · 19:10",emoji:"🔋",
    context:"A turma começa a falar de celulares descarregados no passeio.",
    question:"Precisa de outra bateria?",hook:"A rede transforma um inconveniente possível em uma nova compra.",
    stories:[
@@ -56,7 +56,7 @@
    ]
   },
   {
-   id:"garrafa",name:"Todo mundo montando o kit",day:"SÁBADO · 11:30",emoji:"💧",
+   id:"garrafa",name:"Todo mundo montando o kit",day:"QUINTA · 19:30",emoji:"💧",
    context:"Agora que a viagem se aproxima, pequenos acessórios aparecem nos stories.",
    question:"Mais um item para o passeio?",hook:"Os itens baratos podem somar mais do que parecem.",
    stories:[
@@ -70,7 +70,7 @@
    ]
   },
   {
-   id:"luminaria",name:"A rotina perfeita",day:"TERÇA · 20:50",emoji:"💡",
+   id:"luminaria",name:"A rotina perfeita",day:"QUARTA · 20:50",emoji:"💡",
    context:"Depois da diversão, o feed sugere acessórios para produtividade e estudo.",
    question:"Uma compra melhora seu foco?",hook:"A propaganda transforma organização em produto.",
    stories:[
@@ -84,7 +84,7 @@
    ]
   },
   {
-   id:"ingresso",name:"O evento do grupo",day:"SEXTA · 17:10",emoji:"🎫",
+   id:"ingresso",name:"O evento do grupo",day:"SEXTA · 19:10",emoji:"🎫",
    context:"O grupo comenta um festival de demonstração e a rede puxa convites e ofertas.",
    question:"Vale ir só porque todo mundo vai?",hook:"A sensação de ficar de fora cria urgência.",
    stories:[

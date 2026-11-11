@@ -24,6 +24,9 @@
     diversidade:-recentTopic*1.1,
     autorRepetido:-recentAuthor*.72,
     descoberta:args.personalized?hash("p:"+post.id)*.42:0,
+    // Variacao por partida; nao e o futuro algoritmo preditivo.
+    // Com perfil vazio, jogadores diferentes nao veem a mesma primeira sequencia.
+    variedadeSessao:args.seed?(hash("sessao:"+args.seed+":"+post.id)-.5)*8:0,
     foco:(args.focus||[]).includes(post.topic)?1.5:0
    };
    /* Dois objetivos: 60% reter (atenção acumulada no tema + amigo quando a
@@ -39,14 +42,24 @@
    const allowed=Array.isArray(args.allowed)?args.allowed:null;
    const available=posts.filter(post=>!published.has(post.id)&&(allowed?allowed.includes(post.topic):(post.phase||0)<=(args.phase||0)));
    if(!available.length)return null;
+   // Biblioteca extensa: evitar reapresentar a mesma fotografia em posts proximos.
+   const byId=new Map(posts.map(p=>[p.id,p.photo]));
+   const recentPhotos=new Set((args.shown||[]).filter(x=>x.kind==="post")
+     .slice(-12).map(x=>byId.get(x.id)).filter(Boolean));
+   const distinct=available.filter(p=>!p.photo||!recentPhotos.has(p.photo));
+   const editorialPool=distinct.length?distinct:available;
    if(!args.personalized){
-    available.sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
-    return available[0];
+    editorialPool.sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
+    return editorialPool[0];
    }
    const lastTwo=(args.shown||[]).slice(-2);
    const repeated=lastTwo.length===2&&lastTwo.every(x=>x.topic===lastTwo[0].topic);
-   const varied=repeated?available.filter(x=>x.topic!==lastTwo[0].topic):available;
-   const pool=varied.length?varied:available;
+   const varied=repeated?editorialPool.filter(x=>x.topic!==lastTwo[0].topic):editorialPool;
+   const basePool=varied.length?varied:editorialPool;
+   const recentAuthors=(args.shown||[]).filter(x=>x.kind==="post").slice(-2);
+   const repeatedAuthor=recentAuthors.length===2&&recentAuthors[0].author===recentAuthors[1].author;
+   const freshAuthors=repeatedAuthor?basePool.filter(p=>p.author!==recentAuthors[1].author):basePool;
+   const pool=freshAuthors.length?freshAuthors:basePool;
    pool.sort((a,b)=>scorePost(b,args).score-scorePost(a,args).score
      ||a.order-b.order||a.id.localeCompare(b.id));
    return pool[0];

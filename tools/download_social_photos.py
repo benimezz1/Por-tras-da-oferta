@@ -40,7 +40,17 @@ def load_sources():
     if not extra_match:
         raise RuntimeError("Mapa editorial de fotos ausente")
     extras = json.loads(extra_match.group(1))
+    library = (ROOT / "public" / "library-v5.js").read_text(encoding="utf-8")
+    library_match = re.search(r"const photos=(\{.*?\});", library, re.S)
+    if not library_match:
+        raise RuntimeError("Mapa de fotos v5 ausente")
+    new_photos = json.loads(library_match.group(1))
+    if len(set(sources) | set(extras) | set(new_photos)) != len(sources) + len(extras) + len(new_photos):
+        raise RuntimeError("Uma chave de foto foi reutilizada.")
     sources.update(extras)
+    sources.update(new_photos)
+    if len(set(sources.values())) != len(sources):
+        raise RuntimeError("Uma fotografia Pexels foi duplicada entre bibliotecas.")
     return sources
 
 

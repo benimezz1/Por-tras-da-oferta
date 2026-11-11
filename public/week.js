@@ -45,8 +45,8 @@
    caption:"garanti na Mega Liquida 🎒 tava 60% off, nunca vi tão barato",
    comments:[["bia","EU TBM"],["gabi","pronta pra viagem"],["nina","link?"]],
    vibe:-6,strategies:["prova_social","preco"],moment:"Lucca comemorou os “60% off” da mochila."},
-  c5:{id:"c5",who:"bia.m",when:"há 6 min",topic:"ingresso",photo:"friends_festival",likes:903,
-   caption:"HOJE É DIA DE POCKET FEST 🎉🎉 a turma toda vai, só faltam uns 👀",
+  c5:{id:"c5",who:"bia.m",when:"há 6 min",topic:"ingresso",photo:"festival_lights",likes:903,
+   caption:"HOJE tem Pocket Fest 🎉🎉 os ingressos estão saindo, só faltam uns 👀",
    comments:[["mia","CONTANDO AS HORAS"],["lucca","ingresso garantido 🎟️"],["nina","@você vem??"]],
    vibe:-9,strategies:["fomo","prova_social"],moment:"Bia marcou você: “só faltam uns 👀”."}
  };
