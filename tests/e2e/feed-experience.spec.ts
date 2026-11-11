@@ -339,7 +339,6 @@ test("dormir passa para as 19h e rolar bastante atravessa a meia-noite", async (
   await expect(page.locator('.sb-time')).toContainText('SEG · 19:');
   await expect(page.locator('.day-sleep-control')).toBeVisible();
   await page.locator('.day-sleep-control').click();
-  await page.locator('[data-action="hook-decline"]').click();
   await page.locator('[data-action="open-day"]').click();
   await expect(page.locator('.sb-time')).toContainText('TER · 19:');
   const posts=page.locator('.post[data-rec-id]');
@@ -450,13 +449,14 @@ test("é possível comentar no post de amigo e no anúncio com texto próprio", 
   expect(Object.values(await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')||'{}').postComments)).flat().length).toBeGreaterThanOrEqual(2);
 });
 
-test("gancho de saida da segunda mostra foto da Bia e sexta outra pessoa", async ({page}) => {
+test("gancho do menu alterna foto da Bia e da Gabi em dias distintos", async ({page}) => {
   await enter(page);
-  await page.locator('.day-sleep-control').click();
+  await page.locator('[data-action="day-menu"]').click();
+  await page.locator('[data-action="end-day"]').click();
   await expect(page.locator('.bottom-sheet')).toContainText('Bia publicou uma foto com você');
   await page.locator('[data-action="hook-accept"]').click();
   await expect(page.locator('.tagged-post')).toContainText('bia.m');
-  await page.locator('.tagged-post [data-action="comments"]').click();
+  await page.locator('.tagged-post [data-action="comments"]').first().click();
   await page.locator('#own-comment-input').fill('Adorei nossa foto!');
   await page.locator('[data-action="add-my-comment"]').click();
   await expect(page.locator('.bottom-sheet')).toContainText('Adorei nossa foto!');
@@ -464,11 +464,13 @@ test("gancho de saida da segunda mostra foto da Bia e sexta outra pessoa", async
   await page.locator('.day-sleep-control').click();
   for(let day=2;day<=4;day++){
     await page.locator('[data-action="open-day"]').click();
-    await page.locator('.day-sleep-control').click();
+    await page.locator('[data-action="day-menu"]').click();
+    await page.locator('[data-action="end-day"]').click();
     await expect(page.locator('.bottom-sheet')).not.toContainText('Bia publicou uma foto com você');
     await page.locator('[data-action="hook-decline"]').click();
   }
   await page.locator('[data-action="open-day"]').click();
-  await page.locator('.day-sleep-control').click();
+  await page.locator('[data-action="day-menu"]').click();
+  await page.locator('[data-action="end-day"]').click();
   await expect(page.locator('.bottom-sheet')).toContainText('Gabi publicou uma foto com você');
 });
