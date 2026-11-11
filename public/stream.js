@@ -24,6 +24,9 @@
     diversidade:-recentTopic*1.1,
     autorRepetido:-recentAuthor*.72,
     descoberta:args.personalized?hash("p:"+post.id)*.42:0,
+    // Variacao por partida; nao e o futuro algoritmo preditivo.
+    // Com perfil vazio, jogadores diferentes nao veem a mesma primeira sequencia.
+    variedadeSessao:args.seed?(hash("sessao:"+args.seed+":"+post.id)-.5)*8:0,
     foco:(args.focus||[]).includes(post.topic)?1.5:0
    };
    /* Dois objetivos: 60% reter (atenção acumulada no tema + amigo quando a
@@ -46,7 +49,11 @@
    const lastTwo=(args.shown||[]).slice(-2);
    const repeated=lastTwo.length===2&&lastTwo.every(x=>x.topic===lastTwo[0].topic);
    const varied=repeated?available.filter(x=>x.topic!==lastTwo[0].topic):available;
-   const pool=varied.length?varied:available;
+   const basePool=varied.length?varied:available;
+   const recentAuthors=(args.shown||[]).filter(x=>x.kind==="post").slice(-2);
+   const repeatedAuthor=recentAuthors.length===2&&recentAuthors[0].author===recentAuthors[1].author;
+   const freshAuthors=repeatedAuthor?basePool.filter(p=>p.author!==recentAuthors[1].author):basePool;
+   const pool=freshAuthors.length?freshAuthors:basePool;
    pool.sort((a,b)=>scorePost(b,args).score-scorePost(a,args).score
      ||a.order-b.order||a.id.localeCompare(b.id));
    return pool[0];
