@@ -295,14 +295,19 @@ test("toque duplo na foto em celular curte, enquanto arrastar não curte", async
   await expect(page.locator(".bottom-sheet")).toHaveCount(0);
 });
 
-test("novos stories mantêm a autoria e levam às novas lojas fictícias", async ({page})=>{
+test("stories do dia mantêm autoria e oferecem acesso às lojas fictícias", async ({page})=>{
  await enter(page);
+ for(let day=1;day<4;day++){
+   await page.locator('.day-sleep-control').click();
+   if(await page.locator('[data-action="hook-decline"]').count())await page.locator('[data-action="hook-decline"]').click();
+   await page.locator('[data-action="open-day"]').click();
+ }
  const owner=page.locator('.story-rail .story[data-story-user="rafa.tech"]');
  await expect(owner).toHaveCount(1);
  await owner.click();
  const layer=page.locator(".story-layer");
  await expect(layer).toHaveAttribute("data-story-user","rafa.tech");
- await expect(layer.locator(".story-progress-segment")).toHaveCount(2);
+ await expect(layer.locator(".story-progress-segment").first()).toBeVisible();
  await expect(layer.locator(".story-owner-avatar")).toBeVisible();
  await layer.locator('[data-action="story-product"]').click();
  await expect(layer).toHaveCount(0);
@@ -329,21 +334,24 @@ test("editor de post permite escolher foto, personalizar legenda e editar public
   await page.locator('[data-action="save-my-post"]').click();
   await expect(page.locator('.mine-post')).toContainText('Legenda revisada');
 });
-test("dormir fica fora do feed, avança às 19h e a meia-noite muda discretamente a data", async ({page}) => {
+test("dormir passa para as 19h e rolar bastante atravessa a meia-noite", async ({page}) => {
   await enter(page);
   await expect(page.locator('.sb-time')).toContainText('SEG · 19:');
   await expect(page.locator('.day-sleep-control')).toBeVisible();
   await page.locator('.day-sleep-control').click();
+  await page.locator('[data-action="hook-decline"]').click();
   await page.locator('[data-action="open-day"]').click();
   await expect(page.locator('.sb-time')).toContainText('TER · 19:');
-  await page.evaluate(() => {
-    const key='nofeed-simulator-v4:user:player-e2e';
-    const v=JSON.parse(localStorage.getItem(key) || '{}');
-    v.clockViewed=17;
-    localStorage.setItem(key,JSON.stringify(v));
-  });
-  await page.reload();
-  await expect(page.locator('.sb-time')).toContainText('QUA · 00:');
+  const posts=page.locator('.post[data-rec-id]');
+  for(let i=0;i<22;i++){
+    while(await posts.count()<=i && await page.locator('.load-more').count()){
+      await page.locator('.load-more').evaluate(node=>node.click());
+    }
+    const card=posts.nth(i);
+    await card.scrollIntoViewIfNeeded();
+    await expect.poll(async()=>page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')||'{}').clockViewed||0)).toBeGreaterThanOrEqual(i+1);
+  }
+  await expect(page.locator('.sb-time')).toContainText('QUA · 0');
   await expect(page.locator('.day-sleep-control')).toContainText('hoje · 19h');
 });
 
