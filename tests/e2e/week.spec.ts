@@ -242,7 +242,7 @@ test("comprar no Pix além da folga faz perder a viagem", async ({ page }) => {
     await page.locator(`.shop-product[data-product="${id}"]`).click();
     await page.locator('.shop-footer [data-action="checkout"]').click();
     await page.locator('.shop-footer [data-action="buy"]').click();
-    await page.locator(".receipt-screen [data-action='close-overlay']").click();
+    await page.locator('.purchase-modal [data-channel="nenhum"]').click();
   }
   expect((await saved(page)).wallet).toBeLessThan(400);
   await page.locator('.phone-footer [data-action="profile"]').click();
@@ -401,11 +401,14 @@ test("feed infinito: novidades, postagem própria e gancho de saída", async ({ 
   await page.locator('[data-action="refresh-feed"]').click();
   await expect(page.locator(".toast")).toBeVisible({ timeout: 4000 });
   await page.locator('[data-action="new-post"]').click();
+  await page.locator('[data-action="open-gallery"]').click();
+  await page.locator('.ios-gallery-tile').first().click();
+  await page.locator('.ios-gallery-done').click();
   await page.locator('[data-action="publish"]').first().click();
   await expect(page.locator(".mine-post")).toBeVisible();
   await page.locator('[data-action="day-menu"]').click();
   await page.locator('[data-action="end-day"]').click();
-  await expect(page.locator(".bottom-sheet")).toContainText("postou uma foto com você");
+  await expect(page.locator(".bottom-sheet")).toContainText("publicou uma foto com você");
   await page.locator('[data-action="hook-accept"]').click();
   await expect(page.locator(".tagged-post")).toBeVisible();
   expect((await saved(page)).attention.exitHooks).toBe(1);

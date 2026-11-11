@@ -16,7 +16,7 @@ A versão ampliada inclui 480 novos posts e 64 stories distribuídos entre oito 
 
 Cada novo dia narrativo começa às **19h**. A rolagem que coloca uma publicação inédita na tela avança **18 minutos simulados** (anteriormente oito), sem esperar o tempo de permanência usado pelo algoritmo. Ao atravessar a meia-noite, a indicação do dia muda discretamente; o botão **Dormir**, fora da área rolável, leva o participante às **19h do próximo dia narrativo**, ou às 19h do dia atual do calendário caso a rolagem já tenha atravessado a meia-noite. O encerramento de sexta continua levando ao sábado de resultados.
 
-O editor de post permite escolher entre 12 fotografias do catálogo, escrever e editar legenda, publicar mais de uma vez ao dia (até 10 posts), editar e excluir posts criados. As imagens devem estar importadas pelo fluxo GitHub Actions em `public/assets/social/unique` para funcionar sem dependência externa na apresentação. Confira as licenças e os IDs em `sources.json`.
+O editor de post oferece uma **galeria simulada inspirada no aplicativo Fotos do iPhone**, com dezenas de imagens já hospedadas no jogo. A seleção acontece no botão **Ver Galeria**, com grade de miniaturas e confirmação pelo **check azul** no alto. Ao confirmar, aparece a legenda pré-preenchida (editável). É possível publicar mais de uma vez ao dia (até 10 posts), alterar a foto, editar a legenda e excluir publicações. As imagens devem estar importadas pelo fluxo GitHub Actions em `public/assets/social/unique` para funcionar sem dependência externa na apresentação. Confira as licenças e os IDs em `sources.json`.
 
 
 ### Publicacoes proprias, curtidas e comportamento social
@@ -26,6 +26,15 @@ O jogador pode criar posts com imagem e legenda, editar, excluir, curtir, coment
 **Depois de cada compra ficticia**, o recibo pergunta se a pessoa quer publicar aquela compra **no feed, nos stories, em ambos ou em nenhum**. A escolha e voluntaria; ao compartilhar, a imagem e a legenda aparecem na rede do jogo e podem receber reacoes simuladas.
 
 O JSON do C4 sincronizado com o MCP inclui `purchaseShares` (produto, dia e canal escolhido) e `socialActivity` (contagens). **Legendas e textos dos comentarios que o jogador escrever nao sao enviados**. No MCP, essas escolhas permitem refletir sobre prova social e possivel FOMO sem afirmar que quem compartilhou agiu por pressao. Para a nova consulta funcionar e necessario atualizar tambem o [servidor MCP](https://github.com/benimezz1/Por-tras-da-oferta-MCP).
+
+
+### Interface social e publicacoes com amigos
+
+- O **Seu story** ocupa sempre o primeiro lugar na faixa horizontal, mesmo antes de publicar. Com o botao `+`, a pessoa seleciona uma foto na mesma galeria, confirma e escreve uma legenda. Stories de compras e outros stories proprios continuam agrupados neste primeiro perfil.
+- Posts proprios, posts de amigos, posts com marcacoes, posts comparativos e anuncios exibem botoes sociais. O jogador pode curtir, salvar e **comentar em qualquer publicacao**, com comentarios guardados localmente. Legendas e comentarios digitados nao sao incluidos no JSON do MCP.
+- Os avisos de saida nao repetem a mesma foto: **segunda-feira: Bia publica uma foto com voce; sexta-feira: Gabi publica outra**, ambas com foto, curtidas, comentarios e interacoes. Nos outros dias, as notificacoes envolvem mensagens e novidades diferentes.
+- Apos concluir uma compra, aparece uma **janela central destacada**, sobre a confirmacao do pedido, com a foto do produto, **legenda padrao por produto** e quatro escolhas: publicar no feed, publicar nos stories, publicar em ambos ou nao publicar. Essa escolha continua registrada para a analise educativa de prova social e possivel FOMO.
+- A galeria usa somente fotos preexistentes e licenciadas do proprio jogo, **nao abre a biblioteca real do dispositivo**. A flor colorida identifica o recurso dentro da simulacao; nao e um aplicativo oficial da Apple.
 
 ## Identificação e sincronização automática com o MCP
 

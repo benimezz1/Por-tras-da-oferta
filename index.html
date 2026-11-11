@@ -380,9 +380,15 @@
 .mine-post .mine-comment-preview{padding:0 15px 7px;font-size:12px}
 .mine-post .mine-comment-preview p{margin:5px 0;overflow-wrap:anywhere}
 .mine-post .mine-comment-add{padding-bottom:13px}
-.own-comment-form{display:grid;gap:8px;padding:12px 16px 17px;border-top:1px solid #ece4ec;background:#fff}
+.own-comment-form{display:grid;flex:0 0 auto;gap:8px;padding:12px 16px max(17px,env(safe-area-inset-bottom));border-top:1px solid #ece4ec;background:#fff;position:relative;z-index:1}
 .own-comment-form label{font-size:13px;font-weight:750}
 .own-comment-form textarea{width:100%;box-sizing:border-box;border-radius:9px;border:1px solid #d4c4d1;padding:10px;font:inherit;color:#38283d}
+.insta-comment-form{display:flex;align-items:center;gap:9px;padding:11px 13px max(14px,env(safe-area-inset-bottom));min-width:0}
+.comment-me-avatar{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:#f6d2e6;font-size:17px}
+.insta-comment-form .comment-access-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.insta-comment-form textarea{flex:1;min-width:0;width:100%;max-height:85px;min-height:39px;border:1px solid #eee6eb;border-radius:20px;padding:10px 13px;font-size:12px;line-height:18px;resize:none;background:#fff}
+.insta-comment-submit{flex:0 0 auto;background:transparent;border:0;color:#008bfa;font-size:13px;font-weight:750;padding:9px 0;cursor:pointer}
+.insta-comment-submit:hover{color:#026cbe}
 .profile-gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
 .profile-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:16px}
 .profile-gallery-tile{padding:0;border:0;position:relative;aspect-ratio:1;background:#eee;overflow:hidden;border-radius:6px;cursor:pointer}
@@ -391,6 +397,92 @@
 .own-post-view{padding:12px 0 25px;overflow:auto}
 .own-post-view .post{margin:0 8px}
 .post-compose .post-choices{max-height:260px;overflow-y:auto}
+</style>
+
+<style>
+/* Galeria simulada, inspirada no seletor Fotos do iOS. */
+.gallery-sheet{height:min(90%,770px);border-radius:24px 24px 0 0;overflow:hidden}
+.gallery-sheet .ios-gallery{min-height:0;flex:1;display:flex;flex-direction:column;background:#f9f9fb;color:#212127}
+.ios-gallery-toolbar{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;flex:none;min-height:56px;padding:10px 14px;border-bottom:1px solid #e7e7eb;background:#f8f8fa}
+.ios-gallery-toolbar strong{text-align:center;font-size:17px;font-weight:750}
+.ios-gallery-back{background:none;border:0;color:#007aff;font-weight:650;font-size:15px;text-align:left;padding:6px 1px}
+.ios-gallery-back:first-letter{font-size:26px}
+.ios-gallery-done{justify-self:end;display:grid;place-items:center;width:38px;height:38px;border:0;border-radius:50%;background:#007aff;color:white;font-size:23px;font-weight:800;box-shadow:0 4px 12px #007aff30}
+.ios-gallery-done:disabled{background:#cbd2de;box-shadow:none;cursor:not-allowed}
+.ios-gallery-title{padding:17px 17px 11px}
+.ios-gallery-title h2{font-weight:800;font-size:27px;letter-spacing:-.045em;margin:0 0 3px}
+.ios-gallery-title small{font-size:12px;color:#85858d}
+.ios-gallery-filters{display:flex;gap:6px;padding:3px 14px 12px}
+.ios-gallery-filters button{border:0;border-radius:999px;background:#e9e9ee;padding:7px 13px;color:#464650;font-size:12px;font-weight:700}
+.ios-gallery-filters button.active{background:#222229;color:#fff}
+.ios-gallery-grid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:96px;align-content:start;gap:2px;overflow-y:auto;overscroll-behavior:contain}
+.ios-gallery-tile{position:relative;aspect-ratio:1;min-width:0;overflow:hidden;border:0;background:#e8e8ec;padding:0}
+.ios-gallery-tile{display:block;width:100%;height:96px;min-height:96px;aspect-ratio:auto;isolation:isolate;contain:none}
+.ios-gallery-tile img{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover;pointer-events:none}
+.ios-gallery-tile .gallery-mark{pointer-events:none}
+.ios-gallery-tile.selected img{filter:brightness(.72)}
+.ios-gallery-tile .gallery-mark{display:grid;place-items:center;position:absolute;right:6px;top:6px;border:2px solid white;width:23px;height:23px;border-radius:50%;color:#fff;background:#0003;font-size:14px}
+.ios-gallery-tile.selected .gallery-mark{background:#007aff}
+.ios-gallery-footer{flex:none;text-align:center;background:#f9f9fb;border-top:1px solid #e7e7eb;color:#65656b;padding:10px 8px 14px;font-size:12px}
+.gallery-photo-logo{height:44px;width:44px;flex:0 0 44px}
+.gallery-launch{width:100%;display:flex;align-items:center;gap:12px;padding:11px 13px;border:1px solid #e5dfe8;border-radius:14px;background:#fdfbfd;color:#292036;text-align:left;cursor:pointer}
+.gallery-launch>span{display:flex;flex-direction:column;gap:3px;flex:1}
+.gallery-launch strong{font-size:15px}
+.gallery-launch small{font-size:11px;color:#8a818d}
+.gallery-launch>b{font-size:25px;color:#9b91a0}
+.compose-selected{display:flex;gap:12px;align-items:center;border-radius:13px;background:#f8f1f8;padding:10px}
+.compose-selected img{width:88px;height:88px;object-fit:cover;border-radius:9px}
+.compose-selected span{font-size:12px;font-weight:750;color:#6f4b82}
+.compose-no-photo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;height:105px;background:#f8f5f8;border:1px dashed #dacbda;border-radius:14px;color:#85778d;font-size:26px}
+.compose-no-photo span{font-size:12px}
+.post-compose label small{color:#8b7b8d;font-weight:450}
+.post-compose .primary:disabled{opacity:.5;cursor:not-allowed}
+.own-story-slot{flex:0 0 66px;position:sticky;left:0;z-index:3;background:#fff}
+.own-story-slot .story-ring{background:linear-gradient(45deg,#f5bd6f,#ed4c8e,#8f5ce0);border-radius:50%}
+.own-story-slot:not(.has-story) .story-ring{background:#e4dfe6}
+.own-story-slot .story-face{background:#e8dfe9;display:grid;place-items:center;font-size:24px}
+.own-story-slot .story-face::after{content:'+';display:grid;place-items:center;width:22px;height:22px;position:absolute;right:-1px;bottom:0;background:#1784ea;color:white;border:2px solid white;border-radius:50%;font-size:15px;font-weight:850}
+.own-story-slot.has-story .story-face::after{display:none}
+.own-story-slot .story-name{font-weight:750}
+@media (max-width:480px){.gallery-sheet{height:94%}.ios-gallery-grid{grid-auto-rows:clamp(76px,24vw,96px)}.ios-gallery-tile{height:100%;min-height:76px}}
+</style>
+
+<style>
+.story-rail .stories>.own-story-container{flex:0 0 66px;width:66px;min-width:66px;position:sticky;left:0;z-index:3;background:#fff}
+.own-story-container .story{position:relative;left:0}
+.own-story-new{position:absolute;top:37px;right:0;width:23px;height:23px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:#1685e9;color:#fff;font-size:17px;font-weight:800;z-index:4;cursor:pointer}
+.own-story-container .story-ring{display:grid;place-items:center}
+.own-story-container .story-face>span{display:grid;place-items:center;width:100%;height:100%;font-size:22px}
+</style>
+
+<style>
+.social-comment-count,.social-comment-add{display:block;width:100%;text-align:left;border:0;background:none;color:#827688;font-size:12px;padding:5px 15px;cursor:pointer}
+.social-comment-preview{font-size:12px;padding:0 15px 3px}
+.social-comment-preview p{margin:5px 0;overflow-wrap:anywhere}
+.social-comment-add{padding-bottom:12px}
+</style>
+
+<style>.exit-hook-photo{max-width:240px;width:100%;height:150px;overflow:hidden;margin:15px auto;border-radius:12px;background:#eee}.exit-hook-photo img{width:100%;height:100%;object-fit:cover}</style>
+
+<style>
+.layer-backdrop.is-purchase-share{align-items:center;justify-content:center;padding:18px;background:rgba(24,16,34,.68);backdrop-filter:blur(4px)}
+.purchase-share-sheet{height:auto;max-height:min(88%,690px);width:min(100%,395px);border-radius:22px;overflow:auto;box-shadow:0 18px 60px #140d2660}
+.purchase-modal{padding:21px;background:#fff;display:flex;flex-direction:column;gap:11px}
+.purchase-modal-heading{text-align:center}
+.purchase-modal-emoji{display:block;font-size:29px;margin-bottom:4px}
+.purchase-modal h3{font-size:22px;letter-spacing:-.04em;color:#251c2c;margin:0 0 6px}
+.purchase-modal-heading p{font-size:13px;color:#6b5971;line-height:1.5;margin:0}
+.purchase-modal-product{display:flex;align-items:center;gap:12px;background:#fbf4fb;border-radius:13px;padding:10px;margin:5px 0}
+.purchase-modal-product img{width:74px;height:74px;object-fit:cover;border-radius:9px}
+.purchase-modal-product div{display:flex;flex-direction:column;gap:5px}
+.purchase-modal-product strong{font-size:13px;color:#322038}
+.purchase-modal-product span{font-size:11px;color:#87788b}
+.purchase-modal label{font-weight:750;font-size:13px}
+.purchase-modal label small{font-weight:400;color:#806f83}
+.purchase-modal textarea{width:100%;box-sizing:border-box;border:1px solid #d8c6d8;border-radius:11px;font:inherit;color:#302436;padding:11px;resize:vertical}
+.purchase-modal-question{font-size:13px;font-weight:750;margin:1px 0 -2px}
+.purchase-modal .purchase-share-grid{margin-top:0}
+.purchase-modal>small{color:#786d7d;line-height:1.4;font-size:11px}
 </style>
 </head>
 <body>
@@ -456,6 +548,8 @@ function postInfo(id){
  }
   const c=Week.COMPARE_POSTS[id];
  if(c)return {...c,phase:0,order:0,author:c.who};
+ const tagged=Object.values(TAGGED_EVENTS).find(t=>t.id===id);
+ if(tagged)return {...tagged,phase:0,order:0,author:tagged.who};
  return null;
 }
 function trackModel(type,topic,id,author=""){
@@ -477,7 +571,7 @@ function newRunId(){
  return "c4-"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
- pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],clockViewed:0,clockSeen:[]});
+ pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[]});
 let state=makeInitial();
 function restoreForPlayer(player) {
  state=makeInitial();
@@ -491,6 +585,7 @@ function restoreForPlayer(player) {
    if(!Array.isArray(state.myStories))state.myStories=[];
    if(!Array.isArray(state.purchaseShares))state.purchaseShares=[];
    if(!Array.isArray(state.mineLikes))state.mineLikes=[];
+   if(!state.postComments||typeof state.postComments!=='object'||Array.isArray(state.postComments))state.postComments={};
    for(const p of state.myPosts){if(!Array.isArray(p.comments))p.comments=[];}
    if(!Array.isArray(state.clockSeen))state.clockSeen=[];
    if(!Number.isFinite(state.clockViewed))state.clockViewed=0;
@@ -644,12 +739,16 @@ function storyGroups(){
   if(!authors.has(item.user))authors.set(item.user,{user:item.user,source:item.source,items:[]});
   authors.get(item.user).items.push(item);
  }
- return [...authors.values()].map(group=>({...group,items:group.items.sort((a,b)=>a.idx-b.idx)}));
+ return [...authors.values()].map(group=>({...group,items:group.items.sort((a,b)=>a.idx-b.idx)}))
+ .sort((a,b)=>a.user==='você'?-1:b.user==='você'?1:0);
 }
 function renderStories(){
- const groups=storyGroups();
- if(!groups.length)return '';
- return '<section class="story-rail" aria-label="Stories de amigos e páginas"><div class="story-rail-heading">STORIES <span>Amigos, criadores e páginas</span></div><div class="stories">'+groups.map(group=>{
+ const groups=storyGroups(),own=groups.find(g=>g.user==='você');
+ const ownFirst=own?.items?.[0],hasOwn=!!ownFirst;
+ const latest=state.myStories.filter(x=>x.day===state.day).at(-1);
+ const ownPhoto=latest?mediaPhoto(latest.photo,'avatar-photo','Foto do seu story'):'<span aria-hidden="true">🙂</span>';
+ const mySlot='<span class="own-story-container"><button class="story own-story-slot '+(hasOwn?'has-story':'')+'" data-action="'+(hasOwn?'story':'new-story')+'"'+(hasOwn?' data-index="'+ownFirst.idx+'"':'')+' data-story-user="você" aria-label="'+(hasOwn?'Ver seu story':'Criar seu story')+'"><span class="story-ring"><span class="story-face">'+ownPhoto+'</span></span><span class="story-name">Seu story</span></button>'+(hasOwn?'<button class="own-story-new" data-action="new-story" aria-label="Adicionar novo story">+</button>':'')+'</span>';
+ return '<section class="story-rail" aria-label="Stories de amigos e páginas"><div class="story-rail-heading">STORIES <span>Amigos, criadores e páginas</span></div><div class="stories">'+mySlot+groups.filter(g=>g.user!=='você').map(group=>{
   const first=group.items[0];
   const fullyRead=group.items.every(s=>state.stories.includes('story-'+s.idx));
   const page=group.source==='page';
@@ -716,12 +815,21 @@ function shopStrip(){
   return `<button class="shop-mini-card" data-action="product" data-product="${id}" aria-label="Ver ${esc(p.name)} na loja">${art(p.kind,true,p.brand)}<strong>${esc(p.name)}</strong><b>${money(p.price)}${id==='plano'?'/mês':''}</b><small>Ver na loja →</small></button>`;
  }).join('')}</div></aside>`;
 }
+function commentRows(id,original=[]){
+ return [...original,...(state.postComments[id]||[])];
+}
+function commentTeaser(id,original=[]){
+ const rows=commentRows(id,original);
+ return `<button class="social-comment-count" data-action="comments" data-post="${esc(id)}">Ver todos os ${rows.length} comentários</button>
+ <div class="social-comment-preview">${rows.slice(-2).map(x=>`<p><strong>${esc(x[0])}</strong> ${esc(x[1])}</p>`).join('')}</div>
+ <button class="social-comment-add" data-action="comments" data-post="${esc(id)}">Adicione um comentário...</button>`;
+}
 function postCard(post){
  const liked=state.liked.includes(post.id),saved=state.bookmarks.includes(post.id),isPage=post.source==="page";
  const link=relatedPostLinks[post.id];
  const button=link?`<button class="post-shop-link" data-action="product" data-product="${link.topic}" data-source="post">${esc(link.label)} · ${money(price(link.topic).price)} <span aria-hidden="true">→</span></button>`:"";
  const photoAction=link?` data-action="open-photo" data-product="${link.topic}" data-source="post"`:"";
- return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":"amigo"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${post.who}</strong> ${post.caption}</p>${button}</article>`;
+ return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":"amigo"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(post.who)}</strong> ${esc(post.caption)}</p>${commentTeaser(post.id,post.comments||[])}${button}</article>`;
 }
 function setupFeedAssist(){
  const scroller=document.querySelector('#feed-scroll'),cue=document.querySelector('.scroll-cue');
@@ -746,6 +854,12 @@ function renderGame(keepScroll=false){
  exitHomeButton.hidden=false;
  if(state.wake&&!overlay)overlay={type:'wake'};
  if(!state.wake&&!dayItems().length)appendNext();
+ // Uma foto com marcacao de amigo aparece naturalmente no feed da noite:
+ // Bia na segunda e Gabi na sexta, sem repetir a mesma postagem a cada dia.
+ if(!state.wake&&TAGGED_EVENTS[state.day]&&!state.feedItems.some(x=>x.id===TAGGED_EVENTS[state.day].id)){
+   topOfToday([{kind:'event',type:'tagged',id:TAGGED_EVENTS[state.day].id,day:state.day}]);
+   save();
+ }
  const y=keepScroll?document.querySelector('#feed-scroll')?.scrollTop||0:0;
  root.innerHTML=stageFeed();
  if(keepScroll){const n=document.querySelector('#feed-scroll');if(n)n.scrollTop=y;}
@@ -1034,8 +1148,10 @@ function openComments(post){
  drawModal();
 }
 function closeModal(){
+ const was=modal?.type;
  modal=null;
  document.querySelector(".layer-backdrop")?.remove();
+ if(was==='comments')renderGame(true);
 }
 
 function scheduleShopFromPhoto(element){
@@ -1613,7 +1729,7 @@ function buy(ids){
  state.lastOrder={orderId:'pedido-'+state.runId.slice(0,8)+'-'+state.purchases.length,items:ids,total:paid,method:trial?'trial':method,n:q.n,each:q.each,cashback,coupon:q.coupon?.code||'',trial,at:Date.now()};
  expose('prova_social','Após a compra, a rede sugeriu compartilhar o produto com amigos para receber curtidas e comentários.');
  state.payMethod=null;
- save();overlay={type:"receipt"};modal=null;renderGame(true);
+ save();overlay={type:"receipt"};modal={type:'purchase-share'};renderGame(true);
  return true;
 }
 function receiptPage(){
@@ -1633,29 +1749,31 @@ function receiptPage(){
  ${suggestions.length?`<div class="receipt-suggestions"><h3>Quem comprou isso também levou</h3>
  ${suggestions.map(id=>`<button class="shop-receipt-suggestion" data-action="product" data-product="${id}" data-source="pair">${art(products[id].kind,true)}<span><strong>${esc(productName(id))}</strong><small>${money(price(id).price)} · Ver na loja →</small></span></button>`).join("")}
  </div>`:""}
- <section class="receipt-social-choice" aria-label="Compartilhar sua compra">
- <h3>Quer mostrar sua compra? 📸</h3>
- <p>Seus amigos podem ver, curtir e comentar. Você escolhe se quer publicar.</p>
- <label for="purchase-share-caption">Legenda</label>
- <textarea id="purchase-share-caption" maxlength="220" rows="2">${esc(o.trial?'Comecei a testar '+o.items.map(productName).join(' + ')+' 🎧':'Acabei de comprar '+o.items.map(productName).join(' + ')+' ✨')}</textarea>
- <div class="purchase-share-grid">
- <button class="secondary" data-action="purchase-share" data-channel="feed">▦ No feed</button>
- <button class="secondary" data-action="purchase-share" data-channel="story">◉ No story</button>
- <button class="primary" data-action="purchase-share" data-channel="ambos">♡ Nos dois</button>
- <button class="tertiary" data-action="purchase-share" data-channel="nenhum">Não publicar</button>
- </div><small>Simulação educativa: os perfis, comentários e curtidas são fictícios.</small>
- <button class="tertiary full receipt-back" data-action="close-overlay">Voltar ao feed sem publicar</button>
- </section>
+ <button class="primary full" data-action="close-overlay">Voltar ao feed</button>
  </section></div>`;
 }
+const PURCHASE_CAPTIONS={
+ fone:'Fone novo para a playlist da viagem 🎧✨',
+ tenis:'Meu tênis novo chegou! 👟💜',
+ plano:'Testando uma playlist sem interrupções 🎵',
+ mochila:'Mochila pronta para a próxima aventura 🎒',
+ powerbank:'Bateria garantida para o rolê 🔋',
+ garrafa:'Hidratação em dia com minha garrafa nova 💧',
+ luminaria:'Um toque de luz novo no cantinho de estudos 💡',
+ ingresso:'Partiu festival! Já garanti o ingresso 🎟️🎉'
+};
+const purchaseCaption=o=>{
+ const id=o?.items?.[0];
+ const first=PURCHASE_CAPTIONS[id]||(o?.trial?'Comecei um teste grátis 🎧':'Minha compra chegou ✨');
+ return o?.items?.length>1?first+' + '+o.items.slice(1).map(productName).join(' + '):first;
+};
 function sharePurchase(channel){
  const modes=['feed','story','ambos','nenhum'],o=state.lastOrder;
  if(!o||!modes.includes(channel))return;
  const orderId=o.orderId||'pedido-antigo-'+String(o.at||0);
  if(state.purchaseShares.some(x=>x.orderId===orderId)){overlay=null;renderGame(true);return;}
  const product=o.items[0],photo='product_'+product;
- const caption=String(document.getElementById('purchase-share-caption')?.value||'').trim().slice(0,220)
-    ||'Acabei de comprar '+o.items.map(productName).join(' + ')+' ✨';
+ const caption=String(document.getElementById('purchase-share-caption')?.value||'').trim().slice(0,220)||purchaseCaption(o);
  const feed=channel==='feed'||channel==='ambos',storyShare=channel==='story'||channel==='ambos';
  let postId=null,storyId=null;
  if(feed){
@@ -1676,6 +1794,16 @@ function sharePurchase(channel){
  overlay=null;modal=null;save();renderGame(!feed);
  if(feed)document.querySelector('#feed-scroll')?.scrollTo(0,0);
  toast(channel==='nenhum'?'Compra não publicada.':'Sua compra apareceu '+choiceLabel+'! 💜');
+}
+function publishOwnStory(choice){
+ const c=postChoices().find(x=>x.id===choice);
+ if(!c)return;
+ if(state.myStories.filter(x=>x.day===state.day).length>=20){toast('Você já publicou muitos stories hoje.');return;}
+ const caption=String(document.getElementById('my-post-caption')?.value||c.caption).trim().slice(0,220)||c.caption;
+ state.myStories.push({id:'story-me-'+state.day+'-'+(state.myStories.length+1),photo:c.photo,
+  day:state.day,product:c.topic,text:caption,origin:'organic'});
+ pushEvent('story_proprio','Publicou um story com foto selecionada na galeria.');
+ storyPhotoPromises.clear();modal=null;save();renderGame(true);toast('Seu story está no começo da lista! 📸');
 }
 function shareOwnPostToStory(id){
  const p=state.myPosts.find(x=>x.id===id);if(!p)return;
@@ -1745,12 +1873,24 @@ function wakePage(){
  ${list.length?`<div class="wake-notifs"><small>NOTIFICAÇÕES</small>${list.map(n=>`<div class="wake-n"><span>${n.icon}</span><p>${esc(n.text)}</p></div>`).join('')}</div>`:''}
  <button class="primary full wake-open" data-action="open-day">Abrir o pulso. →</button></div>`;
 }
-/* Gancho de saída: uma vez por dia, quando a pessoa tenta sair. */
+/* Ganchos de saida com acontecimentos diferentes a cada noite. */
+const EXIT_HOOK_DAYS={
+ 1:{kind:'tag',who:'bia.m',title:'Bia publicou uma foto com você',text:'Olha essa lembrança da turma! 🥹',button:'Ver a foto',photo:'post_p10'},
+ 2:{kind:'message',who:'lucca.r',title:'Lucca mandou mensagem no grupo',text:'Tem assunto novo sobre a viagem 💬',button:'Abrir mensagens'},
+ 3:{kind:'feed',who:'mia',title:'Mia comentou sobre as fotos de hoje',text:'O feed não para de atualizar ✨',button:'Ver novidades'},
+ 4:{kind:'message',who:'gabi.n',title:'Gabi mandou mensagem sobre sábado',text:'A turma está combinando os detalhes 🎒',button:'Abrir mensagens'},
+ 5:{kind:'tag',who:'gabi.n',title:'Gabi publicou uma foto com você',text:'Última noite antes da viagem! 💜',button:'Ver a foto',photo:'friends_park'}
+};
+const TAGGED_EVENTS={
+ 1:{id:'tag-1',day:1,who:'bia.m',topic:'mochila',photo:'post_p10',likes:284,caption:'Saudade dessa turma e desse dia 🥹 @você',comments:[['lucca.r','essa foto ficou muito boa 😂','2 min'],['gabi.n','quero outra igual! 💕','5 min']]},
+ 5:{id:'tag-5',day:5,who:'gabi.n',topic:'ingresso',photo:'friends_park',likes:167,caption:'Amanhã é o grande dia! Nossa última foto antes da viagem 📸 @você',comments:[['bia.m','a melhor turma 💜','1 min'],['lucca.r','amanhã vai ser épico!','3 min']]}
+};
 function tryExitHook(src){
  if(!state.started||state.finished||state.wake||state.attention.exitHookDays.includes(state.day))return false;
  if(src!=='end'&&(overlay||modal||story))return false;
+ const hook=EXIT_HOOK_DAYS[state.day];if(!hook)return false;
  state.attention.exitHookDays.push(state.day);
- expose('gancho_saida','Quando você tentou sair, apareceu “a Bia postou uma foto com você, ver agora?”.');
+ expose('gancho_saida',`Tentou sair, mas recebeu nova atividade de ${hook.who}: ${hook.title}.`);
  save();modal={type:'exit-hook',src};drawModal();return true;
 }
 function topOfToday(items){
@@ -1792,7 +1932,7 @@ function eventCard(item){
  if(t==='card')return state.card.active?'':`<section class="ev ev-card"><div class="mini-card">pulso<b>.</b> pay</div><div><strong>Você foi pré-aprovado! 💳</strong><p>${money(state.card.limit)} de limite. Compre agora, pague depois.</p></div><button class="ev-btn" data-action="pay">Ativar</button></section>`;
  if(t==='compare'){const c=Week.COMPARE_POSTS[item.post];return c?comparePostCard(c):'';}
  if(t==='surprise')return surpriseCard(item);
- if(t==='tagged')return taggedCard();
+ if(t==='tagged')return taggedCard(item);
  if(t==='live')return `<section class="ev ev-live" data-action="live" role="button" tabindex="0" aria-label="Entrar na live da Lívia"><div class="ev-live-photo" style="background-image:url('${mediaSrc('story_tenis_1')}')"><span class="live-badge">AO VIVO</span><span class="ev-live-viewers">👀 1,2 mil</span></div><div class="ev-live-text"><span class="avatar photo-avatar">${mediaPhoto('avatar_livia','avatar-photo','Foto de perfil da Lívia')}</span><div><strong>livia.looks está ao vivo</strong><p>“Cupom exclusivo só pra quem está aqui agora 🔥”</p></div></div><button class="ev-btn live" data-action="live">Entrar na live</button></section>`;
  if(t==='trial')return bought('plano')?'':`<section class="ev ev-trial"><span class="ev-emoji big">🎧</span><div><strong>Estudar com foco? MODO+ 3 dias GRÁTIS</strong><p>Sem anúncios entre as músicas. Cancele quando quiser.</p></div><button class="ev-btn" data-action="product" data-product="plano" data-source="trial">Testar grátis</button></section>`;
  if(t==='mood'){
@@ -1823,12 +1963,39 @@ const POST_CHOICES=[
  {id:'viagem',photo:'extra_23',topic:'mochila',caption:'prontos para sair 🚌'},
  {id:'paisagem',photo:'friends_trip',topic:'mochila',caption:'respirando outros ares 🌳'}
 ];
-const postChoices=()=>[
- ...POST_CHOICES,
- ...[...new Set(state.purchases.map(p=>p.id))].filter(id=>products[id]).map(id=>({
-  id:'purchase-'+id,photo:'product_'+id,topic:id,caption:'Minha compra: '+productName(id)+' ✨'
- }))
+// Galeria simulada: usa fotos do proprio jogo, sem acessar arquivos do celular.
+const galleryPhotoLogo=()=>`<svg class="gallery-photo-logo" viewBox="0 0 48 48" aria-hidden="true">
+ <rect x="1.5" y="1.5" width="45" height="45" rx="11" fill="#fff" stroke="#e5e5e9"/>
+ ${['#ff4e79','#ff9d38','#f4d249','#75c75a','#41bfba','#478ee9','#a06beb','#e56db0'].map((c,i)=>`<ellipse cx="24" cy="16" rx="5.5" ry="11" fill="${c}" opacity=".88" transform="rotate(${i*45} 24 24)"/>`).join('')}
+ <circle cx="24" cy="24" r="4.2" fill="white"/></svg>`;
+const GALLERY_SCENES=[
+ ['friends_park','garrafa','Dias bons com gente boa 🌿'],['friends_bus','mochila','No caminho de mais uma aventura 🚌'],
+ ['friends_trip','mochila','Um lugar para guardar na memória 💜'],['fashion_stairs','tenis','Detalhes do look de hoje ✨'],
+ ['study_music','plano','Estudo, música e um café ☕'],['trip_landscape','mochila','Esse lugar merece uma foto 🏞️'],
+ ['festival_lights','ingresso','A noite merece replay 🎶'],['festival_people','ingresso','O melhor do rolê foi a companhia 🪩'],
+ ['sneaker_worn','tenis','Meus passos de hoje 👟'],['park_trees','garrafa','Um respiro na rotina 🌳'],
+ ['study_close','luminaria','Organizando as ideias 📚'],['bus_close','mochila','Na estrada de novo 🚍']
 ];
+const postChoices=()=>{
+ const result=new Map();
+ const add=c=>{if(c?.photo&&!result.has(c.photo)&&mediaSrc(c.photo))result.set(c.photo,c);};
+ POST_CHOICES.forEach(add);
+ const samples=Object.values(window.NoFeedEditorial.posts).flat();
+ const captionsByPhoto=new Map();
+ for(const p of samples)if(p.photo&&!captionsByPhoto.has(p.photo))
+   captionsByPhoto.set(p.photo,{topic:p.topic,caption:String(p.caption).split(' — ')[0].slice(0,120)});
+ const topics=['garrafa','luminaria','fone','tenis','ingresso','mochila','plano'];
+ for(const photo of Object.keys(originalPhotoSources)){
+  if(!/^(extra_\d+|post_p\d+|story_(?:fone|tenis|plano|mochila)_\d+)$/.test(photo))continue;
+  const sample=captionsByPhoto.get(photo),t=sample?.topic||topics[result.size%topics.length];
+  add({id:'galeria-'+photo,photo,topic:t,caption:sample?.caption||'Um momento para guardar ✨'});
+ }
+ for(const [photo,topic,caption] of GALLERY_SCENES)add({id:'galeria-'+photo,photo,topic,caption});
+ for(const id of [...new Set(state.purchases.map(p=>p.id))].filter(id=>products[id])){
+  add({id:'purchase-'+id,photo:'product_'+id,topic:id,caption:'Chegou o '+productName(id)+'! 📦✨'});
+ }
+ return [...result.values()];
+};
 const ownPostAge=p=>Math.max(0,(state.day-p.day)*40+(state.clockViewed||0)-(p.clockViewed||0));
 const myLikes=p=>Math.min(p.target||30,Math.round((p.target||30)*Math.min(1,.25+ownPostAge(p)*.10)))+((state.mineLikes||[]).includes(p.id)?1:0);
 function ownPostComments(p){
@@ -1867,7 +2034,7 @@ function mineCard(item){
  <p class="likecount"><span class="js-my-likes" data-post="${esc(p.id)}">${myLikes(p)}</span> curtidas</p>
  <p class="post-caption"><strong>${esc(identity?.username||'você')}</strong> ${esc(p.caption||c.caption)}</p>
  <button class="mine-comment-count" data-action="comments" data-post="${esc(p.id)}">Ver todos os ${comments.length} comentários</button>
- <div class="mine-comment-preview">${comments.slice(0,2).map(x=>`<p><strong>${esc(x[0])}</strong> ${esc(x[1])}</p>`).join('')}</div>
+ <div class="mine-comment-preview">${comments.slice(-2).map(x=>`<p><strong>${esc(x[0])}</strong> ${esc(x[1])}</p>`).join('')}</div>
  <button class="mine-comment-add" data-action="comments" data-post="${esc(p.id)}">Adicione um comentário...</button>
  </article>`;
 }
@@ -1878,13 +2045,22 @@ function surpriseCard(item){
  if(v==='drop'&&item.product)return `<section class="ev ev-surprise"><span class="ev-emoji big">📉</span><div><strong>Baixou! ${esc(productName(item.product))} com 15% OFF</strong><p>Só pra você, só hoje.</p></div><button class="ev-btn" data-action="product" data-product="${item.product}" data-source="surprise">Ver</button></section>`;
  return `<section class="ev ev-surprise empty"><span class="ev-emoji big">🎁</span><div><strong>Nada por aqui… desta vez</strong><p>Continue rolando.</p></div></section>`;
 }
-function taggedCard(){
- return `<article class="post compare-post tagged-post"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar('bia.m','post_p10',false)}</span><div class="user-info"><div class="username">bia.m <span class="meta-tag">marcou você</span></div><div class="post-sub">agora</div></div></div><div class="post-media feed-photo">${mediaPhoto('post_p10','art-photo','Foto da turma')}</div><div class="post-caption"><strong>bia.m</strong> saudade dessa turma 🥹 @você</div></article>`;
+function taggedCard(item){
+ const c=TAGGED_EVENTS[item?.day],id=c?.id;
+ if(!c)return '';
+ const liked=state.liked.includes(id),saved=state.bookmarks.includes(id);
+ return `<article class="post compare-post tagged-post" id="${id}" data-rec-id="${id}" data-rec-topic="${c.topic}" data-rec-author="${esc(c.who)}">
+ <div class="post-top"><span class="avatar photo-avatar">${profileAvatar(c.who,c.photo,false)}</span><div class="user-info"><div class="username">${esc(c.who)} <span class="meta-tag">marcou você</span></div><div class="post-sub">há poucos minutos · amigo</div></div><button class="icon-button" data-action="post-more" data-post="${id}" aria-label="Mais opções">${icon('more')}</button></div>
+ <div class="post-media feed-photo" data-like-post="${id}" role="group" aria-label="Foto de ${esc(c.who)} com você. Dois toques para curtir.">${mediaPhoto(c.photo,'art-photo','Foto da turma')}</div>
+ <div class="post-actions"><button class="icon-button like-button ${liked?'is-liked':''}" data-action="like" data-post="${id}" aria-label="Curtir a foto" aria-pressed="${liked}">${icon('heart',liked?'heart-filled':'')}</button>
+ <button class="icon-button" data-action="comments" data-post="${id}" aria-label="Ver comentários">${icon('comment')}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon('send')}</button>
+ <button class="icon-button push" data-action="bookmark" data-post="${id}" aria-label="${saved?'Remover dos salvos':'Salvar publicação'}" style="color:${saved?'#e84a80':'inherit'}">${icon('bookmark')}</button></div>
+ <p class="likecount">${c.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(c.who)}</strong> ${esc(c.caption)}</p>${commentTeaser(id,c.comments)}</article>`;
 }
 function comparePostCard(c){
  const liked=state.liked.includes(c.id);
  const media=c.productArt?art(c.productArt,true):art(c.topic,false,'',c.photo);
- return `<article class="post compare-post" id="${c.id}" data-rec-id="${c.id}" data-rec-topic="${c.topic}" data-rec-author="${esc(c.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(c.who,c.photo,false)}</span><div class="user-info"><div class="username">${esc(c.who)}</div><div class="post-sub">${esc(c.when)}<span class="meta-tag">amigo</span></div></div></div><div class="post-media feed-photo" data-like-post="${c.id}" role="group" aria-label="Foto de ${esc(c.who)}. Dois toques para curtir.">${media}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${c.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${c.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button></div><p class="likecount">${c.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(c.who)}</strong> ${esc(c.caption)}</p><button class="post-shop-link" data-action="product" data-product="${c.topic}" data-source="compare">Ver produto do post · ${money(price(c.topic).price)} <span aria-hidden="true">→</span></button></article>`;
+ return `<article class="post compare-post" id="${c.id}" data-rec-id="${c.id}" data-rec-topic="${c.topic}" data-rec-author="${esc(c.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(c.who,c.photo,false)}</span><div class="user-info"><div class="username">${esc(c.who)}</div><div class="post-sub">${esc(c.when)}<span class="meta-tag">amigo</span></div></div></div><div class="post-media feed-photo" data-like-post="${c.id}" role="group" aria-label="Foto de ${esc(c.who)}. Dois toques para curtir.">${media}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${c.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${c.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button></div><p class="likecount">${c.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(c.who)}</strong> ${esc(c.caption)}</p>${commentTeaser(c.id,c.comments||[])}<button class="post-shop-link" data-action="product" data-product="${c.topic}" data-source="compare">Ver produto do post · ${money(price(c.topic).price)} <span aria-hidden="true">→</span></button></article>`;
 }
 function nightCard(item){
  const last=item.day>=Week.DAYS.length;
@@ -2029,7 +2205,7 @@ function adCard(id,retarget=false,item={}){
  const text=campaign==="pair"&&last?`Quem comprou ${productName(last.id)} também levou o ${pr.name}.`:campaign==="retarget"?`Ainda pensando no ${pr.name}? Ele está te esperando${pr.off?` com ${pr.off}% OFF`:''}.`:Week.PITCH[id]||p.ad;
  const inst=Pressure.installment(pr.price,10,Pressure.FEES.cardRate);
  const handle=esc(p.brand.toLowerCase().replaceAll(" ","."));
- return `<article class="post ad-post" data-rec-id="${adId}" data-rec-topic="${id}" data-campaign="${campaign}"><div class="post-top"><span class="avatar brand-av">${esc(p.brand.split(" ")[0].slice(0,4))}</span><div class="user-info"><div class="username">${handle}</div><div class="post-sub"><span class="sponsored-label">Patrocinado</span></div></div><button class="icon-button" data-action="ad-more" data-product="${id}" data-post="${adId}" aria-label="Opções do anúncio">${icon("more")}</button></div><div class="post-media feed-photo" data-action="open-photo" data-product="${id}" data-source="${campaign}" data-like-ad="${adId}" role="group" aria-label="Anúncio de ${esc(pr.name)}. Um toque abre a loja; dois toques curtem.">${art(p.kind,true,p.brand)}<span class="photo-tag">${esc(channel)}</span></div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like-ad" data-product="${id}" data-ad="${adId}" aria-label="${liked?"Descurtir":"Curtir"} anúncio" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${adId}" aria-label="Ver avaliações">${icon("comment")}</button><button class="icon-button push" data-action="product" data-product="${id}" data-source="${campaign}" aria-label="Visitar loja">${icon("eye")}</button></div><p class="post-caption"><strong>${handle}</strong> ${esc(text)}</p><div class="ad-price"><span>${pr.old?`<del>${money(pr.old)}</del> `:''}<b>${money(pr.price)}${id==='plano'?'/mês':''}</b>${id==='plano'?'':` <small>ou 10x de ${money(inst.each)}</small>`}</span></div><button class="ad-shop-button" data-action="product" data-product="${id}" data-source="${campaign}">${id==='plano'?'Testar grátis':'Comprar agora'} →</button></article>`;
+ return `<article class="post ad-post" data-rec-id="${adId}" data-rec-topic="${id}" data-campaign="${campaign}"><div class="post-top"><span class="avatar brand-av">${esc(p.brand.split(" ")[0].slice(0,4))}</span><div class="user-info"><div class="username">${handle}</div><div class="post-sub"><span class="sponsored-label">Patrocinado</span></div></div><button class="icon-button" data-action="ad-more" data-product="${id}" data-post="${adId}" aria-label="Opções do anúncio">${icon("more")}</button></div><div class="post-media feed-photo" data-action="open-photo" data-product="${id}" data-source="${campaign}" data-like-ad="${adId}" role="group" aria-label="Anúncio de ${esc(pr.name)}. Um toque abre a loja; dois toques curtem.">${art(p.kind,true,p.brand)}<span class="photo-tag">${esc(channel)}</span></div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like-ad" data-product="${id}" data-ad="${adId}" aria-label="${liked?"Descurtir":"Curtir"} anúncio" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${adId}" aria-label="Ver comentários e avaliações">${icon("comment")}</button><button class="icon-button push" data-action="product" data-product="${id}" data-source="${campaign}" aria-label="Visitar loja">${icon("eye")}</button></div><p class="post-caption"><strong>${handle}</strong> ${esc(text)}</p><div class="ad-price"><span>${pr.old?`<del>${money(pr.old)}</del> `:''}<b>${money(pr.price)}${id==='plano'?'/mês':''}</b>${id==='plano'?'':` <small>ou 10x de ${money(inst.each)}</small>`}</span></div>${commentTeaser(adId,[['ana.lu','Gostei da ideia, mas vou comparar antes de comprar.','há 2 h']])}<button class="ad-shop-button" data-action="product" data-product="${id}" data-source="${campaign}">${id==='plano'?'Testar grátis':'Comprar agora'} →</button></article>`;
 }
 function drawOverlay(){
  const phone=document.querySelector(".phone");if(!phone||!overlay)return;
@@ -2096,12 +2272,20 @@ function drawModal(){
   }else if(state.myPosts.some(p=>p.id===v.post)){
    const p=state.myPosts.find(x=>x.id===v.post);
    comments=ownPostComments(p);title='Comentários na sua publicação';
+  }else if(Object.values(TAGGED_EVENTS).some(p=>p.id===v.post)){
+   const tagged=Object.values(TAGGED_EVENTS).find(p=>p.id===v.post);
+   comments=tagged.comments.map((c,i)=>[c[0],c[1],`${i+1} min`]);
   }else if(Week.COMPARE_POSTS[v.post]){comments=Week.COMPARE_POSTS[v.post].comments.map((c,i)=>[c[0],c[1],`${i+1} min`]);}
   else{for(const ph of phases){const post=ph.posts.find(x=>x.id===v.post);if(post){comments=post.comments.map((c,i)=>[c[0],c[1],`${i+1} h`]);break;}}}
-  const mine=state.myPosts.some(p=>p.id===v.post);
+  if(!state.myPosts.some(p=>p.id===v.post))comments.push(...(state.postComments[v.post]||[]));
   content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${esc(title)} · ${comments.length}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
   <div class="sheet-scroll">${comments.map((c,i)=>`<div class="comment"><span class="avatar">${['🧑','👩','🧒','🙂'][i%4]}</span><div><strong>${esc(c[0])}</strong><p>${esc(c[1])}</p><small>${esc(c[2]||'há pouco')}</small></div></div>`).join('')}</div>
-  ${mine?`<div class="own-comment-form"><label for="own-comment-input">Escrever comentário</label><textarea id="own-comment-input" maxlength="180" rows="2" placeholder="Adicione um comentário..."></textarea><button class="primary full" data-action="add-my-comment" data-post="${esc(v.post)}">Publicar comentário</button></div>`:''}`;
+  <div class="own-comment-form insta-comment-form">
+   <span class="comment-me-avatar" aria-hidden="true">🙂</span>
+   <label class="comment-access-label" for="own-comment-input">Seu comentário</label>
+   <textarea id="own-comment-input" maxlength="180" rows="1" aria-label="Escreva um comentário" placeholder="Adicione um comentário..."></textarea>
+   <button class="insta-comment-submit" data-action="add-my-comment" data-post="${esc(v.post)}">Publicar</button>
+   </div>`;
  }else if(v.type==='more'){
   content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Opções de publicação</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
   <div class="sheet-scroll"><p class="small muted">Você pode escolher não ver conteúdos semelhantes.</p>
@@ -2126,21 +2310,54 @@ function drawModal(){
   <button class="secondary full" data-action="end-day">${state.day>=Week.DAYS.length?'Dormir e acordar no sábado 🚌':'Encerrar o dia 💤'}</button>
   <button class="tertiary full" style="margin-top:10px" data-action="close-modal">Continuar no feed</button></div>`;
  }else if(v.type==='exit-hook'){
-  content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer"><div class="exit-gift">📸</div><h3>bia.m postou uma foto com você</h3><p>Ver agora?</p>
-  <button class="primary full" data-action="hook-accept">Ver agora</button>
-  <button class="tertiary full" data-action="hook-decline">Agora não</button></div>`;
- }else if(v.type==='new-post'||v.type==='edit-post'){
-  const editing=v.type==='edit-post',choices=postChoices(),chosen=choices.find(c=>c.id===v.choice)||choices[0];
-  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${editing?'Editar publicação':'Criar publicação'}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
-  <div class="sheet-scroll post-compose"><p class="small muted">Escolha uma foto e escreva sua legenda.</p>
-  <div class="post-choices">${choices.map(c=>`<button class="post-choice ${chosen.id===c.id?'chosen':''}" data-action="select-post-photo" data-choice="${c.id}" aria-pressed="${chosen.id===c.id}">${mediaPhoto(c.photo,'art-photo',c.caption)}<span>${esc(c.caption)}</span></button>`).join('')}</div>
-  <label for="my-post-caption">Legenda (até 220 caracteres)</label>
-  <textarea id="my-post-caption" maxlength="220" rows="3" placeholder="O que você quer compartilhar?">${esc(v.caption||chosen.caption)}</textarea>
-  <button class="primary full" data-action="${editing?'save-my-post':'publish'}" data-choice="${chosen.id}">${editing?'Salvar alterações':'Publicar no feed'}</button>
+  const hook=EXIT_HOOK_DAYS[state.day]||EXIT_HOOK_DAYS[1];
+  content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer">
+   <div class="exit-gift">${hook.kind==='tag'?'📸':hook.kind==='message'?'💬':'✨'}</div>
+   <h3>${esc(hook.title)}</h3><p>${esc(hook.text)}</p>
+   ${hook.photo?`<div class="exit-hook-photo">${mediaPhoto(hook.photo,'art-photo','Foto compartilhada pela turma')}</div>`:''}
+   <button class="primary full" data-action="hook-accept">${esc(hook.button)}</button>
+   <button class="tertiary full" data-action="hook-decline">Agora não</button>
+   </div>`;
+ }else if(v.type==='purchase-share'){
+  const o=state.lastOrder||{items:[]},item=o.items[0];
+  content=`<div class="purchase-modal">
+  <div class="purchase-modal-heading"><span class="purchase-modal-emoji">🛍️</span><h3>Compra confirmada!</h3>
+   <p>Quer compartilhar essa novidade com seus amigos?</p></div>
+  ${item?`<div class="purchase-modal-product">${mediaPhoto('product_'+item,'art-photo',productName(item))}<div><strong>${esc(o.items.map(productName).join(' + '))}</strong><span>Simulação de compra</span></div></div>`:''}
+  <label for="purchase-share-caption">Sua legenda <small>(você pode editar)</small></label>
+  <textarea id="purchase-share-caption" maxlength="220" rows="3">${esc(purchaseCaption(o))}</textarea>
+  <p class="purchase-modal-question">Onde você quer publicar?</p>
+  <div class="purchase-share-grid">
+  <button class="secondary" data-action="purchase-share" data-channel="feed">▦ No feed</button>
+  <button class="secondary" data-action="purchase-share" data-channel="story">◉ No story</button>
+  <button class="primary" data-action="purchase-share" data-channel="ambos">♡ Nos dois</button>
+  <button class="tertiary" data-action="purchase-share" data-channel="nenhum">Não publicar</button>
+  </div><small>Publicações e reações são fictícias. Compartilhar é opcional.</small>
+  </div>`;
+ }else if(v.type==='gallery'){
+  const choices=postChoices(),selected=v.selectedChoice,section=v.filter||'todas';
+  const filtered=choices.filter(c=>section==='compras'?c.id.startsWith('purchase-'):
+    section==='recentes'?choices.indexOf(c)>=Math.max(0,choices.length-28):true);
+  content=`<div class="ios-gallery">
+  <div class="ios-gallery-toolbar"><button data-action="gallery-cancel" class="ios-gallery-back" aria-label="Voltar">‹ <span>Voltar</span></button><strong>Fotos</strong><button data-action="gallery-confirm" class="ios-gallery-done" ${selected?'':'disabled'} aria-label="Confirmar foto selecionada">✓</button></div>
+  <div class="ios-gallery-title"><h2>Biblioteca</h2><small>${choices.length} fotos · galeria fictícia do jogo</small></div>
+  <div class="ios-gallery-filters">${[['todas','Todas'],['recentes','Recentes'],['compras','Compras']].map(([k,t])=>`<button class="${section===k?'active':''}" data-action="gallery-filter" data-filter="${k}">${t}</button>`).join('')}</div>
+  <div class="ios-gallery-grid" role="group" aria-label="Escolher foto">${filtered.map(c=>`<button class="ios-gallery-tile ${selected===c.id?'selected':''}" data-action="gallery-select" data-choice="${esc(c.id)}" aria-pressed="${selected===c.id}" aria-label="${esc(c.caption)}">${mediaPhoto(c.photo,'art-photo',c.caption)}<span class="gallery-mark">${selected===c.id?'✓':''}</span></button>`).join('')||'<p class="small muted">As fotos dos produtos aparecem após suas compras.</p>'}</div>
+  <footer class="ios-gallery-footer">${selected?'1 foto selecionada':'Selecione uma foto'}</footer></div>`;
+ }else if(v.type==='new-post'||v.type==='edit-post'||v.type==='new-story'){
+  const editing=v.type==='edit-post',isStory=v.type==='new-story';
+  const chosen=postChoices().find(c=>c.id===v.choice);
+  content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${editing?'Editar publicação':isStory?'Novo story':'Criar publicação'}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
+  <div class="sheet-scroll post-compose">
+  <button class="gallery-launch" data-action="open-gallery">${galleryPhotoLogo()}<span><strong>Ver Galeria</strong><small>Escolha uma foto do álbum</small></span><b>›</b></button>
+  ${chosen?`<div class="compose-selected">${mediaPhoto(chosen.photo,'art-photo',chosen.caption)}<span>Foto selecionada ✓</span></div>`:'<div class="compose-no-photo">📷<span>Abra a galeria para escolher uma foto</span></div>'}
+  <label for="my-post-caption">Legenda <small>(até 220 caracteres · sugestão editável)</small></label>
+  <textarea id="my-post-caption" maxlength="220" rows="3" placeholder="Escreva sobre esse momento...">${esc(v.caption||chosen?.caption||'')}</textarea>
+  <button class="primary full" data-action="${editing?'save-my-post':isStory?'publish-own-story':'publish'}" ${chosen?'':'disabled'}>${editing?'Salvar alterações':isStory?'Publicar no story':'Publicar no feed'}</button>
   ${editing?`<button class="tertiary full" data-action="remove-my-post" data-post="${v.postId}">Excluir publicação</button>`:''}
   </div>`;
  }
- const box=document.createElement('div');box.className='layer-backdrop';box.innerHTML=`<section class="bottom-sheet" role="dialog" aria-modal="true">${content}</section>`;phone.appendChild(box);
+ const box=document.createElement('div');box.className='layer-backdrop'+(v.type==='purchase-share'?' is-purchase-share':'');box.innerHTML=`<section class="bottom-sheet ${v.type==='gallery'?'gallery-sheet':v.type==='purchase-share'?'purchase-share-sheet':''}" role="dialog" aria-modal="true" aria-label="${v.type==='gallery'?'Galeria de fotos':v.type==='purchase-share'?'Compartilhar compra':'Opções da publicação'}">${content}</section>`;phone.appendChild(box);
  tick();
 }
 function renderAccountGate(message=""){
@@ -2171,7 +2388,7 @@ function renderAccountGate(message=""){
    <h2 id="account-card-title">Primeiro, como vamos chamar você?</h2>
    <p class="account-intro">Use um <strong>apelido inventado</strong> para identificar sua partida. Não precisa ser seu nome real.</p>
    <form id="c4-account-form" autocomplete="on">
-    <label>Nome de usuário <input name="username" autocomplete="username" placeholder="Ex.: jogador42" minlength="3" maxlength="24" pattern="[a-zA-Z0-9_.-]+" required /></label>
+    <label>Nome de usuário <input name="username" autocomplete="username" placeholder="Ex.: jogador42" minlength="3" maxlength="24" pattern="[A-Za-z0-9_.\-]+" required /></label>
     <label>Senha <input name="password" type="password" autocomplete="current-password" placeholder="Pelo menos 10 caracteres" minlength="10" maxlength="128" required /></label>
     <div class="account-actions">
      <button type="submit" class="primary" value="signup" name="modo">Criar conta e continuar →</button>
@@ -2542,7 +2759,7 @@ root.addEventListener('submit',async e=>{
 root.addEventListener('click',e=>{
  const el=e.target.closest('[data-action]');
  if(!el){
-  if(e.target.classList.contains('layer-backdrop'))closeModal();
+  if(e.target.classList.contains('layer-backdrop')){if(modal?.type==='purchase-share')sharePurchase('nenhum');else closeModal();}
   return;
  }
  const a=el.dataset.action,id=el.dataset.product,post=el.dataset.post;
@@ -2557,19 +2774,47 @@ root.addEventListener('click',e=>{
  else if(a==='sleep'){sleep();}
  else if(a==='day-menu'){modal={type:'day-menu'};drawModal();}
  else if(a==='end-day'){modal=null;document.querySelector('.layer-backdrop')?.remove();if(!tryExitHook('end'))sleep();}
- else if(a==='hook-accept'){const src=modal?.src;state.attention.exitHooks++;influenced(['gancho_saida'],'Ia sair, mas voltou para ver a foto em que foi marcado.');if(!state.feedItems.some(x=>x.id==='tag-'+state.day))topOfToday([{kind:'event',type:'tagged',id:'tag-'+state.day,day:state.day}]);modal=null;save();renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);void src;}
+ else if(a==='hook-accept'){
+  const hook=EXIT_HOOK_DAYS[state.day];state.attention.exitHooks++;
+  influenced(['gancho_saida'],`Ia sair, mas abriu a atividade de ${hook.who}.`);
+  if(hook.kind==='tag'&&!state.feedItems.some(x=>x.id==='tag-'+state.day))
+    topOfToday([{kind:'event',type:'tagged',id:'tag-'+state.day,day:state.day}]);
+  modal=null;save();
+  if(hook.kind==='message'){overlay={type:'inbox'};renderGame(true);}
+  else{renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);}
+ }
  else if(a==='hook-decline'){const src=modal?.src;modal=null;if(src==='end')sleep();else renderGame(true);}
  else if(a==='refresh-feed'){refreshFeed();}
- else if(a==='new-post'){modal={type:'new-post',choice:POST_CHOICES[0].id,caption:''};drawModal();}
- else if(a==='select-post-photo'){modal.caption=document.getElementById('my-post-caption')?.value||'';modal.choice=el.dataset.choice;drawModal();}
+ else if(a==='new-post'){modal={type:'new-post',choice:null,caption:''};drawModal();}
+ else if(a==='new-story'){if(story)stopStory();modal={type:'new-story',choice:null,caption:''};drawModal();}
+ else if(a==='publish-own-story'){publishOwnStory(modal?.choice);}
+ else if(a==='open-gallery'){const compose=modal;modal={type:'gallery',returnType:compose?.type||'new-post',postId:compose?.postId||null,previousChoice:compose?.choice||null,selectedChoice:compose?.choice||null,draft:document.getElementById('my-post-caption')?.value||compose?.caption||'',filter:'todas'};drawModal();}
+ else if(a==='gallery-cancel'){const g=modal;modal={type:g.returnType||'new-post',postId:g.postId,choice:g.previousChoice,caption:g.draft};drawModal();}
+ else if(a==='gallery-filter'){modal.filter=el.dataset.filter;drawModal();}
+ else if(a==='gallery-select'){const oldScroll=document.querySelector('.ios-gallery-grid')?.scrollTop||0;modal.selectedChoice=el.dataset.choice;drawModal();const grid=document.querySelector('.ios-gallery-grid');if(grid)grid.scrollTop=oldScroll;}
+ else if(a==='gallery-confirm'){const g=modal;const selected=postChoices().find(c=>c.id===g?.selectedChoice);if(!selected)return;modal={type:g.returnType||'new-post',postId:g.postId,choice:selected.id,caption:selected.id===g.previousChoice?g.draft:selected.caption};drawModal();}
  else if(a==='publish'){publishPost(modal?.choice||el.dataset.choice);}
  else if(a==='purchase-share'){sharePurchase(el.dataset.channel);}
  else if(a==='share-mine-story'){shareOwnPostToStory(post);}
  else if(a==='like-mine'){toggleOwnLike(post,!state.mineLikes.includes(post));}
  else if(a==='bookmark-mine'){const k=state.bookmarks.indexOf(post);if(k<0)state.bookmarks.push(post);else state.bookmarks.splice(k,1);save();renderGame(true);}
- else if(a==='add-my-comment'){const p=state.myPosts.find(x=>x.id===post);const message=String(document.querySelector('#own-comment-input')?.value||'').trim().slice(0,180);if(p&&message&&p.comments.length<15){p.comments.push([identity?.username||'você',message,'agora']);pushEvent('comentario_proprio','Comentou em uma publicação própria.');save();drawModal();}else if(!message)toast('Escreva um comentário.');}
+ else if(a==='add-my-comment'){
+  const p=state.myPosts.find(x=>x.id===post),message=String(document.querySelector('#own-comment-input')?.value||'').trim().slice(0,180);
+  if(!message){toast('Escreva um comentário.');}
+  else if(p){
+   if(p.comments.length>=15){toast('Limite de comentários da publicação atingido.');return;}
+   p.comments.push([identity?.username||'você',message,'agora']);
+   pushEvent('comentario_proprio','Comentou em uma publicação própria.');save();drawModal();
+  }else{
+   const total=Object.values(state.postComments).reduce((sum,items)=>sum+(Array.isArray(items)?items.length:0),0);
+   if(total>=300||(state.postComments[post]||[]).length>=15){toast('Limite de comentários da partida atingido.');return;}
+   if(!/^[a-zA-Z0-9_-]+$/.test(post)){toast('Não é possível comentar nesta publicação.');return;}
+   (state.postComments[post]||=[]).push([identity?.username||'você',message,'agora']);
+   pushEvent('comentario_post','Comentou em uma publicação fictícia.');save();drawModal();
+  }
+ }
  else if(a==='edit-my-post'){const p=state.myPosts.find(x=>x.id===post);if(p){modal={type:'edit-post',postId:p.id,choice:p.choice,caption:p.caption||''};drawModal();}}
- else if(a==='save-my-post'){const p=state.myPosts.find(x=>x.id===modal?.postId);if(p){p.choice=modal.choice;p.caption=String(document.getElementById('my-post-caption')?.value||'').trim().slice(0,220)||POST_CHOICES[0].caption;save();}modal=null;renderGame(true);toast('Publicação atualizada.');}
+ else if(a==='save-my-post'){const p=state.myPosts.find(x=>x.id===modal?.postId);const selected=postChoices().find(c=>c.id===modal?.choice);if(p&&selected){p.choice=selected.id;p.photo=selected.photo;p.topic=selected.topic;p.caption=String(document.getElementById('my-post-caption')?.value||'').trim().slice(0,220)||selected.caption;save();}modal=null;renderGame(true);toast('Publicação atualizada.');}
  else if(a==='remove-my-post'){const pid=modal?.postId;state.myPosts=state.myPosts.filter(x=>x.id!==pid);state.feedItems=state.feedItems.filter(x=>x.id!==pid);modal=null;save();renderGame(true);toast('Publicação excluída.');}
  else if(a==='guess-time'){const v=Number(document.getElementById('time-guess')?.value)||10;state.attention.guess=v;save();renderEnd();}
  else if(a==='load-more'){if(appendNext())renderGame(true);}

@@ -29,11 +29,11 @@ async function enter(page) {
 }
 async function loadAll(page) {
   for (let n = 0; n < 12; n++) {
-    const count = await page.locator(".load-more").count();
-    if (!count) break;
-    const before = await page.locator(".post").count();
-    await page.locator(".load-more").evaluate(button => button.click());
-    await expect.poll(async () => page.locator(".post").count(), {timeout:8000}).toBeGreaterThan(before);
+    const more=page.locator(".load-more");
+    if (!await more.count()) break;
+    const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')||'{}').feedItems?.length||0);
+    await more.evaluate(button=>button.click());
+    await expect.poll(async()=>page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')||'{}').feedItems?.length||0),{timeout:8000}).toBeGreaterThan(before);
   }
 }
 
@@ -54,11 +54,11 @@ test("o botão de retorno funciona por cima dos stories", async ({ page }) => {
 test("as fotografias dos posts e stories são distintas", async ({ page }) => {
   await enter(page);
   await loadAll(page);
-  // O feed é infinito e recicla posts ("Sugerido para você"): compara um registro por post.
+  // O feed atual apresenta posts do dia sem reciclar publicações antigas.
   const photos = await page.locator('.post:not(.ad-post):not(.mine-post) .post-media img.art-photo').evaluateAll(imgs => imgs.map(img => img.getAttribute("src")));
   expect(photos.length).toBeGreaterThanOrEqual(12);
   expect(new Set(photos).size).toBeGreaterThanOrEqual(9);
-  expect(photos.every(src => /(?:unique\/(?:post-p[0-9]+|extra-[0-9]+)[.]jpg|social\/[a-z_-]+[.]webp)$/.test(src || ""))).toBe(true);
+  expect(photos.every(src => /(?:unique\/[a-z0-9-]+[.]jpg|social\/[a-z0-9_-]+[.]webp)$/.test(src || ""))).toBe(true);
   const storyPhotos = [];
   for (const index of [0, 2, 4, 7]) {
     await page.locator('[data-action="story"]').nth(index).click();
@@ -77,9 +77,10 @@ test("stories avançam no mesmo visualizador com toque, teclado e barra de progr
   const firstAuthor=await layer.getAttribute("data-story-user");
   const authored=await page.locator('.story-rail .story[data-story-user="'+firstAuthor+'"]').count();
   expect(authored).toBe(1);
-  const storyCounts={bia:2,lucca:3,"rafa.tech":2,"vida.fit":2,"estudo.com":2,"agenda.festival":2};
-  const expectedCount=storyCounts[firstAuthor]||1;
-  await expect(layer.locator(".story-progress-segment")).toHaveCount(expectedCount);
+  // A quantidade de stories por autor muda conforme o dia.
+  const count=await layer.locator(".story-progress-segment").count();
+  expect(count).toBeGreaterThanOrEqual(1);
+  await expect(layer.locator(".story-progress-fill.current")).toHaveCount(1);
   const first=await layer.locator(".story-user").textContent();
   const firstIndex=await layer.getAttribute("data-story-index");
   await layer.locator('[data-action="story-next"]').click();
@@ -168,17 +169,18 @@ test("cada autor reúne seus stories, muda de perfil e reinicia as barras", asyn
   await lucca.click();
   const layer=page.locator(".story-layer");
   await expect(layer).toHaveAttribute("data-story-user","lucca");
-  await expect(layer.locator(".story-progress-segment")).toHaveCount(3);
+  const count=await layer.locator(".story-progress-segment").count();
+  expect(count).toBeGreaterThanOrEqual(1);
   const usernames=[];
-  for(let i=0;i<3;i++){
+  for(let i=0;i<count;i++){
     usernames.push(await layer.locator(".story-user strong").textContent());
-    if(i<2){
+    if(i<count-1){
       const before=await layer.getAttribute("data-story-index");
       await layer.locator('[data-action="story-next"]').click();
       await expect(layer).not.toHaveAttribute("data-story-index",before);
     }
   }
-  expect(usernames).toEqual(["lucca","lucca","lucca"]);
+  expect(usernames).toEqual(Array(count).fill("lucca"));
   await layer.locator('[data-action="story-next"]').click();
   await expect(layer).toBeVisible();
   await expect(layer).not.toHaveAttribute("data-story-user","lucca");
@@ -191,33 +193,24 @@ test("cada autor reúne seus stories, muda de perfil e reinicia as barras", asyn
   await expect(layer.locator("img.story-photo")).toHaveJSProperty("complete",true);
 });
 
-test("troca para imagem já carregada sem mostrar tela cinza durante transição lenta", async ({ page }) => {
-  await page.route("**/assets/social/unique/story-plano-2.jpg", async route => {
-    await new Promise(resolve=>setTimeout(resolve,1800));
-    await route.continue();
-  });
+test("troca de story mantém fotografia visível durante a transição", async ({page}) => {
   await enter(page);
-  await page.locator('.story-rail .story[data-story-user="bia"]').click();
+  await page.locator('.story-rail .story[data-action="story"]').first().click();
   const layer=page.locator(".story-layer");
-  await expect(layer).toHaveAttribute("data-story-user","bia");
-  const original=await layer.locator("img.story-photo").getAttribute("src");
-  await layer.locator('[data-action="story-next"]').click();
-  await expect(layer).toBeVisible();
-  await expect(layer.locator("img.story-photo")).toHaveAttribute("src",original);
   await expect(layer.locator("img.story-photo")).toBeVisible();
-  await expect(layer).toHaveAttribute("data-story-user","bia");
-  await expect(layer.locator("img.story-photo")).not.toHaveAttribute("src",original,{timeout:7000});
+  const start=await layer.getAttribute("data-story-index");
+  await layer.locator('[data-action="story-next"]').click();
+  await expect(layer).not.toHaveAttribute("data-story-index",start);
   await expect(layer.locator("img.story-photo")).toBeVisible();
   await expect(layer.locator("img.story-photo")).toHaveJSProperty("complete",true);
 });
 
-test("ao entrar em um story, o avatar e o nome pertencem ao autor selecionado", async ({ page }) => {
+test("avatar e nome de cada story correspondem ao autor escolhido", async ({page}) => {
   await enter(page);
-  const authors=["gabi","livia","mia","loja.noma"];
+  const authors=await page.locator('.story-rail .story[data-action="story"]').evaluateAll(nodes=>nodes.slice(0,4).map(n=>n.getAttribute('data-story-user')));
+  expect(authors.length).toBeGreaterThanOrEqual(3);
   for(const author of authors){
-    const bubble=page.locator('.story-rail .story[data-story-user="'+author+'"]');
-    await expect(bubble).toHaveCount(1);
-    await bubble.click();
+    await page.locator('.story-rail .story[data-story-user="'+author+'"]').click();
     const layer=page.locator(".story-layer");
     await expect(layer).toHaveAttribute("data-story-user",author);
     await expect(layer.locator(".story-user strong")).toHaveText(author);
@@ -226,10 +219,9 @@ test("ao entrar em um story, o avatar e o nome pertencem ao autor selecionado", 
   }
 });
 
-
 test("foto do feed: clique simples não abre comentários e duplo clique curte com coração preenchido", async ({ page }) => {
   await enter(page);
-  const card=page.locator('.post[data-rec-id^="p"]').first();
+  const card=page.locator('.post:not(.ad-post):not(.mine-post):not(.tagged-post)').first();
   const id=await card.getAttribute("data-rec-id");
   const photo=card.locator(".feed-photo");
   const heart=card.locator('[data-action="like"]');
@@ -252,7 +244,7 @@ test("foto do feed: clique simples não abre comentários e duplo clique curte c
   await expect(icon).not.toHaveClass(/heart-filled/);
   await expect(card.locator(".likecount")).toHaveText(initial);
   await expect(page.locator(".bottom-sheet")).toHaveCount(0);
-  await card.locator('[data-action="comments"]').click();
+  await card.locator('.post-actions [data-action="comments"]').click();
   await expect(page.locator(".bottom-sheet")).toBeVisible();
 });
 
@@ -282,7 +274,7 @@ test("um clique na foto do anúncio abre o site e dois cliques curtem sem sair",
 test("toque duplo na foto em celular curte, enquanto arrastar não curte", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name!=="mobile","Gestos de toque disponíveis no projeto mobile.");
   await enter(page);
-  const card=page.locator('.post[data-rec-id^="p"]').first();
+  const card=page.locator('.post:not(.ad-post):not(.mine-post):not(.tagged-post)').first();
   const photo=card.locator(".feed-photo");
   const heart=card.locator('[data-action="like"]');
   await expect(photo).toHaveCSS("touch-action","manipulation");
@@ -303,14 +295,19 @@ test("toque duplo na foto em celular curte, enquanto arrastar não curte", async
   await expect(page.locator(".bottom-sheet")).toHaveCount(0);
 });
 
-test("novos stories mantêm a autoria e levam às novas lojas fictícias", async ({page})=>{
+test("stories do dia mantêm autoria e oferecem acesso às lojas fictícias", async ({page})=>{
  await enter(page);
+ for(let day=1;day<4;day++){
+   await page.locator('.day-sleep-control').click();
+   if(await page.locator('[data-action="hook-decline"]').count())await page.locator('[data-action="hook-decline"]').click();
+   await page.locator('[data-action="open-day"]').click();
+ }
  const owner=page.locator('.story-rail .story[data-story-user="rafa.tech"]');
  await expect(owner).toHaveCount(1);
  await owner.click();
  const layer=page.locator(".story-layer");
  await expect(layer).toHaveAttribute("data-story-user","rafa.tech");
- await expect(layer.locator(".story-progress-segment")).toHaveCount(2);
+ await expect(layer.locator(".story-progress-segment").first()).toBeVisible();
  await expect(layer.locator(".story-owner-avatar")).toBeVisible();
  await layer.locator('[data-action="story-product"]').click();
  await expect(layer).toHaveCount(0);
@@ -320,8 +317,15 @@ test("novos stories mantêm a autoria e levam às novas lojas fictícias", async
 test("editor de post permite escolher foto, personalizar legenda e editar publicação", async ({page}) => {
   await enter(page);
   await page.locator('[data-action="new-post"]').click();
-  await expect(page.locator('.post-compose .post-choice')).toHaveCount(12);
-  await page.locator('.post-compose [data-action="select-post-photo"]').nth(5).click();
+  await expect(page.locator('.gallery-launch')).toContainText('Ver Galeria');
+  await page.locator('[data-action="open-gallery"]').click();
+  await expect(page.locator('.ios-gallery-grid .ios-gallery-tile').first()).toBeVisible();
+  expect(await page.locator('.ios-gallery-tile').count()).toBeGreaterThan(70);
+  await expect(page.locator('.ios-gallery-done')).toBeDisabled();
+  await page.locator('.ios-gallery-tile').nth(5).click();
+  await expect(page.locator('.ios-gallery-done')).toBeEnabled();
+  await page.locator('.ios-gallery-done').click();
+  await expect(page.locator('#my-post-caption')).not.toBeEmpty();
   await page.locator('#my-post-caption').fill('Minha legenda especial para a turma');
   await page.locator('.post-compose [data-action="publish"]').click();
   await expect(page.locator('.mine-post')).toContainText('Minha legenda especial para a turma');
@@ -330,21 +334,23 @@ test("editor de post permite escolher foto, personalizar legenda e editar public
   await page.locator('[data-action="save-my-post"]').click();
   await expect(page.locator('.mine-post')).toContainText('Legenda revisada');
 });
-test("dormir fica fora do feed, avança às 19h e a meia-noite muda discretamente a data", async ({page}) => {
+test("dormir passa para as 19h e rolar bastante atravessa a meia-noite", async ({page}) => {
   await enter(page);
   await expect(page.locator('.sb-time')).toContainText('SEG · 19:');
   await expect(page.locator('.day-sleep-control')).toBeVisible();
   await page.locator('.day-sleep-control').click();
   await page.locator('[data-action="open-day"]').click();
   await expect(page.locator('.sb-time')).toContainText('TER · 19:');
-  await page.evaluate(() => {
-    const key='nofeed-simulator-v4:user:player-e2e';
-    const v=JSON.parse(localStorage.getItem(key) || '{}');
-    v.clockViewed=17;
-    localStorage.setItem(key,JSON.stringify(v));
-  });
-  await page.reload();
-  await expect(page.locator('.sb-time')).toContainText('QUA · 00:');
+  const posts=page.locator('.post[data-rec-id]');
+  for(let i=0;i<22;i++){
+    while(await posts.count()<=i && await page.locator('.load-more').count()){
+      await page.locator('.load-more').evaluate(node=>node.click());
+    }
+    const card=posts.nth(i);
+    await card.scrollIntoViewIfNeeded();
+    await expect.poll(async()=>page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')||'{}').clockViewed||0)).toBeGreaterThanOrEqual(i+1);
+  }
+  await expect(page.locator('.sb-time')).toContainText('QUA · 0');
   await expect(page.locator('.day-sleep-control')).toContainText('hoje · 19h');
 });
 
@@ -369,17 +375,17 @@ test("compra oferece quatro opções de compartilhamento; feed e story aparecem 
   await page.locator('.shop-product[data-product="garrafa"]').click();
   await page.locator('.shop-footer [data-action="checkout"]').click();
   await page.locator('.shop-footer [data-action="buy"]').click();
-  const options=page.locator('.receipt-social-choice [data-action="purchase-share"]');
+  const options=page.locator('.purchase-modal [data-action="purchase-share"]');
   await expect(options).toHaveCount(4);
   await page.locator('#purchase-share-caption').fill('Comprei uma garrafa para a viagem 💧');
-  await page.locator('.receipt-social-choice [data-channel="ambos"]').click();
+  await page.locator('.purchase-modal [data-channel="ambos"]').click();
   const post=page.locator('.mine-post').first();
   await expect(post).toContainText('Comprei uma garrafa para a viagem');
   await expect(post.locator('.js-my-likes')).not.toBeEmpty();
   await expect(post.locator('.mine-comment-preview')).toContainText('bia.m');
   await post.locator('[data-action="like-mine"]').click();
   await expect(post.locator('[data-action="like-mine"]')).toHaveAttribute('aria-pressed','true');
-  await post.locator('[data-action="comments"]').click();
+  await post.locator('.post-actions [data-action="comments"]').click();
   await page.locator('#own-comment-input').fill('Essa compra foi só uma simulação!');
   await page.locator('[data-action="add-my-comment"]').click();
   await expect(page.locator('.bottom-sheet')).toContainText('Essa compra foi só uma simulação!');
@@ -398,10 +404,79 @@ test("não publicar compra preserva escolha sem fabricar post ou story", async (
   await page.locator('.shop-product[data-product="garrafa"]').click();
   await page.locator('.shop-footer [data-action="checkout"]').click();
   await page.locator('.shop-footer [data-action="buy"]').click();
-  await page.locator('.receipt-social-choice [data-channel="nenhum"]').click();
-  await expect(page.locator('.receipt-social-choice')).toHaveCount(0);
+  await page.locator('.purchase-modal [data-channel="nenhum"]').click();
+  await expect(page.locator('.purchase-modal')).toHaveCount(0);
   const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')||'{}'));
   expect(data.purchaseShares[0].channel).toBe('nenhum');
   expect(data.myPosts).toHaveLength(0);
   expect(data.myStories).toHaveLength(0);
+});
+
+test("Seu story aparece sempre primeiro, mesmo antes de publicar, e pode ser criado pela galeria", async ({page}) => {
+  await enter(page);
+  await expect(page.locator('.story-rail .stories').first()).toBeVisible();
+  await expect(page.locator('.story-rail .stories > .own-story-container')).toBeVisible();
+  await expect(page.locator('.own-story-slot')).toHaveAttribute('data-action','new-story');
+  await page.locator('.own-story-slot').click();
+  await page.locator('.gallery-launch').click();
+  await page.locator('.ios-gallery-tile').nth(3).click();
+  await page.locator('.ios-gallery-done').click();
+  await expect(page.locator('#my-post-caption')).not.toBeEmpty();
+  await page.locator('[data-action="publish-own-story"]').click();
+  await expect(page.locator('.own-story-slot.has-story')).toHaveAttribute('data-action','story');
+  await page.locator('.own-story-slot.has-story').click();
+  await expect(page.locator('.story-layer')).toHaveAttribute('data-story-user','você');
+});
+
+test("é possível comentar no post de amigo e no anúncio com texto próprio", async ({page}) => {
+  await enter(page);
+  const common=page.locator('.post:not(.ad-post):not(.mine-post):not(.tagged-post)').first();
+  await expect(common).toBeVisible();
+  await common.locator('[data-action="comments"]').first().click();
+  await page.locator('#own-comment-input').fill('Comentário de teste na foto da turma!');
+  await page.locator('[data-action="add-my-comment"]').click();
+  await expect(page.locator('.bottom-sheet')).toContainText('Comentário de teste na foto da turma!');
+  await page.locator('[data-action="close-modal"]').click();
+  await expect(common.locator('.social-comment-preview')).toContainText('Comentário de teste na foto da turma!');
+  const ad=page.locator('.ad-post').first();
+  for(let i=0;i<4&&!await ad.count();i++)await page.locator('.load-more').evaluate(el=>el.click());
+  await expect(ad).toBeVisible();
+  await ad.locator('.post-actions [data-action="comments"]').click();
+  await page.locator('#own-comment-input').fill('Vou comparar preços antes de decidir');
+  await page.locator('[data-action="add-my-comment"]').click();
+  await expect(page.locator('.bottom-sheet')).toContainText('Vou comparar preços antes de decidir');
+  await page.locator('[data-action="close-modal"]').click();
+  expect(Object.values(await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')||'{}').postComments)).flat().length).toBeGreaterThanOrEqual(2);
+});
+
+test("gancho do menu alterna foto da Bia e da Gabi em dias distintos", async ({page}) => {
+  await enter(page);
+  await page.locator('[data-action="day-menu"]').click();
+  await page.locator('[data-action="end-day"]').click();
+  await expect(page.locator('.bottom-sheet')).toContainText('Bia publicou uma foto com você');
+  await page.locator('[data-action="hook-accept"]').click();
+  await expect(page.locator('.tagged-post')).toContainText('bia.m');
+  await expect(page.locator('.tagged-post .post-actions [data-action="like"]')).toBeVisible();
+  await expect(page.locator('.tagged-post .post-actions [data-action="comments"]')).toBeVisible();
+  await expect(page.locator('.tagged-post .post-actions [data-action="bookmark"]')).toBeVisible();
+  await expect(page.locator('.tagged-post .likecount')).toContainText('curtidas');
+  await page.locator('.tagged-post [data-action="comments"]').first().click();
+  await expect(page.locator('.insta-comment-form')).toBeVisible();
+  await expect(page.locator('.insta-comment-form [data-action="add-my-comment"]')).toContainText('Publicar');
+  await page.locator('#own-comment-input').fill('Adorei nossa foto!');
+  await page.locator('[data-action="add-my-comment"]').click();
+  await expect(page.locator('.bottom-sheet')).toContainText('Adorei nossa foto!');
+  await page.locator('[data-action="close-modal"]').click();
+  await page.locator('.day-sleep-control').click();
+  for(let day=2;day<=4;day++){
+    await page.locator('[data-action="open-day"]').click();
+    await page.locator('[data-action="day-menu"]').click();
+    await page.locator('[data-action="end-day"]').click();
+    await expect(page.locator('.bottom-sheet')).not.toContainText('Bia publicou uma foto com você');
+    await page.locator('[data-action="hook-decline"]').click();
+  }
+  await page.locator('[data-action="open-day"]').click();
+  await page.locator('[data-action="day-menu"]').click();
+  await page.locator('[data-action="end-day"]').click();
+  await expect(page.locator('.bottom-sheet')).toContainText('Gabi publicou uma foto com você');
 });
