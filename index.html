@@ -813,7 +813,7 @@ function commentRows(id,original=[]){
 function commentTeaser(id,original=[]){
  const rows=commentRows(id,original);
  return `<button class="social-comment-count" data-action="comments" data-post="${esc(id)}">Ver todos os ${rows.length} comentários</button>
- <div class="social-comment-preview">${rows.slice(0,2).map(x=>`<p><strong>${esc(x[0])}</strong> ${esc(x[1])}</p>`).join('')}</div>
+ <div class="social-comment-preview">${rows.slice(-2).map(x=>`<p><strong>${esc(x[0])}</strong> ${esc(x[1])}</p>`).join('')}</div>
  <button class="social-comment-add" data-action="comments" data-post="${esc(id)}">Adicione um comentário...</button>`;
 }
 function postCard(post){
@@ -2020,7 +2020,7 @@ function mineCard(item){
  <p class="likecount"><span class="js-my-likes" data-post="${esc(p.id)}">${myLikes(p)}</span> curtidas</p>
  <p class="post-caption"><strong>${esc(identity?.username||'você')}</strong> ${esc(p.caption||c.caption)}</p>
  <button class="mine-comment-count" data-action="comments" data-post="${esc(p.id)}">Ver todos os ${comments.length} comentários</button>
- <div class="mine-comment-preview">${comments.slice(0,2).map(x=>`<p><strong>${esc(x[0])}</strong> ${esc(x[1])}</p>`).join('')}</div>
+ <div class="mine-comment-preview">${comments.slice(-2).map(x=>`<p><strong>${esc(x[0])}</strong> ${esc(x[1])}</p>`).join('')}</div>
  <button class="mine-comment-add" data-action="comments" data-post="${esc(p.id)}">Adicione um comentário...</button>
  </article>`;
 }
@@ -2752,7 +2752,7 @@ root.addEventListener('click',e=>{
  if(a==='start'){if(!identity){renderAccountGate('Entre na sua conta para iniciar.');return;}state.started=true;state.startedAt ||= new Date().toISOString();save();showIntro();}
  else if(a==='skip-intro'||a==='intro-next'||a==='open-next'){clearTimeout(introTimer);state.wake=true;state.wakeList=[{icon:'🎧',text:'Seu fone parou de funcionar hoje no intervalo.'},{icon:'🛍️',text:'Pulso Shop: um presente de boas-vindas espera por você.'}];save();overlay={type:'wake'};renderGame();}
  else if(a==='open-day'){state.wake=false;save();overlay=null;appendNext();renderGame();}
- else if(a==='sleep'){sleep();}
+ else if(a==='sleep'){if(!tryExitHook('end'))sleep();}
  else if(a==='day-menu'){modal={type:'day-menu'};drawModal();}
  else if(a==='end-day'){modal=null;document.querySelector('.layer-backdrop')?.remove();if(!tryExitHook('end'))sleep();}
  else if(a==='hook-accept'){
