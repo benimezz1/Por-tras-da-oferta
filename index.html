@@ -383,6 +383,12 @@
 .own-comment-form{display:grid;flex:0 0 auto;gap:8px;padding:12px 16px max(17px,env(safe-area-inset-bottom));border-top:1px solid #ece4ec;background:#fff;position:relative;z-index:1}
 .own-comment-form label{font-size:13px;font-weight:750}
 .own-comment-form textarea{width:100%;box-sizing:border-box;border-radius:9px;border:1px solid #d4c4d1;padding:10px;font:inherit;color:#38283d}
+.insta-comment-form{display:flex;align-items:center;gap:9px;padding:11px 13px max(14px,env(safe-area-inset-bottom));min-width:0}
+.comment-me-avatar{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:#f6d2e6;font-size:17px}
+.insta-comment-form .comment-access-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.insta-comment-form textarea{flex:1;min-width:0;width:100%;max-height:85px;min-height:39px;border:1px solid #eee6eb;border-radius:20px;padding:10px 13px;font-size:12px;line-height:18px;resize:none;background:#fff}
+.insta-comment-submit{flex:0 0 auto;background:transparent;border:0;color:#008bfa;font-size:13px;font-weight:750;padding:9px 0;cursor:pointer}
+.insta-comment-submit:hover{color:#026cbe}
 .profile-gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
 .profile-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:16px}
 .profile-gallery-tile{padding:0;border:0;position:relative;aspect-ratio:1;background:#eee;overflow:hidden;border-radius:6px;cursor:pointer}
@@ -2268,7 +2274,12 @@ function drawModal(){
   if(!state.myPosts.some(p=>p.id===v.post))comments.push(...(state.postComments[v.post]||[]));
   content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>${esc(title)} · ${comments.length}</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
   <div class="sheet-scroll">${comments.map((c,i)=>`<div class="comment"><span class="avatar">${['🧑','👩','🧒','🙂'][i%4]}</span><div><strong>${esc(c[0])}</strong><p>${esc(c[1])}</p><small>${esc(c[2]||'há pouco')}</small></div></div>`).join('')}</div>
-  <div class="own-comment-form"><label for="own-comment-input">Escrever comentário</label><textarea id="own-comment-input" maxlength="180" rows="2" placeholder="Adicione um comentário..."></textarea><button class="primary full" data-action="add-my-comment" data-post="${esc(v.post)}">Publicar comentário</button></div>`;
+  <div class="own-comment-form insta-comment-form">
+   <span class="comment-me-avatar" aria-hidden="true">🙂</span>
+   <label class="comment-access-label" for="own-comment-input">Seu comentário</label>
+   <textarea id="own-comment-input" maxlength="180" rows="1" aria-label="Escreva um comentário" placeholder="Adicione um comentário..."></textarea>
+   <button class="insta-comment-submit" data-action="add-my-comment" data-post="${esc(v.post)}">Publicar</button>
+   </div>`;
  }else if(v.type==='more'){
   content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Opções de publicação</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header>
   <div class="sheet-scroll"><p class="small muted">Você pode escolher não ver conteúdos semelhantes.</p>
