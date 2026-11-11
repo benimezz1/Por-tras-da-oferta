@@ -26,6 +26,7 @@ describe("arquivo JSON da Semana ate a viagem", () => {
     const state=fixture();
     state.myPosts=[{id:'me-compra-1',caption:'minha legenda pessoal',comments:[['você','meu comentario pessoal','agora']]}];
     state.myStories=[{id:'story-compra-1',text:'texto pessoal',day:1}];
+    state.postComments={'extra-post-11':[['você','comentario no feed que deve ficar apenas no jogo','agora']]};
     state.purchaseShares=[{orderId:'pedido-um',day:1,products:['fone'],channel:'ambos',postId:'me-compra-1',storyId:'story-compra-1'}];
     const payload=E.build(state,{pressure:P,recommender:R});
     expect(payload.estado.purchaseShares).toHaveLength(1);
@@ -35,6 +36,7 @@ describe("arquivo JSON da Semana ate a viagem", () => {
     expect(serialized).not.toContain('minha legenda pessoal');
     expect(serialized).not.toContain('meu comentario pessoal');
     expect(serialized).not.toContain('texto pessoal');
+    expect(serialized).not.toContain('comentario no feed que deve ficar apenas no jogo');
   });
   it("exporta o estado da campanha nova, as dez estrategias e o quiz", () => {
     const state = fixture();
