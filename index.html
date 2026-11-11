@@ -1999,7 +1999,7 @@ const postChoices=()=>{
    captionsByPhoto.set(p.photo,{topic:p.topic,caption:String(p.caption).split(' — ')[0].slice(0,120)});
  const topics=['garrafa','luminaria','fone','tenis','ingresso','mochila','plano'];
  for(const photo of Object.keys(originalPhotoSources)){
-  if(!/^(extra_\d+|post_p\d+|story_(?:fone|tenis|plano|mochila)_\d+)$/.test(photo))continue;
+  if(!/^(extra_\d+|v5_\d+|post_p\d+|story_(?:fone|tenis|plano|mochila)_\d+)$/.test(photo))continue;
   const sample=captionsByPhoto.get(photo),t=sample?.topic||topics[result.size%topics.length];
   add({id:'galeria-'+photo,photo,topic:t,caption:sample?.caption||'Um momento para guardar ✨'});
  }
