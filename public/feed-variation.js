@@ -41,7 +41,13 @@ function distinctAuthorPhoto(post,options,dayPosts){
  const catalog=root.NoFeedLibraryV5;
  if(!catalog)return post.photo;
  // Fotos do tema certo; evitar fotos que sugiram evento de sabado ja realizado.
- const keys=catalog.photoRecords.filter(x=>x.topic===post.topic && x.day<=day && x.kind!=="festival").map(x=>x.key);
+ const suitable={fone:["music"],tenis:["fashion","friends"],plano:["study"],
+    mochila:["friends","city"],powerbank:["tech","study"],garrafa:["food","fitness"],
+    luminaria:["study"],ingresso:["friends","music"]};
+ const allowedKinds=suitable[post.topic]||[];
+ const keys=catalog.photoRecords.filter(x=>x.day<=day&&allowedKinds.includes(x.kind)
+    &&!(x.kind==="music"&&[1179581,38125616,12657546,35555156,35777520,35777518].includes(x.pexels)&&day<5))
+    .map(x=>x.key);
  if(!keys.length)return post.photo;
  const same=(dayPosts||[]).filter(x=>
   normalized(x.who||x.author).replace(/^@/,"")===who&&x.contentVersion!==5
