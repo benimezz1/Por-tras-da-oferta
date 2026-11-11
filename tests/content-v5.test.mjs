@@ -34,7 +34,7 @@ describe("biblioteca v5 de imagens reais e posts",()=>{
    expect(new Set(allIds).size).toBe(library.posts.length);
  });
  it("a sequencia muda de jogador para jogador e se mantem ao atualizar",()=>{
-   const day=2,posts=[...library.posts.filter(x=>x.day===day),...library.posts.filter(x=>x.day===3).map(x=>({...x,day}))];
+   const day=2,posts=library.posts.filter(x=>x.day===day);
    const order=seed=>variation.varyPosts(posts,{runId:seed,day}).sort((a,b)=>a.order-b.order).map(x=>x.id);
    expect(order("partida-a")).toEqual(order("partida-a"));
    expect(order("partida-a")).not.toEqual(order("partida-b"));
