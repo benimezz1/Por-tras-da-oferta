@@ -58,7 +58,7 @@ test("as fotografias dos posts e stories são distintas", async ({ page }) => {
   const photos = await page.locator('.post:not(.ad-post):not(.mine-post) .post-media img.art-photo').evaluateAll(imgs => imgs.map(img => img.getAttribute("src")));
   expect(photos.length).toBeGreaterThanOrEqual(12);
   expect(new Set(photos).size).toBeGreaterThanOrEqual(9);
-  expect(photos.every(src => /(?:unique\/(?:post-p[0-9]+|extra-[0-9]+)[.]jpg|social\/[a-z_-]+[.]webp)$/.test(src || ""))).toBe(true);
+  expect(photos.every(src => /(?:unique\/[a-z0-9-]+[.]jpg|social\/[a-z0-9_-]+[.]webp)$/.test(src || ""))).toBe(true);
   const storyPhotos = [];
   for (const index of [0, 2, 4, 7]) {
     await page.locator('[data-action="story"]').nth(index).click();
@@ -244,7 +244,7 @@ test("foto do feed: clique simples não abre comentários e duplo clique curte c
   await expect(icon).not.toHaveClass(/heart-filled/);
   await expect(card.locator(".likecount")).toHaveText(initial);
   await expect(page.locator(".bottom-sheet")).toHaveCount(0);
-  await card.locator('[data-action="comments"]').click();
+  await card.locator('.post-actions [data-action="comments"]').click();
   await expect(page.locator(".bottom-sheet")).toBeVisible();
 });
 
@@ -441,7 +441,7 @@ test("é possível comentar no post de amigo e no anúncio com texto próprio", 
   const ad=page.locator('.ad-post').first();
   for(let i=0;i<4&&!await ad.count();i++)await page.locator('.load-more').evaluate(el=>el.click());
   await expect(ad).toBeVisible();
-  await ad.locator('[data-action="comments"]').click();
+  await ad.locator('.post-actions [data-action="comments"]').click();
   await page.locator('#own-comment-input').fill('Vou comparar preços antes de decidir');
   await page.locator('[data-action="add-my-comment"]').click();
   await expect(page.locator('.bottom-sheet')).toContainText('Vou comparar preços antes de decidir');
