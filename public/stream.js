@@ -42,14 +42,20 @@
    const allowed=Array.isArray(args.allowed)?args.allowed:null;
    const available=posts.filter(post=>!published.has(post.id)&&(allowed?allowed.includes(post.topic):(post.phase||0)<=(args.phase||0)));
    if(!available.length)return null;
+   // Biblioteca extensa: evitar reapresentar a mesma fotografia em posts proximos.
+   const byId=new Map(posts.map(p=>[p.id,p.photo]));
+   const recentPhotos=new Set((args.shown||[]).filter(x=>x.kind==="post")
+     .slice(-12).map(x=>byId.get(x.id)).filter(Boolean));
+   const distinct=available.filter(p=>!p.photo||!recentPhotos.has(p.photo));
+   const editorialPool=distinct.length?distinct:available;
    if(!args.personalized){
-    available.sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
-    return available[0];
+    editorialPool.sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id));
+    return editorialPool[0];
    }
    const lastTwo=(args.shown||[]).slice(-2);
    const repeated=lastTwo.length===2&&lastTwo.every(x=>x.topic===lastTwo[0].topic);
-   const varied=repeated?available.filter(x=>x.topic!==lastTwo[0].topic):available;
-   const basePool=varied.length?varied:available;
+   const varied=repeated?editorialPool.filter(x=>x.topic!==lastTwo[0].topic):editorialPool;
+   const basePool=varied.length?varied:editorialPool;
    const recentAuthors=(args.shown||[]).filter(x=>x.kind==="post").slice(-2);
    const repeatedAuthor=recentAuthors.length===2&&recentAuthors[0].author===recentAuthors[1].author;
    const freshAuthors=repeatedAuthor?basePool.filter(p=>p.author!==recentAuthors[1].author):basePool;
