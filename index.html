@@ -2754,7 +2754,7 @@ root.addEventListener('click',e=>{
  if(a==='start'){if(!identity){renderAccountGate('Entre na sua conta para iniciar.');return;}state.started=true;state.startedAt ||= new Date().toISOString();save();showIntro();}
  else if(a==='skip-intro'||a==='intro-next'||a==='open-next'){clearTimeout(introTimer);state.wake=true;state.wakeList=[{icon:'🎧',text:'Seu fone parou de funcionar hoje no intervalo.'},{icon:'🛍️',text:'Pulso Shop: um presente de boas-vindas espera por você.'}];save();overlay={type:'wake'};renderGame();}
  else if(a==='open-day'){state.wake=false;save();overlay=null;appendNext();renderGame();}
- else if(a==='sleep'){if(!tryExitHook('end'))sleep();}
+ else if(a==='sleep'){sleep();}
  else if(a==='day-menu'){modal={type:'day-menu'};drawModal();}
  else if(a==='end-day'){modal=null;document.querySelector('.layer-backdrop')?.remove();if(!tryExitHook('end'))sleep();}
  else if(a==='hook-accept'){
