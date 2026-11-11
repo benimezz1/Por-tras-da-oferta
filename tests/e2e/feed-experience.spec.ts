@@ -456,7 +456,13 @@ test("gancho do menu alterna foto da Bia e da Gabi em dias distintos", async ({p
   await expect(page.locator('.bottom-sheet')).toContainText('Bia publicou uma foto com você');
   await page.locator('[data-action="hook-accept"]').click();
   await expect(page.locator('.tagged-post')).toContainText('bia.m');
+  await expect(page.locator('.tagged-post .post-actions [data-action="like"]')).toBeVisible();
+  await expect(page.locator('.tagged-post .post-actions [data-action="comments"]')).toBeVisible();
+  await expect(page.locator('.tagged-post .post-actions [data-action="bookmark"]')).toBeVisible();
+  await expect(page.locator('.tagged-post .likecount')).toContainText('curtidas');
   await page.locator('.tagged-post [data-action="comments"]').first().click();
+  await expect(page.locator('.insta-comment-form')).toBeVisible();
+  await expect(page.locator('.insta-comment-form [data-action="add-my-comment"]')).toContainText('Publicar');
   await page.locator('#own-comment-input').fill('Adorei nossa foto!');
   await page.locator('[data-action="add-my-comment"]').click();
   await expect(page.locator('.bottom-sheet')).toContainText('Adorei nossa foto!');
