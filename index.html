@@ -854,6 +854,12 @@ function renderGame(keepScroll=false){
  exitHomeButton.hidden=false;
  if(state.wake&&!overlay)overlay={type:'wake'};
  if(!state.wake&&!dayItems().length)appendNext();
+ // Uma foto com marcacao de amigo aparece naturalmente no feed da noite:
+ // Bia na segunda e Gabi na sexta, sem repetir a mesma postagem a cada dia.
+ if(!state.wake&&TAGGED_EVENTS[state.day]&&!state.feedItems.some(x=>x.id===TAGGED_EVENTS[state.day].id)){
+   topOfToday([{kind:'event',type:'tagged',id:TAGGED_EVENTS[state.day].id,day:state.day}]);
+   save();
+ }
  const y=keepScroll?document.querySelector('#feed-scroll')?.scrollTop||0:0;
  root.innerHTML=stageFeed();
  if(keepScroll){const n=document.querySelector('#feed-scroll');if(n)n.scrollTop=y;}
