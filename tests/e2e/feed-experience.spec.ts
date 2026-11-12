@@ -523,12 +523,12 @@ test("dormir passa para as 19h e rolar bastante atravessa a meia-noite", async (
 
 test("cada novo dia mostra publicações inéditas e stories renovados", async ({page}) => {
   await enter(page);
-  const firstPosts=await page.locator('.post[data-rec-id^="extra-post-"]').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-rec-id')));
+  const firstPosts=await page.locator('.post:not(.ad-post):not(.tagged-post):not(.mine-post)[data-rec-id]').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-rec-id')));
   const firstStories=await page.locator('.story-rail .story').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-story-user')));
   expect(firstPosts.length).toBeGreaterThan(0);
   await page.locator('.day-sleep-control').click();
   await page.locator('[data-action="open-day"]').click();
-  const secondPosts=await page.locator('.post[data-rec-id^="extra-post-"]').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-rec-id')));
+  const secondPosts=await page.locator('.post:not(.ad-post):not(.tagged-post):not(.mine-post)[data-rec-id]').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-rec-id')));
   const secondStories=await page.locator('.story-rail .story').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-story-user')));
   expect(secondPosts.length).toBeGreaterThan(0);
   expect(secondPosts.every(id=>!firstPosts.includes(id))).toBe(true);
