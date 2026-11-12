@@ -42,6 +42,55 @@ async function loadAll(page) {
   }
 }
 
+test("voltar para os stories atualiza o feed sem criar um loop",async ({page})=>{
+ await enter(page);
+ const previous=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')).attention.refreshes);
+ const feed=page.locator('#feed-scroll');
+ await feed.evaluate(el=>{el.scrollTop=560;el.dispatchEvent(new Event('scroll'));});
+ await expect.poll(()=>feed.evaluate(el=>el.scrollTop)).toBeGreaterThan(300);
+ await feed.evaluate(el=>{el.scrollTop=0;el.dispatchEvent(new Event('scroll'));});
+ await expect(page.locator('.feed-refresh-loading')).toBeVisible();
+ await expect(page.locator('.feed-refresh-loading')).toHaveCount(0);
+ const updated=await page.evaluate(()=>{
+  const s=JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e'));
+  return {refreshes:s.attention.refreshes,newPosts:s.feedItems.filter(x=>x.day===s.day&&x.fresh&&x.kind==='post').length,
+   ids:s.feedItems.filter(x=>x.day===s.day&&x.kind==='post').map(x=>x.id)};
+ });
+ expect(updated.refreshes).toBe(previous+1);
+ expect(updated.newPosts).toBeGreaterThan(0);
+ expect(new Set(updated.ids).size).toBe(updated.ids.length);
+ await page.locator('#feed-scroll').evaluate(el=>{
+  el.scrollTop=45;el.dispatchEvent(new Event('scroll'));
+  el.scrollTop=0;el.dispatchEvent(new Event('scroll'));
+ });
+ await page.waitForTimeout(1150);
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')).attention.refreshes))
+  .toBe(updated.refreshes);
+});
+
+test("Enter publica comentario e Shift+Enter insere nova linha",async ({page})=>{
+ await enter(page);
+ const post=page.locator('.post:not(.ad-post):not(.mine-post):not(.tagged-post)').first();
+ const id=await post.getAttribute('data-rec-id');
+ await post.locator('[data-action="comments"]').first().click();
+ const input=page.locator('#own-comment-input');
+ await input.fill('Publicado com Enter');
+ await input.press('Enter');
+ await expect(page.locator('.sheet-scroll .comment p').filter({hasText:'Publicado com Enter'})).toHaveCount(1);
+ await expect(input).toHaveValue('');
+ await input.fill('Linha um');
+ await input.press('Shift+Enter');
+ await input.type('Linha dois');
+ await expect(input).toHaveValue('Linha um\nLinha dois');
+ await input.press('Enter');
+ await expect(page.locator('.sheet-scroll .comment p').filter({hasText:'Linha um'})).toContainText('Linha dois');
+ const message=await page.evaluate(id=>{
+  const state=JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e'));
+  return state.postComments[id]?.at(-1)?.[1];
+ },id);
+ expect(message).toBe('Linha um\nLinha dois');
+});
+
 test("surpresa dispara popup explosivo ao chegar no gatilho, credita uma vez e nao deixa card",async ({page})=>{
  await enter(page);
  // A aplicacao salva o estado ao descarregar a pagina. A injecao deve
