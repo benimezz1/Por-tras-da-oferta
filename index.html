@@ -2770,7 +2770,7 @@ function renderAccountGate(message=""){
    </form>
    <p class="account-status" id="c4-account-status" role="status" aria-live="polite">${esc(message)}</p>
    <div class="account-privacy"><strong>Como seus dados serão usados?</strong>
-    <p>Depois dos cinco dias e do quiz, suas escolhas fictícias serão enviadas <b>automaticamente</b> ao MCP para análise no ChatGPT, após você vincular a conta. A senha não entra no JSON. Você pode solicitar a exclusão do percurso.</p>
+    <p>No encerramento, você poderá ver os detalhes, escolher enviar apenas ao MCP ou sair sem enviar. Se concluir o quiz, suas escolhas fictícias serão enviadas <b>automaticamente</b> ao MCP, após você vincular a conta. A senha não entra no JSON. Você pode solicitar a exclusão do percurso.</p>
    </div>
    <p class="account-hint">Use somente dados fictícios. O projeto não faz diagnósticos nem compras reais.</p>
   </section>
@@ -2798,7 +2798,7 @@ function showIntro(){
  <div class="scene-icon">🚌</div><div class="eyebrow" style="color:#eec7ee">DOMINGO · 21:40</div>
  <h2>Sábado tem viagem da turma. Sua missão: <span style="color:#ffc5e2">guardar R$ 400.</span></h2>
  <p>Você tem <b>R$ 620</b> na conta. O boleto de <b>R$ 400</b> da viagem vence no sábado de manhã — sem pagar, não embarca. Até lá, é uma semana normal: escola, amigos e o <b>pulso.</b>, seu app favorito.</p>
- <p class="scene-fine">Tudo aqui é simulado: pessoas, marcas, preços e compras são fictícios. Nenhum pagamento é real. Ao terminar o quiz, o registro fictício desta conta será enviado automaticamente ao MCP.</p>
+ <p class="scene-fine">Tudo aqui é simulado: pessoas, marcas, preços e compras são fictícios. Nenhum pagamento é real. No final, você poderá enviar ao MCP ou seguir para o quiz. Após o quiz, o envio é automático.</p>
  <button class="scene-next" data-action="intro-next">Começar a semana →</button>
  </div></main>`;
 }
@@ -2982,6 +2982,18 @@ function attentionTimeFeedback(){
  if(!hints.length)hints.push('Mesmo sem muitas interações, o fluxo contínuo de conteúdo pode prender a atenção.');
  return {title,explanation,observations:hints.slice(0,2),actual,estimated,abs,diff};
 }
+function animateRecordedTime(){
+ const el=document.getElementById('time-reveal-clock');
+ if(!el||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ const seconds=Math.max(0,Number(el.dataset.seconds)||0),start=performance.now();
+ const step=now=>{
+  if(!el.isConnected)return;
+  const progress=Math.min(1,(now-start)/1050),eased=1-Math.pow(1-progress,3);
+  el.textContent=readableDuration(Math.round(seconds*eased));
+  if(progress<1)requestAnimationFrame(step);
+ };
+ el.textContent='0min 00s';requestAnimationFrame(step);
+}
 function timeRevealPage(){
  const feedback=attentionTimeFeedback();
  return `<main class="end end-impact end-time-impact"><div class="end-impact-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
@@ -3052,7 +3064,7 @@ function attentionBox(){
 function renderEnd(){
  exitHomeButton.hidden=false;
  if(state.attention.guess==null||state.endPrelude==='guess'){root.innerHTML=guessPage();window.scrollTo(0,0);return;}
- if(state.endPrelude==='time'){root.innerHTML=timeRevealPage();window.scrollTo(0,0);return;}
+ if(state.endPrelude==='time'){root.innerHTML=timeRevealPage();window.scrollTo(0,0);animateRecordedTime();return;}
  if(state.endPrelude==='trip'||state.endPrelude==='mcp'){root.innerHTML=tripRevealPage();window.scrollTo(0,0);return;}
  const s=Pressure.settle(state),step=Math.max(0,Math.min(3,state.endStep||0));
  const body=[endStep0,endStep1,endStep2,endStep3][step](s);
@@ -3295,7 +3307,19 @@ root.addEventListener('click',e=>{
  else if(a==='edit-my-post'){const p=state.myPosts.find(x=>x.id===post);if(p){modal={type:'edit-post',postId:p.id,choice:p.choice,caption:p.caption||''};drawModal();}}
  else if(a==='save-my-post'){const p=state.myPosts.find(x=>x.id===modal?.postId);const selected=postChoices().find(c=>c.id===modal?.choice);if(p&&selected){p.choice=selected.id;p.photo=selected.photo;p.topic=selected.topic;p.caption=String(document.getElementById('my-post-caption')?.value||'').trim().slice(0,220)||selected.caption;save();}modal=null;renderGame(true);toast('Publicação atualizada.');}
  else if(a==='remove-my-post'){const pid=modal?.postId;state.myPosts=state.myPosts.filter(x=>x.id!==pid);state.feedItems=state.feedItems.filter(x=>x.id!==pid);modal=null;save();renderGame(true);toast('Publicação excluída.');}
- else if(a==='guess-time'){const v=Number(document.getElementById('time-guess')?.value)||10;state.attention.guess=v;save();renderEnd();}
+ else if(a==='guess-time'){const v=Number(document.getElementById('time-guess')?.value)||10;state.attention.guess=v;state.endPrelude='time';save();renderEnd();}
+ else if(a==='time-reveal-next'){state.endPrelude='trip';save();renderEnd();}
+ else if(a==='trip-details'){state.endPrelude='details';state.endStep=0;save();renderEnd();}
+ else if(a==='trip-mcp'){
+  if(syncInFlight||state.c4SyncedRunId===state.runId)return;
+  state.endPrelude='mcp';save();renderEnd();void sendCompletedC4();
+ }
+ else if(a==='trip-exit'){
+  if(!confirm('Sair sem salvar? Os dados desta partida neste navegador serão descartados e não serão enviados ao MCP.'))return;
+  const playerId=identity?.id;clearTimeout(introTimer);stopStory();clearInterval(liveTimer);bannerQueue=[];
+  if(playerId)localStorage.removeItem(USER_KEY_PREFIX+playerId);
+  syncMessage='';overlay=null;modal=null;state=makeInitial();renderHome();
+ }
  else if(a==='load-more'){if(appendNext())renderGame(true);}
  else if(a==='finish'){finishWeek();}
  else if(a==='export-c4'){
