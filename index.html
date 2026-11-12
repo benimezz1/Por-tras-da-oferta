@@ -344,6 +344,47 @@
 .day-menu-btn{font-size:20px;font-weight:700;line-height:1}
 .phone.low-vibe .phone-content{filter:saturate(.65) brightness(.97)}
 .ev-surprise{display:flex;align-items:center;gap:12px}.ev-surprise.empty{opacity:.75}
+
+/* Recompensa variável animada: moedas, cupom e validação social. */
+.ev-surprise[data-surprise-kind="coins"]{background:linear-gradient(110deg,#fff7ec,#fff4fa);border-color:#f5e4cc}
+.reward-open .phone-content{overflow:hidden;touch-action:none}
+.reward-celebration{position:absolute;inset:0;z-index:70;display:grid;place-items:center;isolation:isolate;padding:20px 17px;background:rgba(34,17,49,.68);backdrop-filter:blur(7px);touch-action:none;animation:reward-veil-in .25s ease-out both}
+.reward-celebration::before{content:"";position:absolute;inset:-25%;pointer-events:none;background:radial-gradient(circle at 50% 45%,rgba(255,215,104,.4),transparent 39%);animation:reward-flash 1s ease-out both}
+.reward-celebration.reward-leaving{animation:reward-veil-out .22s ease-in both;pointer-events:none}
+.reward-particles{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+.reward-particle{position:absolute;left:50%;top:47%;width:10px;height:17px;border-radius:2px;background:#f8c957;opacity:0;box-shadow:0 0 9px #ffdf9a99;animation:reward-spray 1.45s var(--delay,0s) cubic-bezier(.13,.6,.25,1) both}
+.reward-particle:nth-child(4n){background:#f580af}.reward-particle:nth-child(4n + 2){background:#c0a5ff}
+.reward-particle.coin,.reward-particle.sparkle{width:auto;height:auto;background:none!important;box-shadow:none;font-size:26px;line-height:1;filter:drop-shadow(0 4px 5px #2c144844)}
+.reward-particle.sparkle{font-size:20px;color:#ffe29a}
+.reward-panel{position:relative;z-index:2;width:100%;max-width:355px;max-height:calc(100% - 20px);overflow-y:auto;overscroll-behavior:contain;padding:25px 23px 22px;border:2px solid #fff9ed;border-radius:30px;background:radial-gradient(circle at 50% -6%,#fff0b8 0,transparent 49%),linear-gradient(164deg,#fffaf7 5%,#ffeff9 80%,#efe9ff);color:#35233e;text-align:center;box-shadow:0 0 0 7px #ffffff1c,0 24px 70px #13081e8a,0 0 75px #ffd36a66;animation:reward-pop .82s cubic-bezier(.19,1.32,.32,1) both}
+.reward-headline{font-size:10px;letter-spacing:.18em;font-weight:900;color:#9f6688}
+.reward-medallion{position:relative;margin:18px auto 15px;width:103px;height:103px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#fff7c4,#ffcb50 67%,#ffa927);border:5px solid #fff8d7;box-shadow:0 0 0 7px #f8c75840,0 13px 30px #ca813a66;animation:reward-medal-in .85s .13s cubic-bezier(.18,1.5,.3,1) both}
+.reward-medallion::before,.reward-medallion::after{content:"✦";position:absolute;color:#f6ba36;font-size:26px;animation:reward-twinkle 1s .4s ease-in-out infinite alternate}
+.reward-medallion::before{top:-13px;left:-29px}.reward-medallion::after{bottom:-10px;right:-25px;animation-delay:.75s}
+.reward-symbol{font-size:51px;filter:drop-shadow(0 4px 6px #8e5a2566)}
+.reward-panel h2{margin:0 0 5px;font-size:34px;line-height:1.05;font-weight:900;letter-spacing:-.06em;color:#38203e}
+.reward-amount{display:block;margin:7px auto;font-size:clamp(39px,9vw,52px);letter-spacing:-.065em;line-height:1.07;font-weight:950;color:#8b4fcb;text-shadow:0 3px 0 #ffffffb0;animation:reward-value-in .6s .25s both}
+.reward-description{font-size:13px;line-height:1.5;color:#765c79;margin:9px 0 17px}
+.reward-balance{font-size:12px;font-weight:850;line-height:1.4;margin:0 0 15px;padding:11px 12px;border:1px solid #e9d7f0;background:#ffffffa9;border-radius:13px;color:#623772}
+.reward-continue{display:block;width:100%;border:0;border-radius:15px;padding:15px 13px;background:linear-gradient(110deg,#e8428b,#9453e9);color:#fff;font-size:14px;font-weight:900;box-shadow:0 9px 20px #b851b755;transition:transform .18s ease,filter .18s ease}
+.reward-continue:hover{transform:translateY(-2px);filter:brightness(1.04)}
+.reward-continue:focus-visible{outline:3px solid #7f3acf;outline-offset:3px}
+.reward-disclaimer{display:block;margin-top:12px;font-size:10px;line-height:1.4;color:#a78da8}
+.reward-kind-drop .reward-medallion{background:linear-gradient(145deg,#e9e0ff,#c7a0ff 67%,#9467db)}
+.reward-kind-comment .reward-medallion{background:linear-gradient(145deg,#fce2f1,#f3a7ce 67%,#dd62a1)}
+.reward-hud-pulse{animation:reward-wallet-pulse 1.1s ease-out both}
+@keyframes reward-veil-in{from{opacity:0}to{opacity:1}}
+@keyframes reward-veil-out{from{opacity:1}to{opacity:0}}
+@keyframes reward-flash{0%{opacity:0;transform:scale(.15)}28%{opacity:1}100%{opacity:0;transform:scale(1.5)}}
+@keyframes reward-pop{0%{opacity:0;transform:translateY(65px) scale(.25) rotate(-8deg)}45%{opacity:1;transform:translateY(-12px) scale(1.08) rotate(2deg)}70%{transform:translateY(5px) scale(.97)}100%{transform:translateY(0) scale(1)}}
+@keyframes reward-medal-in{0%{opacity:0;transform:scale(.15) rotate(-45deg)}65%{opacity:1;transform:scale(1.23) rotate(12deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes reward-twinkle{from{opacity:.3;transform:scale(.55) rotate(-20deg)}to{opacity:1;transform:scale(1.25) rotate(25deg)}}
+@keyframes reward-value-in{from{opacity:0;transform:translateY(20px) scale(.6)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes reward-spray{0%{opacity:0;transform:translate(-50%,-50%) scale(.1) rotate(0deg)}15%{opacity:1}65%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(.8) rotate(var(--angle))}}
+@keyframes reward-wallet-pulse{0%,100%{transform:scale(1);filter:none}30%{transform:scale(1.22);filter:drop-shadow(0 0 9px #ffcf52)}}
+@media(max-width:440px){.reward-panel{padding:22px 19px 18px}.reward-medallion{width:92px;height:92px;margin:15px auto}.reward-panel h2{font-size:30px}.reward-amount{font-size:41px}}
+@media(prefers-reduced-motion:reduce){.reward-celebration,.reward-celebration::before,.reward-panel,.reward-medallion,.reward-amount,.reward-hud-pulse{animation:none!important}.reward-particle{display:none}.reward-continue{transition:none}}
+
 .late-hint{text-align:center;margin:8px 0 0}
 .mine-post .post-caption{padding:10px 14px}.mine-hint{padding:0 14px 12px;margin:0}
 .post-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -583,7 +624,7 @@ function newRunId(){
  return "c4-"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
- pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[]});
+ pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),rewardSeen:[],myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[]});
 let state=makeInitial();
 function restoreForPlayer(player) {
  state=makeInitial();
@@ -603,6 +644,7 @@ function restoreForPlayer(player) {
    if(!Number.isFinite(state.clockViewed))state.clockViewed=0;
    if(!Array.isArray(state.liked))state.liked=[];
    if(!Array.isArray(state.likedAds))state.likedAds=[];
+    if(!Array.isArray(state.rewardSeen))state.rewardSeen=[];
    if(!Array.isArray(state.hiddenPosts))state.hiddenPosts=[];
    state.signals={...makeInitial().signals,...state.signals};
   }
@@ -616,6 +658,7 @@ function restoreForPlayer(player) {
   if(!Array.isArray(state[key]))state[key]=[];
 }
 let overlay=null,story=null,modal=null,toastTimer=null,introTimer=null,scene=0;
+let rewardObserver=null;
 const STORY_DURATION=5500;
 let storyTimer=null,storyStartedAt=0,storyPointer=null,storyIgnoreClick=false,storyChangeSeq=0;
 const storyPauseReasons=new Set();
@@ -877,7 +920,7 @@ function renderGame(keepScroll=false){
  const y=keepScroll?document.querySelector('#feed-scroll')?.scrollTop||0:0;
  root.innerHTML=stageFeed();
  if(keepScroll){const n=document.querySelector('#feed-scroll');if(n)n.scrollTop=y;}
- setupFeedAssist();setupFeedExposure();
+ setupFeedAssist();setupFeedExposure();setupRewardCelebrations();
  if(overlay)drawOverlay();if(modal)drawModal();if(story)drawStory();
  if(!bannerTimer&&bannerQueue.length)setTimeout(nextBanner,500);
  tick();
@@ -920,6 +963,73 @@ function algorithmResults(){
   </div>
  </section>`;
 }
+
+/* Recompensas são aplicadas em onEventInserted; a animação nunca paga novamente. */
+function setupRewardCelebrations(){
+ if(rewardObserver)rewardObserver.disconnect();
+ const scroll=document.querySelector('#feed-scroll');
+ if(!scroll||!('IntersectionObserver' in window))return;
+ rewardObserver=new IntersectionObserver(entries=>{
+  for(const entry of entries){
+   const el=entry.target,id=el.dataset.surpriseId;
+   if(!entry.isIntersecting||entry.intersectionRatio<.55||!id||state.rewardSeen.includes(id))continue;
+   if(document.visibilityState!=='visible'||overlay||modal||story||!exitConfirm.hidden||document.querySelector('.reward-celebration'))continue;
+   const item=state.feedItems.find(x=>x.id===id&&x.type==='surprise');
+   if(!item||item.variant==='nothing')continue;
+   if(showRewardCelebration(item)){state.rewardSeen.push(id);save();rewardObserver.unobserve(el);break;}
+  }
+ },{root:scroll,threshold:[0,.55]});
+ scroll.querySelectorAll('.ev-surprise[data-surprise-id]').forEach(el=>{
+  if(el.dataset.surpriseKind!=='nothing'&&!state.rewardSeen.includes(el.dataset.surpriseId))rewardObserver.observe(el);
+ });
+}
+function showRewardCelebration(item){
+ const phone=document.querySelector('.phone');
+ if(!phone||phone.querySelector('.reward-celebration'))return false;
+ const coin=item.variant==='coins',coupon=item.variant==='drop',social=item.variant==='comment';
+ if(!coin&&!coupon&&!social)return false;
+ if(coupon&&!products[item.product])return false;
+ const popup=document.createElement('div');
+ popup.className='reward-celebration reward-kind-'+item.variant;
+ popup.dataset.rewardId=item.id;
+ popup.setAttribute('role','dialog');popup.setAttribute('aria-modal','true');popup.setAttribute('aria-labelledby','reward-dialog-title');
+ popup.innerHTML='<div class="reward-particles" aria-hidden="true"></div><section class="reward-panel"><div class="reward-headline">✦ RECOMPENSA DESBLOQUEADA ✦</div><div class="reward-medallion" aria-hidden="true"><span class="reward-symbol"></span></div><h2 id="reward-dialog-title"></h2><strong class="reward-amount"></strong><p class="reward-description"></p><p class="reward-balance"></p><button class="reward-continue" type="button" data-action="reward-close"></button><small class="reward-disclaimer">Recompensas fictícias desta experiência educativa.</small></section>';
+ const particles=popup.querySelector('.reward-particles');
+ for(let i=0;i<32;i++){
+  const angle=i*Math.PI*2/32+.18,radius=110+(i%5)*22,part=document.createElement('span');
+  part.className='reward-particle '+(i%6===0?'coin':i%5===0?'sparkle':'confetti');
+  part.style.setProperty('--tx',Math.round(Math.cos(angle)*radius)+'px');
+  part.style.setProperty('--ty',Math.round(Math.sin(angle)*radius)+'px');
+  part.style.setProperty('--angle',(i%2?360:-360)+'deg');
+  part.style.setProperty('--delay',(i%7*.045)+'s');
+  if(i%6===0)part.textContent='🪙';else if(i%5===0)part.textContent='✦';
+  particles.appendChild(part);
+ }
+ popup.querySelector('.reward-symbol').textContent=coin?'🪙':coupon?'🎟️':'💬';
+ popup.querySelector('#reward-dialog-title').textContent=coin?'Surpresa!':coupon?'Cupom liberado!':'Você foi notado!';
+ popup.querySelector('.reward-amount').textContent=coin?'+'+money(item.bonus||3):coupon?'15% OFF':'+4 de vibe';
+ popup.querySelector('.reward-description').textContent=coin?'Você ganhou moedas no Pulso. Continue rolando: pode ter mais!':coupon?'Desconto especial em '+productName(item.product)+'.':'Bia comentou na sua foto: “saudade dessa época 🥹”';
+ popup.querySelector('.reward-balance').textContent=coin?'🪙 Saldo em moedas: '+money(state.coins):coupon?'🎟️ Cupom VOLTA-'+item.product.toUpperCase()+' adicionado à conta.':'💜 Sua vibe foi aumentada em 4 pontos.';
+ const button=popup.querySelector('.reward-continue');
+ button.textContent=coupon?'Ver oferta →':'Continuar →';
+ if(coupon){button.dataset.action='reward-product';button.dataset.product=item.product;}
+ phone.classList.add('reward-open');phone.appendChild(popup);button.focus({preventScroll:true});
+ return true;
+}
+function closeRewardCelebration(){
+ const popup=document.querySelector('.reward-celebration');
+ if(!popup||popup.classList.contains('reward-leaving'))return;
+ const id=popup.dataset.rewardId,coin=popup.classList.contains('reward-kind-coins');
+ popup.classList.add('reward-leaving');
+ setTimeout(()=>{
+  const phone=popup.closest('.phone');popup.remove();phone?.classList.remove('reward-open');
+  const source=[...document.querySelectorAll('.ev-surprise[data-surprise-id]')].find(el=>el.dataset.surpriseId===id);
+  if(source&&!overlay&&!modal&&!story){source.tabIndex=-1;source.focus({preventScroll:true});}
+  if(coin){const hud=phone?.querySelector('.hud-coins');if(hud){hud.classList.add('reward-hud-pulse');setTimeout(()=>hud.classList.remove('reward-hud-pulse'),1150);}}
+  if(phone?.isConnected)setupRewardCelebrations();
+ },240);
+}
+
 function setupFeedExposure() {
   if (feedObserver) feedObserver.disconnect();
   for (const t of impressionTimers.values()) clearTimeout(t);
@@ -2054,10 +2164,11 @@ function mineCard(item){
 }
 function surpriseCard(item){
  const v=item.variant;
- if(v==='coins')return `<section class="ev ev-surprise"><span class="ev-emoji big">🎉</span><div><strong>Surpresa! +${money(item.bonus||3)} em moedas</strong><p>Continue rolando: pode ter mais.</p></div></section>`;
- if(v==='comment')return `<section class="ev ev-surprise"><span class="ev-emoji big">💬</span><div><strong>bia.m comentou numa foto sua</strong><p>“saudade dessa época 🥹”</p></div></section>`;
- if(v==='drop'&&item.product)return `<section class="ev ev-surprise"><span class="ev-emoji big">📉</span><div><strong>Baixou! ${esc(productName(item.product))} com 15% OFF</strong><p>Só pra você, só hoje.</p></div><button class="ev-btn" data-action="product" data-product="${item.product}" data-source="surprise">Ver</button></section>`;
- return `<section class="ev ev-surprise empty"><span class="ev-emoji big">🎁</span><div><strong>Nada por aqui… desta vez</strong><p>Continue rolando.</p></div></section>`;
+  const attr=' data-surprise-id="'+esc(item.id)+'" data-surprise-kind="'+esc(v)+'"';
+ if(v==='coins')return `<section class="ev ev-surprise"${attr}><span class="ev-emoji big">🎉</span><div><strong>Surpresa! +${money(item.bonus||3)} em moedas</strong><p>Continue rolando: pode ter mais.</p></div></section>`;
+ if(v==='comment')return `<section class="ev ev-surprise"${attr}><span class="ev-emoji big">💬</span><div><strong>bia.m comentou numa foto sua</strong><p>“saudade dessa época 🥹”</p></div></section>`;
+ if(v==='drop'&&item.product)return `<section class="ev ev-surprise"${attr}><span class="ev-emoji big">📉</span><div><strong>Baixou! ${esc(productName(item.product))} com 15% OFF</strong><p>Só pra você, só hoje.</p></div><button class="ev-btn" data-action="product" data-product="${item.product}" data-source="surprise">Ver</button></section>`;
+ return `<section class="ev ev-surprise empty"${attr}><span class="ev-emoji big">🎁</span><div><strong>Nada por aqui… desta vez</strong><p>Continue rolando.</p></div></section>`;
 }
 function taggedCard(item){
  const base=TAGGED_EVENTS[item?.day];
@@ -2778,6 +2889,8 @@ root.addEventListener('click',e=>{
   return;
  }
  const a=el.dataset.action,id=el.dataset.product,post=el.dataset.post;
+ if(a==='reward-close'){closeRewardCelebration();return;}
+ if(a==='reward-product'){closeRewardCelebration();openProduct(id,'surprise');return;}
  if(a==='open-photo'&&performance.now()<suppressPhotoOpenUntil)return;
  if(storyIgnoreClick&&(a==='story-next'||a==='story-prev')){
   storyIgnoreClick=false;
@@ -2966,6 +3079,11 @@ window.addEventListener('keydown',e=>{
    if(e.shiftKey&&document.activeElement===exitCancel){e.preventDefault();exitAccept.focus();}
    else if(!e.shiftKey&&document.activeElement===exitAccept){e.preventDefault();exitCancel.focus();}
   }
+  return;
+ }
+ if(document.querySelector('.reward-celebration')){
+  if(e.key==='Escape'){e.preventDefault();closeRewardCelebration();}
+  if(e.key==='Tab'){e.preventDefault();document.querySelector('.reward-continue')?.focus();}
   return;
  }
  if(story){
