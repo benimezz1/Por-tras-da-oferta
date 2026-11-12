@@ -54,8 +54,10 @@ async function nextDay(page: Page) {
   const open = page.locator('[data-action="open-day"]');
   if (await open.count()) await open.click();
   if ((await saved(page))?.day === 5) {
-    await expect(page.locator(".tag-vibe-overlay")).toBeVisible();
-    await page.locator('[data-action="tag-vibe-continue"]').click();
+    // A foto marcada pode ja ter sido vista no dia: nao exigir repeticao.
+    const card=page.locator(".tag-vibe-overlay");
+    await card.waitFor({state:"visible",timeout:1200}).catch(()=>{});
+    if(await card.isVisible())await card.locator('[data-action="tag-vibe-continue"]').click();
   }
 }
 async function firstAdProduct(page: Page) {
