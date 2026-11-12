@@ -3,12 +3,18 @@
 Jogo educativo do Ciclo 4, Colégio Rio Branco. A **experiência principal** é a **semana até a viagem**: o jogador tem R$ 620 fictícios e precisa chegar ao sábado com R$ 400 para pagar a viagem da turma. Entre segunda e sexta, usa o **pulso.**, uma rede social com loja integrada que aplica, de forma imersiva, as estratégias psicológicas estudadas no relatório C3: cronômetros que reiniciam, estoque que nunca acaba, live de influenciadora, roleta de cupons, cartão "compre agora, pague depois", taxas tardias, opções pré-marcadas, grupos de amigos com FOMO e anúncios para quando a "vibe" está baixa. No sábado chegam a fatura, a viagem (ou não) e a revelação de cada estratégia, com quiz de reconhecimento. Design completo: [docs/SEMANA-ATE-A-VIAGEM.md](docs/SEMANA-ATE-A-VIAGEM.md).
 
 - **Fotografias da experiência:** 86 fontes fotográficas distintas para posts, stories, produtos e perfis, selecionadas do Pexels e importadas em JPEG otimizado para `public/assets/social/unique/`. Os 20 WebPs anteriores continuam disponíveis como reserva. Veja `docs/IMAGENS-JOGO.md`.
-- **Jogo atual:** abra a raiz do site (`/`). Cinco dias com feed extenso e 480 novas publicações (sem reciclagem no dia), oito lojas, conversas, live, roleta, Pulso Pay, surpresas, postagens próprias e um final com estimativa de tempo, extrato, por trás da oferta, quiz e raio-x (incluindo o Raio-X da atenção). Limite de segurança ampliado para 6 horas.
+- **Jogo atual:** abra a raiz do site (`/`). Cinco dias com feed extenso e 480 novas publicações (sem reciclagem no dia), oito lojas, conversas, live, roleta, Pulso Pay, surpresas, postagens próprias e um final com estimativa de tempo, extrato, análise da partida, aprendizado sobre as estratégias, quiz e raio-x (incluindo o Raio-X da atenção). Limite de segurança ampliado para 6 horas.
 - **Versão anterior:** abra `/classico.html` para acessar a campanha React original de seis capítulos. O código e seus testes foram preservados.
 - **Privacidade:** marcas, pessoas, preços e compras são fictícios. Nenhum pagamento é realizado. Antes de jogar, a tela de login informa que o registro fictício será enviado automaticamente ao MCP quando o quiz terminar. A senha nunca integra o JSON; o jogador pode solicitar a exclusão do percurso. O conteúdo dentro do feed segue imersivo.
 
 O novo protótipo está em `index.html`; o modo clássico segue em `src/` e `classico.html`. O Vite gera as duas entradas no mesmo build. O backend/MCP é mantido no projeto separado [Por-tras-da-oferta-MCP](https://github.com/benimezz1/Por-tras-da-oferta-MCP).
 
+
+## Aprendizado antes do quiz
+
+O encerramento da experiência principal segue **Sábado → Por trás → Aprenda → Quiz → Raio-X**. A etapa **Por trás** mantém o gráfico e a tabela que explicam a pontuação fictícia da vibe. A etapa **Entenda seu clique** apresenta um retrato educativo das ações registradas, três perguntas para reflexão e cartões expansíveis das estratégias, com exemplos do feed e evidências da pesquisa. O quiz de cinco perguntas é preservado e permite retornar ao aprendizado sem perder as respostas.
+
+O progresso salvo na versão anterior migra para a nova sequência. O exportador mantém `estado.endStep` e `resumo.jornada.etapaFinal` no intervalo 0–3 exigido pelo contrato MCP v1, apesar das cinco etapas visuais. As contagens não provam influência causal e não representam diagnóstico psicológico.
 
 ## Biblioteca V5 — mais fotografias, feed variável e cronologia
 
