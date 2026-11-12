@@ -1022,7 +1022,7 @@ function setupRewardCelebrations(){
   for(const entry of entries){
    const el=entry.target,id=el.dataset.surpriseId;
    if(!entry.isIntersecting||entry.intersectionRatio<.55||!id||state.rewardSeen.includes(id))continue;
-   if(document.visibilityState!=='visible'||overlay||modal||story||!exitConfirm.hidden||document.querySelector('.reward-celebration'))continue;
+   if(document.visibilityState!=='visible'||overlay||modal||story||!exitConfirm.hidden||document.querySelector('.reward-celebration,.tag-vibe-overlay,.sleep-reminder'))continue;
    const item=state.feedItems.find(x=>x.id===id&&x.type==='surprise');
    if(!item||item.variant==='nothing')continue;
    if(showRewardCelebration(item)){state.rewardSeen.push(id);save();rewardObserver.unobserve(el);break;}
@@ -1034,7 +1034,7 @@ function setupRewardCelebrations(){
 }
 function showRewardCelebration(item){
  const phone=document.querySelector('.phone');
- if(!phone||phone.querySelector('.reward-celebration'))return false;
+ if(!phone||phone.querySelector('.reward-celebration,.tag-vibe-overlay,.sleep-reminder'))return false;
  const coin=item.variant==='coins',coupon=item.variant==='drop',social=item.variant==='comment';
  if(!coin&&!coupon&&!social)return false;
  if(coupon&&!products[item.product])return false;
