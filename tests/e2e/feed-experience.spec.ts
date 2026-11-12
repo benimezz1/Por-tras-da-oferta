@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-async function enter(page) {
+async function enter(page, keepTaggedOverlay = false) {
   await page.goto("/");
   await expect(page.locator(".account-screen")).toBeVisible();
   await page.locator('input[name="username"]').fill("aluno_teste");
@@ -26,6 +26,11 @@ async function enter(page) {
   await page.locator('[data-action="intro-next"]').click();
   await page.locator('[data-action="open-day"]').click();
   await expect(page.locator(".phone")).toBeVisible();
+  if (!keepTaggedOverlay) {
+    await expect(page.locator(".tag-vibe-overlay")).toBeVisible();
+    await page.locator('[data-action="tag-vibe-continue"]').click();
+    await expect(page.locator(".tag-vibe-overlay")).toHaveCount(0);
+  }
 }
 async function loadAll(page) {
   for (let n = 0; n < 12; n++) {
@@ -37,7 +42,76 @@ async function loadAll(page) {
   }
 }
 
-test("surpresas só aparecem após 10 publicações e respeitam intervalo de 8", async ({ page }) => {
+test("foto marcada abre card distinto e concede vibe apenas uma vez", async ({ page }) => {
+  await enter(page, true);
+  const card = page.locator(".tag-vibe-overlay");
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("bia.m");
+  await expect(card.locator(".tag-vibe-photo img")).toBeVisible();
+  await expect(card.locator(".tag-vibe-points")).toContainText("VIBE");
+  const before = await page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem("nofeed-simulator-v4:user:player-e2e") || "{}");
+    return { vibe: state.vibe.value, seen: state.taggedVibeSeen };
+  });
+  expect(before.seen).toContain("tag-1");
+  await card.locator('[data-action="tag-vibe-view"]').click();
+  await expect(card).toHaveCount(0);
+  await expect(page.locator("#tag-1")).toBeVisible();
+  await page.reload();
+  await expect(page.locator(".phone")).toBeVisible();
+  await expect(page.locator(".tag-vibe-overlay")).toHaveCount(0);
+  const after = await page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem("nofeed-simulator-v4:user:player-e2e") || "{}");
+    return { vibe: state.vibe.value, seen: state.taggedVibeSeen };
+  });
+  expect(after.vibe).toBe(before.vibe);
+  expect(after.seen.filter(id => id === "tag-1")).toHaveLength(1);
+});
+
+test("Gabi marca o jogador no quinto dia e gera uma nova celebração", async ({ page }) => {
+  await enter(page);
+  for (let day = 2; day <= 5; day++) {
+    await page.locator(".day-sleep-control").click();
+    await page.locator('[data-action="open-day"]').click();
+  }
+  const card = page.locator(".tag-vibe-overlay");
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("gabi.n");
+  await card.locator('[data-action="tag-vibe-continue"]').click();
+  await expect(card).toHaveCount(0);
+});
+
+test("aviso de sono começa às 04h, repete às 05h e não aparece às 14h", async ({ page }) => {
+  await enter(page);
+  const setClock = async viewed => {
+    await page.evaluate(viewed => {
+      const key = "nofeed-simulator-v4:user:player-e2e";
+      const state = JSON.parse(localStorage.getItem(key) || "{}");
+      state.clockViewed = viewed;
+      localStorage.setItem(key, JSON.stringify(state));
+    }, viewed);
+    await page.reload();
+    await expect(page.locator(".phone")).toBeVisible();
+  };
+  await setClock(30); // 19h + 30 x 18 min = 04:00 do dia seguinte
+  const reminder = page.locator(".sleep-reminder");
+  await expect(reminder).toBeVisible();
+  await expect(reminder.locator(".sleep-reminder-clock")).toContainText("04:");
+  await expect(reminder.locator('[data-action="sleep-reminder-sleep"]')).toBeVisible();
+  await reminder.locator('[data-action="sleep-reminder-continue"]').click();
+  await expect(reminder).toHaveCount(0);
+  await page.reload();
+  await expect(reminder).toHaveCount(0); // não repete na mesma hora
+  await setClock(34); // 05:12
+  await expect(reminder).toBeVisible();
+  await expect(reminder.locator(".sleep-reminder-clock")).toContainText("05:");
+  await reminder.locator('[data-action="sleep-reminder-continue"]').click();
+  await setClock(64); // 14:12
+  await expect(page.locator(".sb-time")).toContainText("14:");
+  await expect(reminder).toHaveCount(0);
+});
+
+test("surpresas ficam raras e espaçadas durante a rolagem", async ({ page }) => {
   await enter(page);
   await loadAll(page);
   const items = await page.evaluate(() => {
@@ -51,11 +125,11 @@ test("surpresas só aparecem após 10 publicações e respeitam intervalo de 8",
     if (item.kind === "post" || item.kind === "ad") postsSeen += 1;
     if (item.type !== "surprise") continue;
     surprises += 1;
-    expect(postsSeen).toBeGreaterThanOrEqual(10);
-    if (previousSurpriseAt !== -1) expect(postsSeen - previousSurpriseAt).toBeGreaterThanOrEqual(8);
+    expect(postsSeen).toBeGreaterThanOrEqual(12);
+    if (previousSurpriseAt !== -1) expect(postsSeen - previousSurpriseAt).toBeGreaterThanOrEqual(16);
     previousSurpriseAt = postsSeen;
   }
-  expect(surprises).toBeGreaterThan(0);
+  expect(surprises).toBeLessThanOrEqual(5);
 });
 
 test("o botão de retorno funciona por cima dos stories", async ({ page }) => {
@@ -497,6 +571,8 @@ test("gancho do menu alterna foto da Bia e da Gabi em dias distintos", async ({p
     await page.locator('[data-action="hook-decline"]').click();
   }
   await page.locator('[data-action="open-day"]').click();
+  await expect(page.locator(".tag-vibe-overlay")).toBeVisible();
+  await page.locator('[data-action="tag-vibe-continue"]').click();
   await page.locator('[data-action="day-menu"]').click();
   await page.locator('[data-action="end-day"]').click();
   await expect(page.locator('.bottom-sheet')).toContainText('Gabi publicou uma foto com você');

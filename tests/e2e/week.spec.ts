@@ -29,6 +29,9 @@ async function enter(page: Page) {
   await expect(page.locator(".wake")).toContainText("SEGUNDA-FEIRA");
   await page.locator('[data-action="open-day"]').click();
   await expect(page.locator(".status-bar")).toContainText("SEG");
+  await expect(page.locator(".tag-vibe-overlay")).toBeVisible();
+  await page.locator('[data-action="tag-vibe-continue"]').click();
+  await expect(page.locator(".tag-vibe-overlay")).toHaveCount(0);
 }
 const saved = (page: Page) => page.evaluate((k) => JSON.parse(localStorage.getItem(k) || "null"), KEY);
 // Antes da revelação o jogador estima quanto tempo jogou.
@@ -50,6 +53,10 @@ async function nextDay(page: Page) {
   await passGuess(page);
   const open = page.locator('[data-action="open-day"]');
   if (await open.count()) await open.click();
+  if ((await saved(page))?.day === 5) {
+    await expect(page.locator(".tag-vibe-overlay")).toBeVisible();
+    await page.locator('[data-action="tag-vibe-continue"]').click();
+  }
 }
 async function firstAdProduct(page: Page) {
   for (let i = 0; i < 4 && !(await page.locator(".ad-post").count()); i++)
