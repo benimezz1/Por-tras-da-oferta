@@ -42,6 +42,81 @@ async function loadAll(page) {
   }
 }
 
+test("surpresa dispara popup explosivo ao chegar no gatilho, credita uma vez e nao deixa card",async ({page})=>{
+ await enter(page);
+ await page.evaluate(()=>{
+  const key='nofeed-simulator-v4:user:player-e2e',state=JSON.parse(localStorage.getItem(key)||'{}');
+  state.feedItems.splice(Math.min(7,state.feedItems.length),0,{kind:'event',type:'surprise',variant:'coins',bonus:3,rewardPending:true,id:'sp-e2e',day:state.day});
+  localStorage.setItem(key,JSON.stringify(state));
+ });
+ await page.reload();
+ await expect(page.locator('.reward-trigger[data-surprise-id="sp-e2e"]')).toHaveCount(1);
+ const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')).coins);
+ await page.locator('.reward-trigger[data-surprise-id="sp-e2e"]').evaluate(el=>{
+  const sc=document.querySelector('#feed-scroll'),target=el.getBoundingClientRect().top-sc.getBoundingClientRect().top+sc.scrollTop;
+  sc.scrollTop=Math.max(0,target-sc.clientHeight*.5);
+  sc.dispatchEvent(new Event('scroll'));
+ });
+ const reward=page.locator('.reward-celebration');
+ await expect(reward).toBeVisible();
+ await expect(reward).toContainText('Surpresa!');
+ await expect(reward.locator('.reward-particle')).toHaveCount(32);
+ await expect(page.locator('.ev-surprise')).toHaveCount(0);
+ const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')).coins);
+ expect(after).toBe(before+3);
+ await reward.locator('[data-action="reward-close"]').click();
+ await expect(reward).toHaveCount(0);
+ await page.reload();
+ await expect(page.locator('.reward-celebration')).toHaveCount(0);
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')).coins)).toBe(after);
+});
+
+test("publicar foto sobe o feed com carregamento e novos posts recomendados sem duplicatas",async ({page})=>{
+ await enter(page);
+ const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')).feedItems.filter(x=>x.kind==='post').map(x=>x.id));
+ await page.locator('[data-action="new-post"]').click();
+ await page.locator('[data-action="open-gallery"]').click();
+ await page.locator('.ios-gallery-tile').first().click();
+ await page.locator('.ios-gallery-done').click();
+ await page.locator('#my-post-caption').fill('Post depois da atualização');
+ await page.locator('.post-compose [data-action="publish"]').click();
+ await expect(page.locator('.feed-refresh-loading')).toBeVisible();
+ await expect(page.locator('.feed-refresh-loading')).toHaveCount(0);
+ await expect(page.locator('.mine-post').first()).toContainText('Post depois da atualização');
+ const data=await page.evaluate(()=>{
+  const state=JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e'));
+  return {items:state.feedItems.filter(x=>x.day===1),refreshes:state.attention.refreshes,top:document.querySelector('#feed-scroll').scrollTop};
+ });
+ expect(data.items[0].kind).toBe('mine');
+ expect(data.refreshes).toBeGreaterThanOrEqual(1);
+ expect(data.top).toBeLessThan(65);
+ const now=data.items.filter(x=>x.kind==='post').map(x=>x.id);
+ expect(new Set(now).size).toBe(now.length);
+ expect(now.length).toBeGreaterThanOrEqual(before.length);
+ expect(data.items.some(x=>x.fresh&&x.kind==='post')).toBe(true);
+});
+
+test("grupo time Motion aparece depois de comprar o tenis e nao antes",async ({page})=>{
+ await enter(page);
+ await page.locator('.day-sleep-control').click();
+ await page.locator('[data-action="open-day"]').click();
+ await page.locator('.phone-head [data-action="inbox"]').click();
+ await expect(page.locator('.inbox-row')).not.toContainText('time Motion');
+ await page.locator('.layer-head [data-action="close-overlay"]').click();
+ await page.locator('.phone-head [data-action="shop"]').click();
+ await page.locator('.shop-product[data-product="tenis"]').click();
+ await page.locator('.shop-footer [data-action="checkout"]').click();
+ await page.locator('.shop-footer [data-action="buy"]').click();
+ await page.locator('.purchase-modal [data-channel="nenhum"]').click();
+ await page.locator('.phone-head [data-action="inbox"]').click();
+ const group=page.locator('.inbox-row').filter({hasText:'time Motion'});
+ await expect(group).toHaveCount(1);
+ await group.click();
+ await expect(page.locator('.chat-body')).toContainText('time Motion');
+ const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')));
+ expect(saved.threads.motion.days).toEqual([2]);
+});
+
 test("contas distintas recebem fotografias iniciais diferentes e a recarga conserva o feed", async ({ page }) => {
   await enter(page);
   const signature=async()=>page.locator(".post:not(.ad-post):not(.mine-post)").evaluateAll(cards=>
