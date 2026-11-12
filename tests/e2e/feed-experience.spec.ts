@@ -44,9 +44,15 @@ async function loadAll(page) {
 
 test("surpresa dispara popup explosivo ao chegar no gatilho, credita uma vez e nao deixa card",async ({page})=>{
  await enter(page);
- await page.evaluate(()=>{
-  const key='nofeed-simulator-v4:user:player-e2e',state=JSON.parse(localStorage.getItem(key)||'{}');
-  state.feedItems.splice(Math.min(7,state.feedItems.length),0,{kind:'event',type:'surprise',variant:'coins',bonus:3,rewardPending:true,id:'sp-e2e',day:state.day});
+ // A aplicacao salva o estado ao descarregar a pagina. A injecao deve
+ // acontecer antes de inicializar o jogo no novo documento, nao antes de reload.
+ await page.addInitScript(()=>{
+  const key='nofeed-simulator-v4:user:player-e2e',state=JSON.parse(localStorage.getItem(key)||'null');
+  if(!state?.started)return;
+  if(!state.feedItems.some(x=>x.id==='sp-e2e'))
+   state.feedItems.splice(Math.min(7,state.feedItems.length),0,{
+    kind:'event',type:'surprise',variant:'coins',bonus:3,rewardPending:true,id:'sp-e2e',day:state.day
+   });
   localStorage.setItem(key,JSON.stringify(state));
  });
  await page.reload();

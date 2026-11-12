@@ -73,15 +73,23 @@ async function firstAdProduct(page: Page) {
   await expect(page.locator(".shop-title")).toBeVisible();
 }
 
+// O jogo salva em pagehide: alterar localStorage antes de reload seria
+// sobrescrito pelo estado anterior. Aplicar a fixture ao abrir o novo documento.
+async function enterFinishedFixture(page: Page,{wallet=620,realMs=19*60*1000}:{wallet?:number,realMs?:number}={}){
+ await page.addInitScript(({key,wallet,realMs})=>{
+  const state=JSON.parse(localStorage.getItem(key)||"null");
+  if(!state?.started)return;
+  state.day=5;state.finished=true;state.endStep=0;state.endPrelude="guess";
+  state.wallet=wallet;state.finishedAt=new Date().toISOString();
+  state.attention.realMs=realMs;
+  localStorage.setItem(key,JSON.stringify(state));
+ },{key:KEY,wallet,realMs});
+ await page.reload();
+}
+
 test("tempo real e viagem tem destaque; envio somente ao MCP registra quiz em branco",async ({page})=>{
  await enter(page);
- await page.evaluate(key=>{
-  const state=JSON.parse(localStorage.getItem(key)||'{}');
-  state.day=5;state.finished=true;state.endStep=0;state.endPrelude='guess';
-  state.finishedAt=new Date().toISOString();state.attention.realMs=19*60*1000;
-  localStorage.setItem(key,JSON.stringify(state));
- },KEY);
- await page.reload();
+ await enterFinishedFixture(page);
  await expect(page.locator('.time-guess')).toBeVisible();
  await page.locator('[data-action="guess-time"]').click();
  await expect(page.locator('.end-time-impact')).toBeVisible();
@@ -105,13 +113,7 @@ test("tempo real e viagem tem destaque; envio somente ao MCP registra quiz em br
 
 test("viagem perdida e sair sem salvar nao enviam partida nem deixam historico local",async ({page})=>{
  await enter(page);
- await page.evaluate(key=>{
-  const state=JSON.parse(localStorage.getItem(key)||'{}');
-  state.day=5;state.finished=true;state.wallet=250;state.endPrelude='guess';state.endStep=0;
-  state.finishedAt=new Date().toISOString();
-  localStorage.setItem(key,JSON.stringify(state));
- },KEY);
- await page.reload();
+ await enterFinishedFixture(page,{wallet:250});
  await page.locator('[data-action="guess-time"]').click();
  await page.locator('[data-action="time-reveal-next"]').click();
  await expect(page.locator('.trip-impact.missed')).toContainText('O ônibus partiu sem você');
@@ -261,7 +263,7 @@ test("sem compras o jogador embarca e passa pelo final em quatro etapas", async 
   await enter(page);
   for (let d = 0; d < 5; d++) await nextDay(page);
   await expect(page.locator(".end")).toContainText("Você embarcou");
-  await expect(page.locator(".extrato")).toContainText("R$ 400,00 pago");
+  await expect(page.locator(".budget-outcome.success")).toContainText("A meta de R$ 400 foi alcançada");
   await page.locator('[data-action="end-next"]').click();
   await expect(page.locator(".end")).toContainText("Nada ali era por acaso");
   await expect(page.locator(".strat")).toHaveCount(15);
@@ -318,7 +320,7 @@ test("comprar no Pix além da folga faz perder a viagem", async ({ page }) => {
   await page.locator('.layer [data-action="finish"]').click();
   await passGuess(page);
   await expect(page.locator(".end")).toContainText("O ônibus saiu sem você");
-  await expect(page.locator(".extrato")).toContainText("recusado");
+  await expect(page.locator(".budget-outcome.missed")).toContainText("Faltou dinheiro para a viagem");
   await page.locator('[data-action="end-next"]').click();
   await expect(page.locator(".strat.is-fell").first()).toBeVisible();
 });
@@ -467,8 +469,11 @@ test("feed infinito: novidades, postagem própria e gancho de saída", async ({ 
   for (let i = 0; i < 4; i++) await page.locator(".load-more").evaluate((b: HTMLElement) => b.click());
   await expect(page.locator(".load-more")).toBeVisible();
   expect((await saved(page)).attention.extraItems).toBeGreaterThan(0);
+  const oldRefreshCount=(await saved(page)).attention.refreshes;
   await page.locator('[data-action="refresh-feed"]').click();
-  await expect(page.locator(".toast")).toBeVisible({ timeout: 4000 });
+  await expect(page.locator(".feed-refresh-loading")).toBeVisible();
+  await expect(page.locator(".feed-refresh-loading")).toHaveCount(0);
+  expect((await saved(page)).attention.refreshes).toBeGreaterThan(oldRefreshCount);
   await page.locator('[data-action="new-post"]').click();
   await page.locator('[data-action="open-gallery"]').click();
   await page.locator('.ios-gallery-tile').first().click();
