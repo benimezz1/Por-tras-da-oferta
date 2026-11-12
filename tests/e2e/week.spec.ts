@@ -37,7 +37,13 @@ const saved = (page: Page) => page.evaluate((k) => JSON.parse(localStorage.getIt
 // Antes da revelação o jogador estima quanto tempo jogou.
 async function passGuess(page: Page) {
   const guess = page.locator('[data-action="guess-time"]');
-  if (await guess.count()) await guess.click();
+  if (await guess.count()) {
+    await guess.click();
+    await expect(page.locator(".end-time-impact")).toBeVisible();
+    await page.locator('[data-action="time-reveal-next"]').click();
+    await expect(page.locator(".trip-impact")).toBeVisible();
+    await page.locator('[data-action="trip-details"]').click();
+  }
 }
 // O feed não acaba: o dia termina pelo menu ⋯, e na primeira tentativa do dia aparece o gancho de saída.
 async function endOfDay(page: Page) {
@@ -66,6 +72,54 @@ async function firstAdProduct(page: Page) {
   await page.locator(".ad-post .ad-shop-button").first().click();
   await expect(page.locator(".shop-title")).toBeVisible();
 }
+
+test("tempo real e viagem tem destaque; envio somente ao MCP registra quiz em branco",async ({page})=>{
+ await enter(page);
+ await page.evaluate(key=>{
+  const state=JSON.parse(localStorage.getItem(key)||'{}');
+  state.day=5;state.finished=true;state.endStep=0;state.endPrelude='guess';
+  state.finishedAt=new Date().toISOString();state.attention.realMs=19*60*1000;
+  localStorage.setItem(key,JSON.stringify(state));
+ },KEY);
+ await page.reload();
+ await expect(page.locator('.time-guess')).toBeVisible();
+ await page.locator('[data-action="guess-time"]').click();
+ await expect(page.locator('.end-time-impact')).toBeVisible();
+ await expect(page.locator('.end-time-comparison')).toContainText('19min');
+ await page.locator('[data-action="time-reveal-next"]').click();
+ const trip=page.locator('.trip-impact');
+ await expect(trip).toBeVisible();
+ await expect(trip).toContainText('Você conseguiu embarcar');
+ await expect(trip.locator('.trip-confetti i')).toHaveCount(36);
+ await trip.locator('[data-action="trip-mcp"]').click();
+ await expect(page.locator('#trip-mcp-status')).toContainText('recebido pelo MCP');
+ const current=await saved(page);
+ expect(current.endStep).toBe(0);
+ expect(current.quiz).toEqual({});
+ expect(current.c4SyncedRunId).toBe(current.runId);
+ expect(current.c4SyncedMode).toBe('viagem-sem-quiz');
+ await page.locator('[data-action="trip-details"]').click();
+ await expect(page.locator('.budget-timeline')).toContainText('Para onde foi seu dinheiro');
+ await expect(page.locator('.budget-timeline')).toContainText('Dinheiro livre após essas cobranças');
+});
+
+test("viagem perdida e sair sem salvar nao enviam partida nem deixam historico local",async ({page})=>{
+ await enter(page);
+ await page.evaluate(key=>{
+  const state=JSON.parse(localStorage.getItem(key)||'{}');
+  state.day=5;state.finished=true;state.wallet=250;state.endPrelude='guess';state.endStep=0;
+  state.finishedAt=new Date().toISOString();
+  localStorage.setItem(key,JSON.stringify(state));
+ },KEY);
+ await page.reload();
+ await page.locator('[data-action="guess-time"]').click();
+ await page.locator('[data-action="time-reveal-next"]').click();
+ await expect(page.locator('.trip-impact.missed')).toContainText('O ônibus partiu sem você');
+ page.once('dialog',dialog=>dialog.accept());
+ await page.locator('[data-action="trip-exit"]').click();
+ await expect(page.locator('.home')).toBeVisible();
+ expect(await saved(page)).toBeNull();
+});
 
 test("login do jogo compartilha o visual do MCP sem mockup e preserva acesso", async ({ page }) => {
   await page.goto("/");
@@ -212,6 +266,12 @@ test("sem compras o jogador embarca e passa pelo final em quatro etapas", async 
   await expect(page.locator(".end")).toContainText("Nada ali era por acaso");
   await expect(page.locator(".strat")).toHaveCount(15);
   await expect(page.locator(".vibe-chart svg")).toBeVisible();
+  await expect(page.locator(".vibe-education-card")).toContainText("0 a 100");
+  await expect(page.locator(".vibe-metrics>div")).toHaveCount(3);
+  await expect(page.locator(".vibe-chart .vibe-axis-text")).toHaveCount(7);
+  await expect(page.locator(".vibe-events")).toContainText("O que provocou as mudanças?");
+  await expect(page.locator(".vibe-lesson")).toContainText("Aprenda a reconhecer o ciclo");
+  await expect(page.locator(".vibe-education-card")).toContainText("não mede seus sentimentos reais");
   await page.locator('[data-action="end-next"]').click();
   const questions = page.locator(".quiz-q");
   await expect(questions).toHaveCount(5);
