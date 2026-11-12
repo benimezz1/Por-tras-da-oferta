@@ -3033,10 +3033,10 @@ function tripRevealPage(){
   <div class="end-impact-actions">
    <button class="primary" data-action="trip-details">Ver detalhes e entender minhas escolhas →</button>
    <button class="secondary" data-action="trip-mcp" ${syncInFlight||sent?'disabled':''}>${sent?'✓ Enviado ao MCP':'Apenas carregar para o MCP'}</button>
-   <button class="subtle-quit" data-action="trip-exit">Sair sem salvar</button>
+   <button class="subtle-quit" data-action="trip-exit">${sent?'Sair e limpar dados locais':'Sair sem salvar'}</button>
   </div>
   <p id="trip-mcp-status" class="trip-mcp-status" role="status">${esc(syncMessage||status)}</p>
-  <p class="small muted">O envio ao MCP exige conexão e confirmação do servidor. Sair sem salvar não envia sua partida e descarta os dados locais desta partida.</p>
+  <p class="small muted">O envio ao MCP exige conexão e confirmação do servidor. ${sent?'O MCP já recebeu esta partida; sair agora apaga somente a cópia deste dispositivo.':'Sair sem salvar descarta os dados locais desta partida sem solicitar um envio.'}</p>
  </section></div></main>`;
 }
 
@@ -3074,19 +3074,20 @@ function renderEnd(){
  <p class="end-disclaimer">Simulação educativa do Colégio Rio Branco · C4. Nenhuma compra é real. Ao concluir, o jogo envia o percurso fictício ao MCP da conta identificada, se houver conexão. O jogo não faz diagnósticos.</p>
  </div></main>`;
  window.scrollTo(0,0);root.querySelector('.end')?.scrollTo?.(0,0);
- if(step===3){showC4SyncStatus();if(state.c4SyncedRunId!==state.runId)void sendCompletedC4();}
+ if(step===3){showC4SyncStatus();if(state.c4SyncedRunId!==state.runId||state.c4SyncedMode==='viagem-sem-quiz')void sendCompletedC4();}
 }
 function showC4SyncStatus(){
  const node=document.getElementById('c4-sync-status'),retry=root.querySelector('[data-action="retry-c4"]');
  if(!node)return;
- const sent=state.c4SyncedRunId===state.runId;
+ const sent=state.c4SyncedRunId===state.runId&&!(state.endStep===3&&state.c4SyncedMode==='viagem-sem-quiz');
  node.textContent=sent?'✓ Percurso recebido pelo MCP. Agora o ChatGPT pode consultar esta conta após o vínculo.'
   :syncInFlight?'Enviando suas respostas e escolhas ao MCP…'
   :syncMessage||'O envio será realizado automaticamente.';
  if(retry){retry.hidden=sent||syncInFlight;retry.textContent=ContaC4.account()?'Tentar enviar novamente':'Entrar novamente para enviar';}
 }
 async function sendCompletedC4(){
- if(!identity||!state.finished||(state.endStep!==3&&state.endPrelude!=='mcp')||state.c4SyncedRunId===state.runId||syncInFlight)return;
+ if(!identity||!state.finished||(state.endStep!==3&&state.endPrelude!=='mcp')||syncInFlight)return;
+ if(state.c4SyncedRunId===state.runId&&(state.endStep!==3||state.c4SyncedMode!=='viagem-sem-quiz'))return;
  const playerId=identity.id,run=state.runId;
  syncInFlight=true;syncMessage='';
  showC4SyncStatus();
@@ -3098,6 +3099,7 @@ async function sendCompletedC4(){
    throw Error('O servidor não confirmou a conta e a partida corretas.');
   if(!identity||identity.id!==playerId||state.runId!==run)return;
   state.c4SyncedRunId=run;
+  state.c4SyncedMode=payload.modoEnvio==='viagem-sem-quiz'?'viagem-sem-quiz':'quiz-completo';
   state.c4SyncedAt=new Date().toISOString();
   save();
   syncMessage='';
@@ -3316,7 +3318,9 @@ root.addEventListener('click',e=>{
   state.endPrelude='mcp';save();renderEnd();void sendCompletedC4();
  }
  else if(a==='trip-exit'){
-  if(!confirm('Sair sem salvar? Os dados desta partida neste navegador serão descartados e não serão enviados ao MCP.'))return;
+  if(!confirm(state.c4SyncedRunId===state.runId
+   ?'Esta partida já foi enviada ao MCP. Sair apagará somente a cópia deste navegador. Continuar?'
+   :'Sair sem salvar? O progresso desta partida neste navegador será descartado sem envio ao MCP.'))return;
   const playerId=identity?.id;clearTimeout(introTimer);stopStory();clearInterval(liveTimer);bannerQueue=[];
   if(playerId)localStorage.removeItem(USER_KEY_PREFIX+playerId);
   syncMessage='';overlay=null;modal=null;state=makeInitial();renderHome();
