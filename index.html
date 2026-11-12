@@ -643,6 +643,7 @@
 <script src="/recommendation.js"></script>
 <script src="/feed-ranker.js"></script>
 <script src="/stream.js"></script>
+<script src="/game-clock.js"></script>
 <script src="/pressure.js"></script>
 <script src="/week.js"></script>
 <script src="/c4-export.js"></script>
@@ -662,7 +663,7 @@ const emptyAttention=()=>({extraItems:0,realMs:0,exitHooks:0,exitHookDays:[],sur
 
 const Recommender=window.NoFeedRecommender;
 
-const Stream=window.NoFeedStream;
+const Stream=window.NoFeedStream,GameClock=window.NoFeedClock;
 const Variation=window.NoFeedVariation,LibraryV5=window.NoFeedLibraryV5,FeedRanker=window.NoFeedFeedRanker;
 let loadPending=false;
 const dayForTopic={fone:1,tenis:2,plano:3,mochila:4,powerbank:4,garrafa:4,luminaria:3,ingresso:5};
@@ -731,7 +732,7 @@ function newRunId(){
  return "c4-"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
- pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),rewardSeen:[],taggedVibeSeen:[],myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[]});
+ pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),rewardSeen:[],taggedVibeSeen:[],myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[],clockProgress:0});
 let state=makeInitial();
 function restoreForPlayer(player) {
  state=makeInitial();
@@ -749,6 +750,7 @@ function restoreForPlayer(player) {
    for(const p of state.myPosts){if(!Array.isArray(p.comments))p.comments=[];}
    if(!Array.isArray(state.clockSeen))state.clockSeen=[];
    if(!Number.isFinite(state.clockViewed))state.clockViewed=0;
+   if(!Number.isFinite(state.clockProgress)||state.clockProgress<0||state.clockProgress>=GameClock.nextThreshold(state))state.clockProgress=0;
    if(!Array.isArray(state.liked))state.liked=[];
    if(!Array.isArray(state.likedAds))state.likedAds=[];
     if(!Array.isArray(state.rewardSeen))state.rewardSeen=[];
@@ -1505,14 +1507,17 @@ const dayItems=(d=state.day)=>state.feedItems.filter(x=>(x.day||1)===d);
 const streamItems=()=>state.feedItems.filter(x=>x.kind==='post'||x.kind==='ad');
 const dayStreamCount=()=>dayItems().filter(x=>x.kind==='post'||x.kind==='ad').length;
 const pad2=n=>String(n).padStart(2,'0');
-function clockMinutes(){return 19*60 + (state.clockViewed||0)*18;}
+function clockMinutes(){return GameClock.minutes(state);}
 function clockLabel(){const m=clockMinutes()%(24*60);return pad2(Math.floor(m/60))+':'+pad2(m%60);}
 function afterMidnight(){return clockMinutes()>=24*60;}
 function clockDayLabel(){return afterMidnight()?(Week.DAYS[state.day]?.short||'SÁB'):dayInfo().short;}
 function advanceClockForVisible(id){
- const key=state.day+':'+id;
- if(state.clockSeen.includes(key))return;
- state.clockSeen.push(key);state.clockViewed=(state.clockViewed||0)+1;save();
+ // Depois de 2 posts vistos, o relogio avanca 18 min; depois de 3,
+ // depois de 2, depois de 3... Reabrir posts nao adianta o horario.
+ const result=GameClock.advanceViewedPost(state,state.day,id);
+ if(!result.seen)return;
+ save();
+ if(!result.tick)return;
  const label=document.querySelector('.sb-time');if(label)label.innerHTML=`${clockDayLabel()} · ${clockLabel()}${afterMidnight()?' <small class="overnight-day">virou o dia</small>':''}`;
  const sleep=document.querySelector('.day-sleep-control');if(sleep){sleep.title=afterMidnight()?'Dormir até hoje, às 19h':'Dormir até amanhã, às 19h';const caption=sleep.querySelector('small');if(caption)caption.textContent=afterMidnight()?'hoje · 19h':'amanhã · 19h';}
  maybeSleepReminder();
@@ -2209,7 +2214,7 @@ function sleep(){
  else Pressure.vibeChange(state.vibe,9,'night','Uma noite de sono');
  if(state.flags.boughtToday){state.flags.boughtToday=false;Pressure.vibeChange(state.vibe,-10,'afterglow','A empolgação da compra passou');}
  state.day++;
- state.clockViewed=0;state.clockSeen=[];
+ GameClock.resetDay(state);
  state.flags.cartHold=0;
  state.wakeList=overnight();
  state.wake=true;save();
@@ -2240,6 +2245,8 @@ function tryExitHook(src){
  if(!state.started||state.finished||state.wake||state.attention.exitHookDays.includes(state.day))return false;
  if(src!=='end'&&(overlay||modal||story))return false;
  const hook=EXIT_HOOK_DAYS[state.day];if(!hook)return false;
+ // A foto marcada ja apareceu no feed. Nao repetir o mesmo anuncio ao sair.
+ if(hook.kind==='tag'&&(state.taggedVibeSeen.includes('tag-'+state.day)||state.feedItems.some(x=>x.id==='tag-'+state.day)))return false;
  state.attention.exitHookDays.push(state.day);
  expose('gancho_saida',`Tentou sair, mas recebeu nova atividade de ${hook.who}: ${hook.title}.`);
  save();modal={type:'exit-hook',src,photo:Variation.taggedPhoto(state.day,accountFeedSeed())};drawModal();return true;
@@ -2313,8 +2320,8 @@ function eventCard(item){
  if(t==='live')return `<section class="ev ev-live" data-action="live" role="button" tabindex="0" aria-label="Entrar na live da Lívia"><div class="ev-live-photo" style="background-image:url('${mediaSrc('story_tenis_1')}')"><span class="live-badge">AO VIVO</span><span class="ev-live-viewers">👀 1,2 mil</span></div><div class="ev-live-text"><span class="avatar photo-avatar">${mediaPhoto('avatar_livia','avatar-photo','Foto de perfil da Lívia')}</span><div><strong>livia.looks está ao vivo</strong><p>“Cupom exclusivo só pra quem está aqui agora 🔥”</p></div></div><button class="ev-btn live" data-action="live">Entrar na live</button></section>`;
  if(t==='trial')return bought('plano')?'':`<section class="ev ev-trial"><span class="ev-emoji big">🎧</span><div><strong>Estudar com foco? MODO+ 3 dias GRÁTIS</strong><p>Sem anúncios entre as músicas. Cancele quando quiser.</p></div><button class="ev-btn" data-action="product" data-product="plano" data-source="trial">Testar grátis</button></section>`;
  if(t==='mood'){
-  const low=state.vibe.value<55,ids=['luminaria','garrafa'].filter(id=>!bought(id));
-  return `<section class="ev ev-mood"><small class="sponsored-label">Patrocinado</small><strong>${low?'23:12 · Dia puxado? 💜':'Antes de dormir… 💜'}</strong><p>${low?'Você merece um mimo. Frete grátis hoje, só pra você.':'Um presentinho pra fechar o dia. Frete grátis hoje.'}</p><div class="mood-grid">${ids.map(id=>`<button class="shop-mini-card" data-action="product" data-product="${id}" data-source="mood">${art(products[id].kind,true)}<strong>${esc(productName(id))}</strong><b>${money(price(id).price)}</b></button>`).join('')}</div></section>`;
+  const low=state.vibe.value<55,late=clockMinutes()>=22*60,ids=['luminaria','garrafa'].filter(id=>!bought(id));
+  return `<section class="ev ev-mood"><small class="sponsored-label">Patrocinado · ${clockLabel()}</small><strong>${low?'Dia puxado? 💜':late?'Antes de dormir… 💜':'Um presente para você 💜'}</strong><p>${low?'Você merece um mimo. Frete grátis hoje, só pra você.':late?'Um presentinho pra fechar o dia. Frete grátis hoje.':'Frete grátis hoje em produtos escolhidos para você.'}</p><div class="mood-grid">${ids.map(id=>`<button class="shop-mini-card" data-action="product" data-product="${id}" data-source="mood">${art(products[id].kind,true)}<strong>${esc(productName(id))}</strong><b>${money(price(id).price)}</b></button>`).join('')}</div></section>`;
  }
  if(t==='flash')return `<section class="ev ev-flash" data-action="sale" role="button" tabindex="0"><strong>🔥 MEGA LIQUIDA 48H</strong><p>Até <b>70% OFF</b> no que você viu esta semana</p><div class="flash-clock">termina em <b class="js-countdown" data-until="${state.flags.saleEnd}">47:59:59</b></div><button class="ev-btn" data-action="sale">Ver ofertas</button></section>`;
  if(t==='cartnudge'){
