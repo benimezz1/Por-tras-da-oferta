@@ -37,6 +37,27 @@ async function loadAll(page) {
   }
 }
 
+test("surpresas só aparecem após 10 publicações e respeitam intervalo de 8", async ({ page }) => {
+  await enter(page);
+  await loadAll(page);
+  const items = await page.evaluate(() => {
+    const state = JSON.parse(localStorage.getItem("nofeed-simulator-v4:user:player-e2e") || "{}");
+    return (state.feedItems || []).filter(item => item.day === 1);
+  });
+  let postsSeen = 0;
+  let previousSurpriseAt = -1;
+  let surprises = 0;
+  for (const item of items) {
+    if (item.kind === "post" || item.kind === "ad") postsSeen += 1;
+    if (item.type !== "surprise") continue;
+    surprises += 1;
+    expect(postsSeen).toBeGreaterThanOrEqual(10);
+    if (previousSurpriseAt !== -1) expect(postsSeen - previousSurpriseAt).toBeGreaterThanOrEqual(8);
+    previousSurpriseAt = postsSeen;
+  }
+  expect(surprises).toBeGreaterThan(0);
+});
+
 test("o botão de retorno funciona por cima dos stories", async ({ page }) => {
   await enter(page);
   const home = page.locator("#exit-home-trigger");
