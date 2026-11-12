@@ -151,13 +151,17 @@ test("Gabi marca o jogador no quinto dia e gera uma nova celebração", async ({
 
 test("aviso de sono começa às 04h, repete às 05h e não aparece às 14h", async ({ page }) => {
   await enter(page);
+  // No reload, a pagina pode salvar o estado atual ao perder visibilidade.
+  // Restaurar o horario artificial antes do script do jogo elimina essa corrida.
+  await page.addInitScript(() => {
+    const override=sessionStorage.getItem("nofeed-e2e-clock-override");
+    if(override===null)return;
+    const key="nofeed-simulator-v4:user:player-e2e";
+    const state=JSON.parse(localStorage.getItem(key)||"{}");
+    if(state.started){state.clockViewed=Number(override);localStorage.setItem(key,JSON.stringify(state));}
+  });
   const setClock = async viewed => {
-    await page.evaluate(viewed => {
-      const key = "nofeed-simulator-v4:user:player-e2e";
-      const state = JSON.parse(localStorage.getItem(key) || "{}");
-      state.clockViewed = viewed;
-      localStorage.setItem(key, JSON.stringify(state));
-    }, viewed);
+    await page.evaluate(value=>sessionStorage.setItem("nofeed-e2e-clock-override",String(value)),viewed);
     await page.reload();
     await expect(page.locator(".phone")).toBeVisible();
   };
@@ -305,9 +309,9 @@ test("o último story encerra a sequência sem reabrir o feed", async ({ page })
   await page.locator('[data-action="story"]').last().click();
   const layer=page.locator(".story-layer");
   await expect(layer).toBeVisible();
-  const count=await layer.locator(".story-progress-segment").count();
-  for(let i=0;i<count;i++){
-   if(await layer.count()===0)break;
+  // Barras medem apenas os stories do autor; avancar por todos os autores
+  // ate fechar naturalmente, sem assumir que o ultimo avatar e o ultimo item.
+  for(let i=0;i<180&&await layer.count();i++){
    await layer.locator("[data-action='story-next']").click();
   }
   await expect(layer).toHaveCount(0);
