@@ -376,7 +376,6 @@
 .sleep-reminder-actions .sleep-now{background:#fff;color:#352441}
 .sleep-reminder-actions .sleep-continue{background:#ffffff18;border:1px solid #ffffff45;color:#fff}
 .sleep-reminder-actions button:focus-visible{outline:3px solid #e8d1ff;outline-offset:3px}
-.feed-mystery-note{padding:10px 16px;margin:8px 14px 16px;border-radius:13px;border:1px dashed #e8d4ed;background:#fef9ff;text-align:center;color:#927594;font-size:11px;line-height:1.5}
 @keyframes tag-heart-float{0%{opacity:0;transform:translateY(25px) rotate(-22deg) scale(.6)}22%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translateY(-430px) rotate(35deg) scale(1.35)}}
 @keyframes tag-reward-pop{0%{opacity:0;transform:translateY(36px) scale(.77)}65%{opacity:1;transform:translateY(-7px) scale(1.04)}100%{transform:translateY(0) scale(1)}}
 @keyframes tag-heart-beat{0%,100%{transform:scale(1)}50%{transform:scale(1.27)}}
@@ -424,7 +423,7 @@
 @media(max-width:440px){.reward-panel{padding:22px 19px 18px}.reward-medallion{width:92px;height:92px;margin:15px auto}.reward-panel h2{font-size:30px}.reward-amount{font-size:41px}}
 @media(prefers-reduced-motion:reduce){.reward-celebration,.reward-celebration::before,.reward-panel,.reward-medallion,.reward-amount,.reward-hud-pulse{animation:none!important}.reward-particle{display:none}.reward-continue{transition:none}}
 
-.late-hint{text-align:center;margin:8px 0 0}
+.reward-trigger{display:block;width:100%;height:4px;pointer-events:none;visibility:hidden}
 .mine-post .post-caption{padding:10px 14px}.mine-hint{padding:0 14px 12px;margin:0}
 .post-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .post-choice{display:flex;flex-direction:column;gap:6px;padding:0;border:1px solid #0001;border-radius:12px;overflow:hidden;background:none;cursor:pointer;text-align:left}
@@ -1028,24 +1027,31 @@ function algorithmResults(){
  </section>`;
 }
 
-/* Recompensas são aplicadas em onEventInserted; a animação nunca paga novamente. */
+/* Rolar ate o gatilho dispara o popup. Cada recompensa so abre uma vez. */
 function setupRewardCelebrations(){
- if(rewardObserver)rewardObserver.disconnect();
- const scroll=document.querySelector('#feed-scroll');
- if(!scroll||!('IntersectionObserver' in window))return;
- rewardObserver=new IntersectionObserver(entries=>{
-  for(const entry of entries){
-   const el=entry.target,id=el.dataset.surpriseId;
-   if(!entry.isIntersecting||entry.intersectionRatio<.55||!id||state.rewardSeen.includes(id))continue;
-   if(document.visibilityState!=='visible'||overlay||modal||story||!exitConfirm.hidden||document.querySelector('.reward-celebration,.tag-vibe-overlay,.sleep-reminder'))continue;
+ const scroll=document.querySelector('#feed-scroll');if(!scroll)return;
+ const check=()=>{
+  if(document.visibilityState!=='visible'||overlay||modal||story||!exitConfirm.hidden||
+     document.querySelector('.reward-celebration,.tag-vibe-overlay,.sleep-reminder,.feed-refresh-loading'))return;
+  const bounds=scroll.getBoundingClientRect(),cutoff=bounds.top+scroll.clientHeight*.72;
+  for(const el of scroll.querySelectorAll('.reward-trigger[data-surprise-id]')){
+   const id=el.dataset.surpriseId,r=el.getBoundingClientRect();
+   if(state.rewardSeen.includes(id)||r.top>cutoff||r.bottom<bounds.top-24)continue;
    const item=state.feedItems.find(x=>x.id===id&&x.type==='surprise');
-   if(!item||item.variant==='nothing')continue;
-   if(showRewardCelebration(item)){state.rewardSeen.push(id);save();rewardObserver.unobserve(el);break;}
+   if(!item)continue;
+   if(showRewardCelebration(item)){state.rewardSeen.push(id);save();break;}
   }
- },{root:scroll,threshold:[0,.55]});
- scroll.querySelectorAll('.ev-surprise[data-surprise-id]').forEach(el=>{
-  if(el.dataset.surpriseKind!=='nothing'&&!state.rewardSeen.includes(el.dataset.surpriseId))rewardObserver.observe(el);
- });
+ };
+ scroll.addEventListener('scroll',check,{passive:true});
+ requestAnimationFrame(check);
+}
+function claimSurprise(item){
+ /* Eventos anteriores nao possuem rewardPending: ja foram pagos na insercao. */
+ if(!item.rewardPending)return;
+ item.rewardPending=false;
+ if(item.variant==='coins')state.coins=Pressure.round(state.coins+(item.bonus||3));
+ else if(item.variant==='comment')Pressure.vibeChange(state.vibe,4,'surprise','A Bia comentou numa foto sua.');
+ else if(item.variant==='drop'&&item.product)addCoupon({code:'VOLTA-'+item.product.toUpperCase(),label:'15% OFF no '+productName(item.product),kind:'pct',amount:15,min:0,only:[item.product],expiresDay:item.day,source:'surprise'});
 }
 function showRewardCelebration(item){
  const phone=document.querySelector('.phone');
@@ -1069,6 +1075,7 @@ function showRewardCelebration(item){
   if(i%6===0)part.textContent='🪙';else if(i%5===0)part.textContent='✦';
   particles.appendChild(part);
  }
+ claimSurprise(item);
  popup.querySelector('.reward-symbol').textContent=coin?'🪙':coupon?'🎟️':'💬';
  popup.querySelector('#reward-dialog-title').textContent=coin?'Surpresa!':coupon?'Cupom liberado!':'Você foi notado!';
  popup.querySelector('.reward-amount').textContent=coin?'+'+money(item.bonus||3):coupon?'15% OFF':'+4 de vibe';
@@ -1087,8 +1094,8 @@ function closeRewardCelebration(){
  popup.classList.add('reward-leaving');
  setTimeout(()=>{
   const phone=popup.closest('.phone');popup.remove();phone?.classList.remove('reward-open');
-  const source=[...document.querySelectorAll('.ev-surprise[data-surprise-id]')].find(el=>el.dataset.surpriseId===id);
-  if(source&&!overlay&&!modal&&!story){source.tabIndex=-1;source.focus({preventScroll:true});}
+  const source=[...document.querySelectorAll('.reward-trigger[data-surprise-id]')].find(el=>el.dataset.surpriseId===id);
+  if(source&&!overlay&&!modal&&!story){document.querySelector('.shop-entry')?.focus({preventScroll:true});}
   if(coin){const hud=phone?.querySelector('.hud-coins');if(hud){hud.classList.add('reward-hud-pulse');setTimeout(()=>hud.classList.remove('reward-hud-pulse'),1150);}}
   if(phone?.isConnected)setupRewardCelebrations();
  },240);
@@ -1499,11 +1506,9 @@ function eventApplies(ev){
 function onEventInserted(item){
  const d=item.day;
  if(item.type==='surprise'){
-  if(item.variant!=='nothing')state.attention.surprises++;
-  if(item.variant==='coins'){item.bonus=3;state.coins=Pressure.round(state.coins+3);}
-  else if(item.variant==='comment')Pressure.vibeChange(state.vibe,4,'surprise','A Bia comentou numa foto sua.');
-  else if(item.variant==='drop')addCoupon({code:'VOLTA-'+item.product.toUpperCase(),label:'15% OFF no '+productName(item.product),kind:'pct',amount:15,min:0,only:[item.product],expiresDay:d,source:'surprise'});
-  expose('recompensa_variavel',item.variant==='nothing'?'Um card de “surpresa” apareceu vazio: “nada por aqui… continue rolando”.':'Uma surpresa apareceu no meio do feed, sem aviso, e fez você querer ver o próximo post.');
+  if(item.variant==='coins')item.bonus=3;
+  if(item.variant!=='nothing')item.rewardPending=true;
+  expose('recompensa_variavel',item.variant==='nothing'?'A tentativa de surpresa nao gerou bonus, sem aviso visivel no feed.':'Uma recompensa variable foi preparada para ser revelada somente durante a rolagem.');
   return;
  }
  if(item.type==='checkin'){
@@ -2312,13 +2317,10 @@ function mineCard(item){
  <button class="mine-comment-add" data-action="comments" data-post="${esc(p.id)}">Adicione um comentário...</button>
  </article>`;
 }
+/* Somente um ponto invisivel: premios surgem em popup animado. */
 function surpriseCard(item){
- const v=item.variant;
-  const attr=' data-surprise-id="'+esc(item.id)+'" data-surprise-kind="'+esc(v)+'"';
- if(v==='coins')return `<section class="ev ev-surprise"${attr}><span class="ev-emoji big">🎉</span><div><strong>Surpresa! +${money(item.bonus||3)} em moedas</strong><p>Continue rolando: pode ter mais.</p></div></section>`;
- if(v==='comment')return `<section class="ev ev-surprise"${attr}><span class="ev-emoji big">💬</span><div><strong>bia.m comentou numa foto sua</strong><p>“saudade dessa época 🥹”</p></div></section>`;
- if(v==='drop'&&item.product)return `<section class="ev ev-surprise"${attr}><span class="ev-emoji big">📉</span><div><strong>Baixou! ${esc(productName(item.product))} com 15% OFF</strong><p>Só pra você, só hoje.</p></div><button class="ev-btn" data-action="product" data-product="${item.product}" data-source="surprise">Ver</button></section>`;
- return `<section class="ev ev-surprise empty"${attr}><span class="ev-emoji big">🎁</span><div><strong>Nada por aqui… desta vez</strong><p>Continue rolando.</p></div></section>`;
+ if(item.variant==='nothing'||!['coins','comment','drop'].includes(item.variant))return '';
+ return '<span class="reward-trigger" data-surprise-id="'+esc(item.id)+'" aria-hidden="true"></span>';
 }
 function taggedCard(item){
  const base=TAGGED_EVENTS[item?.day];
@@ -2445,7 +2447,7 @@ function stageFeed(){
   else if(item.kind==='mine')card=mineCard(item);
   if(card&&item.recycled)card=sectionDivider('Sugerido para você','page')+card;
   else if(card&&item.fresh)card=sectionDivider('Novo')+card;
-  return card+(i===4?shopStrip():'')+(i===8?'<p class="feed-mystery-note">🎁 Nem toda rolagem traz um bônus. Algumas surpresas só aparecem de vez em quando…</p>':'');
+  return card+(i===4?shopStrip():'');
  }).join('');
  const ended=items.some(x=>x.kind==='night');
  const extraToday=Math.max(0,dayStreamCount()-(d.minQuota||7));
@@ -2461,7 +2463,7 @@ function stageFeed(){
  ${renderStories(storyPool())}
  <div class="recommendation-caption">${state.personalized?'Para você':'Publicações em ordem cronológica'}</div>
  <div class="feed-tools"><button class="secondary" data-action="refresh-feed">↻ Novidades</button><button class="secondary" data-action="new-post">＋ Postar</button></div>
- ${cards}${ended?'':`${extraToday>=15?'<p class="late-hint small muted">Você já viu bastante conteúdo. Pode encerrar o dia pelo menu ⋯.</p>':''}<button class="load-more" data-action="load-more">Mais publicações para você ↓</button>`}
+ ${cards}${ended?'':`<button class="load-more" data-action="load-more">Mais publicações para você ↓</button>`}
  </div><button class="scroll-cue" data-action="scroll-cue" aria-label="Role para baixo para continuar">Continue rolando ↓</button>
  <footer class="phone-footer"><button class="icon-button" data-action="feedtop" aria-label="Início do feed">${icon('home')}</button>
  <button class="icon-button" data-action="search" aria-label="Explorar lojas">${icon('search')}</button>
