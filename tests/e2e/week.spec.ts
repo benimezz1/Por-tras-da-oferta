@@ -37,7 +37,13 @@ const saved = (page: Page) => page.evaluate((k) => JSON.parse(localStorage.getIt
 // Antes da revelação o jogador estima quanto tempo jogou.
 async function passGuess(page: Page) {
   const guess = page.locator('[data-action="guess-time"]');
-  if (await guess.count()) await guess.click();
+  if (await guess.count()) {
+    await guess.click();
+    await expect(page.locator(".end-time-impact")).toBeVisible();
+    await page.locator('[data-action="time-reveal-next"]').click();
+    await expect(page.locator(".trip-impact")).toBeVisible();
+    await page.locator('[data-action="trip-details"]').click();
+  }
 }
 // O feed não acaba: o dia termina pelo menu ⋯, e na primeira tentativa do dia aparece o gancho de saída.
 async function endOfDay(page: Page) {
