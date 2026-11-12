@@ -3092,6 +3092,7 @@ async function sendCompletedC4(){
  showC4SyncStatus();
  try{
   const payload=ExportC4.build(state,{pressure:Pressure,recommender:Recommender});
+  if(state.endPrelude==='mcp'&&state.endStep!==3)payload.modoEnvio='viagem-sem-quiz';
   const result=await ContaC4.complete(payload);
   if(result?.usuario?.id!==playerId||result?.partida!==run)
    throw Error('O servidor não confirmou a conta e a partida corretas.');
