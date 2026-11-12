@@ -524,6 +524,7 @@
 .insta-comment-form textarea{flex:1;min-width:0;width:100%;max-height:85px;min-height:39px;border:1px solid #eee6eb;border-radius:20px;padding:10px 13px;font-size:12px;line-height:18px;resize:none;background:#fff}
 .insta-comment-submit{flex:0 0 auto;background:transparent;border:0;color:#008bfa;font-size:13px;font-weight:750;padding:9px 0;cursor:pointer}
 .insta-comment-submit:hover{color:#026cbe}
+.sheet-scroll .comment p,.social-comment-preview p,.mine-comment-preview p{white-space:pre-wrap;overflow-wrap:anywhere}
 .profile-gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
 .profile-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:16px}
 .profile-gallery-tile{padding:0;border:0;position:relative;aspect-ratio:1;background:#eee;overflow:hidden;border-radius:6px;cursor:pointer}
@@ -2658,7 +2659,8 @@ function drawModal(){
   <div class="own-comment-form insta-comment-form">
    <span class="comment-me-avatar" aria-hidden="true">🙂</span>
    <label class="comment-access-label" for="own-comment-input">Seu comentário</label>
-   <textarea id="own-comment-input" maxlength="180" rows="1" aria-label="Escreva um comentário" placeholder="Adicione um comentário..."></textarea>
+   <textarea id="own-comment-input" maxlength="180" rows="1" aria-label="Escreva um comentário" aria-keyshortcuts="Enter" aria-describedby="comment-keyboard-hint" placeholder="Adicione um comentário..."></textarea>
+    <span id="comment-keyboard-hint" class="comment-access-label">Enter publica. Shift + Enter quebra a linha.</span>
    <button class="insta-comment-submit" data-action="add-my-comment" data-post="${esc(v.post)}">Publicar</button>
    </div>`;
  }else if(v.type==='more'){
@@ -3482,6 +3484,14 @@ root.addEventListener('click',e=>{
  else if(a==='sources'){const node=document.querySelector('#sources');if(node){node.hidden=!node.hidden;if(!node.hidden)node.scrollIntoView({block:'nearest',behavior:'smooth'});}}
 });
 
+root.addEventListener('keydown',e=>{
+ // Enter publica o comentário; Shift+Enter mantém a quebra de linha nativa.
+ // Entrada por métodos de composição não deve enviar acidentalmente.
+ if(e.target?.id!=='own-comment-input'||modal?.type!=='comments'||e.key!=='Enter'
+    ||e.shiftKey||e.ctrlKey||e.altKey||e.metaKey||e.isComposing||e.keyCode===229)return;
+ e.preventDefault();
+ e.target.closest('.insta-comment-form')?.querySelector('[data-action="add-my-comment"]')?.click();
+});
 root.addEventListener('dblclick',e=>{
  const photo=e.target.closest('.feed-photo');
  if(!photo)return;
