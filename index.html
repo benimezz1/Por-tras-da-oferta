@@ -2803,15 +2803,53 @@ function showIntro(){
  </div></main>`;
 }
 function vibeChart(){
- const log=state.vibe.log.filter(p=>p.tag!=='tick'||p.x%2===0);
- if(log.length<2)return '';
- const W=600,H=190,maxX=Math.max(1,...log.map(p=>p.x));
- const lo=Math.max(0,Math.min(...log.map(p=>p.v))-8),hi=Math.min(100,Math.max(...log.map(p=>p.v))+8),span=Math.max(10,hi-lo);
- const X=x=>12+x/maxX*(W-24),Y=v=>H-14-(v-lo)/span*(H-28);
- const line=log.map(p=>`${X(p.x).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ');
- const marks=state.vibe.log.filter(p=>p.tag==='buy'||p.tag==='compare').map(p=>`<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="6" class="vm-${p.tag}"><title>${esc(p.label)}</title></circle>`).join('');
- return `<figure class="vibe-chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico da sua vibe ao longo da semana">${lo<50&&hi>50?`<line x1="12" x2="${W-12}" y1="${Y(50)}" y2="${Y(50)}" class="vm-mid"/>`:''}<polyline points="${line}" class="vm-line"/>${marks}</svg>
- <figcaption><span><i class="vm-buy-dot"></i> compra</span><span><i class="vm-compare-dot"></i> comparação com amigos</span></figcaption></figure>`;
+ const records=Array.isArray(state.vibe?.log)?state.vibe.log.filter(p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.v)):[];
+ if(!records.length)return '<p class="small muted">Ainda não há dados da evolução de vibe nesta partida.</p>';
+ const start=records[0],end=records[records.length-1];
+ const value=n=>Math.round(Math.max(0,Math.min(100,n)));
+ const fmt=n=>Number(n).toLocaleString('pt-BR',{maximumFractionDigits:1});
+ const min=Math.min(...records.map(p=>p.v)),maxX=Math.max(1,...records.map(p=>p.x));
+ const W=660,H=222,L=50,R=16,T=20,B=42;
+ const X=x=>L+(x/maxX)*(W-L-R),Y=v=>T+(100-Math.max(0,Math.min(100,v)))/100*(H-T-B);
+ const plot=records.filter((p,i)=>p.tag!=='tick'||i%2===0||i===records.length-1);
+ if(plot[plot.length-1]!==end)plot.push(end);
+ const points=plot.map(p=>X(p.x).toFixed(1)+','+Y(p.v).toFixed(1)).join(' ');
+ const guides=[100,75,50,25,0].map(v=>`<g><line class="vibe-grid-line" x1="${L}" y1="${Y(v)}" x2="${W-R}" y2="${Y(v)}"/><text class="vibe-axis-text" x="${L-10}" y="${Y(v)+4}" text-anchor="end">${v}</text></g>`).join('');
+ const dots=records.filter(p=>p.tag==='buy'||p.tag==='compare').map(p=>`<circle cx="${X(p.x)}" cy="${Y(p.v)}" r="5.5" class="${p.tag==='buy'?'vibe-point-buy':'vibe-point-compare'}"><title>${esc(p.label||'Evento')} · ${value(p.v)} de 100</title></circle>`).join('');
+ const concepts={
+  buy:['🛍️ Compra','A compra produz um aumento temporário da vibe no simulador.'],
+  compare:['👥 Comparação social','Comparar-se com amigos pode criar pressão para acompanhar o consumo do grupo.'],
+  social_tag:['💜 Marcação em foto','A atenção e o reconhecimento dos amigos podem funcionar como recompensas sociais.'],
+  night:['🌙 Descanso','O descanso e a rolagem prolongada alteram a pontuação fictícia.'],
+  afterglow:['⌛ Euforia passageira','A empolgação da compra diminui no modelo após outros conteúdos.'],
+  surprise:['🎁 Surpresa','A recompensa inesperada pode incentivar a busca pela próxima novidade.']
+ };
+ const events=records.map((p,i)=>({...p,delta:i?p.v-records[i-1].v:0})).filter(p=>concepts[p.tag]).slice(-5);
+ const rows=events.map(e=>{
+  const [title,lesson]=concepts[e.tag],delta=Math.round(e.delta*10)/10;
+  return `<tr><td data-label="O que aconteceu"><strong>${title}</strong><small>${esc(e.label||'Durante o feed')}</small></td><td data-label="Mudança simulada"><strong class="vibe-change ${delta>0?'up':delta<0?'down':'flat'}">${delta>0?'+':''}${fmt(delta)} pts</strong><small>Vibe: ${value(e.v)}/100</small></td><td data-label="Por que importa">${lesson}</td></tr>`;
+ }).join('');
+ return `<div class="vibe-explainer">
+  <p class="vibe-intro">No jogo, <strong>vibe é uma pontuação fictícia de 0 a 100</strong>. Ela representa efeitos simulados das interações — não mede seus sentimentos reais.</p>
+  <div class="vibe-metrics" role="group" aria-label="Resumo da vibe">
+   <div><span>Primeiro registro</span><strong>${value(start.v)}<small>/100</small></strong></div>
+   <div><span>Ponto mais baixo</span><strong>${value(min)}<small>/100</small></strong></div>
+   <div><span>Último registro</span><strong>${value(end.v)}<small>/100</small></strong></div>
+  </div>
+  <figure class="vibe-chart"><h4>Variação da vibe ao longo da partida</h4>
+   <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico com escala fixa de 0 a 100, do começo ao fim do feed">
+    ${guides}<polyline points="${points}" class="vm-line"/>${dots}
+    <text x="${L}" y="${H-12}" class="vibe-axis-text">Começo</text><text x="${W-R}" y="${H-12}" text-anchor="end" class="vibe-axis-text">Progresso da partida →</text>
+   </svg>
+   <figcaption><span><i class="vm-vibe-dot"></i> Pontuação</span><span><i class="vm-buy-dot"></i> Compra</span><span><i class="vm-compare-dot"></i> Comparação social</span></figcaption>
+  </figure>
+  <section class="vibe-events" aria-labelledby="vibe-events-title">
+   <h4 id="vibe-events-title">O que provocou as mudanças?</h4>
+   <p class="vibe-help">Últimos acontecimentos com efeito direto na pontuação. A diferença é calculada em relação ao registro imediatamente anterior.</p>
+   ${events.length?`<table class="vibe-events-table"><thead><tr><th>O que aconteceu</th><th>Mudança simulada</th><th>Por que importa</th></tr></thead><tbody>${rows}</tbody></table>`:'<p class="vibe-help">Não houve acontecimentos destacados de compras ou comparação nesta partida; a rolagem também altera a pontuação.</p>'}
+  </section>
+  <div class="vibe-lesson"><strong>📚 Aprenda a reconhecer o ciclo</strong><p><b>1.</b> Um post ou oferta provoca uma reação. <b>2.</b> O jogo altera a vibe. <b>3.</b> O algoritmo pode apresentar novas ofertas de acordo com essa pontuação. <strong>É uma simulação educativa, não uma avaliação psicológica.</strong></p></div>
+ </div>`;
 }
 function endStep0(s){
  const pix=state.purchases.filter(p=>p.method==='pix').reduce((a,p)=>a+p.cost,0);
@@ -2874,8 +2912,8 @@ function endStep1(){
  return `<div class="eyebrow" style="margin-top:23px">POR TRÁS DA OFERTA</div>
  <h1>Nada ali era por acaso.</h1>
  <p class="end-lead">Em cinco dias você recebeu <b>${total}</b> estímulos de <b>${prof.filter(p=>p.exposed).length}</b> estratégias psicológicas do marketing digital. ${fell?`<b>${fell}</b> delas levaram você a agir.`:'Nenhuma levou você a comprar — mas todas estavam lá, o tempo todo.'} Elas não obrigam ninguém a comprar; elas tornam mais difícil parar para pensar (Iyer et al., 2020).</p>
- <div class="end-box"><h3>Sua vibe durante a semana</h3>${vibeChart()}
- <p class="small muted">${state.purchases.length?'Cada compra levantou sua vibe — e poucos posts depois ela já tinha voltado a cair.':'Você não comprou nada, e a vibe oscilou do mesmo jeito: compras teriam dado só um pico curto.'} As fotos dos amigos com coisas novas derrubaram a vibe. Esse efeito passageiro (adaptação hedônica) é o que a psicóloga entrevistada descreve: comprar para aliviar ansiedade, tédio ou tristeza funciona por pouco tempo. O app usou os momentos de vibe baixa para mostrar ofertas.</p></div>
+ <div class="end-box vibe-education-card"><div class="eyebrow">ENTENDA O QUE O FEED FEZ</div><h3>Por que sua vibe subiu e caiu?</h3>${vibeChart()}
+ <p class="vibe-conclusion">No jogo, compras podem produzir picos momentâneos, enquanto comparações com amigos podem reduzir a pontuação. A <strong>adaptação hedônica</strong> descreve como a satisfação com uma novidade tende a diminuir ao longo do tempo. O algoritmo também usa a vibe simulada para selecionar ofertas. Isso não significa que ele conheça suas emoções reais.</p></div>
  <h2 class="strat-title">As 10 estratégias, uma por uma</h2>
  <div class="strat-list">${cards}</div>
  <button class="primary end-next" data-action="end-next">Teste: você reconhece as estratégias? →</button>`;
