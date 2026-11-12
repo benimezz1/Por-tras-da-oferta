@@ -2930,6 +2930,85 @@ function endStep3(s){
  <div class="end-buttons"><button class="primary" data-action="restart">Jogar novamente ↗</button><button class="secondary" data-action="switch-player">Outro jogador / sair</button><button class="secondary" data-action="sources">Base da pesquisa</button></div>
  <div id="sources" hidden class="end-box tiny-sources"><strong>Referências do projeto</strong><p>Bandyopadhyay et al. (2021) · Bauman (2008) · De Jans et al. (2020) · Dinh e Lee (2024) · Feng et al. (2024) · Huang et al. (2025) · Iyer et al. (2020) · NIC.br, TIC Kids Online Brasil 2025 (2026) · OCDE (2022), dark commercial patterns · Setyani et al. (2019) · Shamim, Azam e Islam (2024) · Van der Bend et al. (2023). Complementares: Mathur et al. (2019), Dark Patterns at Scale; Prelec e Simester (2001), efeito do cartão de crédito. Entrevista com a psicóloga Ana Carolina Barros Mendonça Cortez Penna.</p><p>Marcas, pessoas e valores são fictícios. O ranking imita princípios gerais conhecidos, sem reproduzir modelos proprietários.</p></div>`;
 }
+
+function readableDuration(totalSeconds){
+ const seconds=Math.max(0,Math.round(Number(totalSeconds)||0)),hours=Math.floor(seconds/3600),minutes=Math.floor(seconds%3600/60),rest=seconds%60;
+ return hours?hours+'h '+String(minutes).padStart(2,'0')+'min '+String(rest).padStart(2,'0')+'s'
+  :minutes+'min '+String(rest).padStart(2,'0')+'s';
+}
+function attentionTimeFeedback(){
+ const a=state.attention,actual=Math.max(0,Math.round(a.realMs/1000)),estimated=Math.max(1,Number(a.guess)||1)*60;
+ const diff=actual-estimated,abs=Math.abs(diff);
+ let title,explanation;
+ if(abs<=60){
+  title='Você percebeu bem o tempo. ⏱️';
+  explanation='Sua estimativa ficou próxima do tempo registrado. Mesmo assim, a sucessão de posts, mensagens e novidades pode dificultar perceber quando parar.';
+ }else if(diff>0&&actual>=estimated*2){
+  title='O tempo passou mais rápido do que parecia. ⏳';
+  explanation='Você ficou pelo menos o dobro do tempo que imaginava. Quando não há uma parada natural no feed, é fácil continuar vendo só mais uma publicação.';
+ }else if(diff>0){
+  title='Você ficou mais do que imaginava. 🌀';
+  explanation='O tempo registrado foi maior que sua estimativa. Conteúdos novos, notificações e ofertas podem dar a sensação de que sempre falta ver alguma coisa.';
+ }else{
+  title='Você superestimou o tempo. 👀';
+  explanation='Você percebeu a sessão como mais longa do que ela realmente foi. O ritmo das interações influencia a sensação de tempo; duração percebida e duração registrada nem sempre coincidem.';
+ }
+ const hints=[];
+ if(a.extraItems>=8)hints.push('Você consumiu '+a.extraItems+' conteúdos extras além das primeiras publicações do dia.');
+ if(a.refreshes>=2)hints.push('Atualizações frequentes trouxeram novas recomendações.');
+ if(a.exitHooks>0)hints.push('Avisos sobre amigos apareceram quando você considerou sair.');
+ if(a.surprises>0)hints.push('Recompensas variáveis deram novos motivos para continuar.');
+ if(state.myPosts.length||state.myStories.length)hints.push('Seus próprios posts e stories também incentivaram novas visitas ao feed.');
+ if(a.lateNights>0)hints.push('Você continuou rolando depois das 23h em '+a.lateNights+' noite(s) da simulação.');
+ if(!hints.length)hints.push('Mesmo sem muitas interações, o fluxo contínuo de conteúdo pode prender a atenção.');
+ return {title,explanation,observations:hints.slice(0,2),actual,estimated,abs,diff};
+}
+function timeRevealPage(){
+ const feedback=attentionTimeFeedback();
+ return \`<main class="end end-impact end-time-impact"><div class="end-impact-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
+  <section class="end-impact-card" aria-labelledby="time-reveal-title">
+   <div class="end-impact-eyebrow">A REVELAÇÃO DO SEU TEMPO</div>
+   <h1 id="time-reveal-title">\${esc(feedback.title)}</h1>
+   <div class="end-time-badge"><strong id="time-reveal-clock" data-seconds="\${feedback.actual}">\${readableDuration(feedback.actual)}</strong></div>
+   <div class="end-time-comparison">
+    <div class="end-time-item"><span>Quanto você achou</span><strong>\${state.attention.guess} min</strong></div>
+    <div class="end-time-item"><span>Quanto tempo ficou</span><strong>\${readableDuration(feedback.actual)}</strong></div>
+   </div>
+   <p class="end-impact-explanation">\${esc(feedback.explanation)}</p>
+   <p class="small muted">\${esc(feedback.observations.join(' '))}</p>
+   <p class="small muted">Tempo real registrado com a aba do jogo visível; não é o horário fictício da história.</p>
+   <div class="end-impact-actions"><button class="primary" data-action="time-reveal-next">Ver o que aconteceu →</button></div>
+  </section></div></main>\`;
+}
+function tripRevealPage(){
+ const outcome=Pressure.settle(state),went=outcome.tripPaid,sent=state.c4SyncedRunId===state.runId;
+ const confetti=Array.from({length:36},(_,i)=>'<i style="--cx:'+(3+(i*41)%94)+'%;--cd:'+(i%9*.065)+'s;--cc:'+['#ec538a','#ffc65c','#8d6be3','#65c6ac'][i%4]+'"></i>').join('');
+ const title=went?'Você conseguiu embarcar! 🚌':'O ônibus partiu sem você.';
+ const explanation=went
+  ?'Você manteve dinheiro suficiente para pagar os R$ 400 da viagem. Isso mostra o valor de proteger uma meta antes de fazer compras por impulso.'
+  :'Faltaram '+money(outcome.missing)+' para pagar os R$ 400 da viagem. Algumas decisões de compra e cobranças futuras alteraram o dinheiro disponível na hora de embarcar.';
+ const status=sent?'✓ Percurso recebido pelo MCP.':'';
+ return \`<main class="end end-impact trip-impact \${went?'success':'missed'}"><div class="end-impact-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
+ <section class="end-impact-card" aria-labelledby="trip-reveal-title">
+  <div class="trip-confetti" aria-hidden="true">\${confetti}</div>
+  <div class="end-impact-eyebrow">SÁBADO · O RESULTADO DA VIAGEM</div>
+  <div class="trip-icon" aria-hidden="true">\${went?'🚌🎉':'🚌💔'}</div>
+  <h1 id="trip-reveal-title">\${esc(title)}</h1>
+  <p class="end-impact-explanation">\${esc(explanation)}</p>
+  <div class="end-time-comparison">
+   <div class="end-time-item"><span>Meta da viagem</span><strong>R$ 400</strong></div>
+   <div class="end-time-item"><span>Dinheiro disponível</span><strong>\${money(outcome.finalBalance)}</strong></div>
+  </div>
+  <div class="end-impact-actions">
+   <button class="primary" data-action="trip-details">Ver detalhes e entender minhas escolhas →</button>
+   <button class="secondary" data-action="trip-mcp" \${syncInFlight||sent?'disabled':''}>\${sent?'✓ Enviado ao MCP':'Apenas carregar para o MCP'}</button>
+   <button class="subtle-quit" data-action="trip-exit">Sair sem salvar</button>
+  </div>
+  <p id="trip-mcp-status" class="trip-mcp-status" role="status">\${esc(syncMessage||status)}</p>
+  <p class="small muted">O envio ao MCP exige conexão e confirmação do servidor. Sair sem salvar não envia sua partida e descarta os dados locais desta partida.</p>
+ </section></div></main>\`;
+}
+
 function guessPage(){
  return `<main class="end"><div class="end-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
  ${state.flags.timeLimit?'<div class="end-box"><h3>⏹ Limite de tempo da experiência</h3><p>A partida foi encerrada automaticamente após atingir o tempo máximo da simulação.</p></div>':''}
@@ -2953,7 +3032,9 @@ function attentionBox(){
 }
 function renderEnd(){
  exitHomeButton.hidden=false;
- if(state.attention.guess==null){root.innerHTML=guessPage();window.scrollTo(0,0);return;}
+ if(state.attention.guess==null||state.endPrelude==='guess'){root.innerHTML=guessPage();window.scrollTo(0,0);return;}
+ if(state.endPrelude==='time'){root.innerHTML=timeRevealPage();window.scrollTo(0,0);return;}
+ if(state.endPrelude==='trip'||state.endPrelude==='mcp'){root.innerHTML=tripRevealPage();window.scrollTo(0,0);return;}
  const s=Pressure.settle(state),step=Math.max(0,Math.min(3,state.endStep||0));
  const body=[endStep0,endStep1,endStep2,endStep3][step](s);
  root.innerHTML=`<main class="end end-step-${step}"><div class="end-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
@@ -2974,7 +3055,7 @@ function showC4SyncStatus(){
  if(retry){retry.hidden=sent||syncInFlight;retry.textContent=ContaC4.account()?'Tentar enviar novamente':'Entrar novamente para enviar';}
 }
 async function sendCompletedC4(){
- if(!identity||!state.finished||state.endStep!==3||state.c4SyncedRunId===state.runId||syncInFlight)return;
+ if(!identity||!state.finished||(state.endStep!==3&&state.endPrelude!=='mcp')||state.c4SyncedRunId===state.runId||syncInFlight)return;
  const playerId=identity.id,run=state.runId;
  syncInFlight=true;syncMessage='';
  showC4SyncStatus();
@@ -2991,7 +3072,7 @@ async function sendCompletedC4(){
  }catch(error){
   if(identity?.id===playerId&&state.runId===run)
    syncMessage=(error?.message||'Não foi possível enviar a partida.')+(ContaC4.account()?' Tente novamente;':' Entre novamente com seu apelido;')+' seu progresso continua salvo neste dispositivo.';
- }finally{syncInFlight=false;showC4SyncStatus();}
+ }finally{syncInFlight=false;showC4SyncStatus();const status=root.querySelector('#trip-mcp-status');if(status)status.textContent=state.c4SyncedRunId===state.runId?'✓ Percurso recebido pelo MCP.':syncMessage||'O servidor não confirmou o envio.';const btn=root.querySelector('[data-action="trip-mcp"]');if(btn){const success=state.c4SyncedRunId===state.runId;btn.disabled=success;btn.textContent=success?'✓ Enviado ao MCP':'Tentar carregar novamente para o MCP';}}
 }
 function render(){if(!identity){renderAccountGate();return;}if(!state.started){renderHome();return;}if(state.finished){renderEnd();return;}renderGame();}
 
