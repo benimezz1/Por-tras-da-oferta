@@ -461,7 +461,8 @@
 .trip-impact .end-impact-card{background:linear-gradient(140deg,#fffdf7,#fff0f3 82%,#eae3ff)}
 .trip-impact.missed .end-impact-card{background:linear-gradient(140deg,#fff,#f3eef5 80%)}
 .trip-impact .end-impact-card h1{font-size:clamp(38px,7vw,60px)}
-.trip-confetti{position:absolute;inset:0;pointer-events:none;z-index:-1}
+.trip-confetti{position:absolute;inset:0;pointer-events:none;z-index:0}
+.trip-impact .end-impact-card>*:not(.trip-confetti){position:relative;z-index:1}
 .trip-confetti i{position:absolute;left:var(--cx);top:-20px;width:8px;height:15px;border-radius:2px;background:var(--cc);opacity:0;animation:trip-confetti-fall 2.3s var(--cd) ease-in-out both}
 .trip-impact.missed .trip-confetti{display:none}
 .trip-mcp-status{min-height:20px;font-size:13px;font-weight:750;line-height:1.5;color:#7c527d;margin:12px auto}
@@ -1105,6 +1106,7 @@ function claimSurprise(item){
  /* Eventos anteriores nao possuem rewardPending: ja foram pagos na insercao. */
  if(!item.rewardPending)return;
  item.rewardPending=false;
+ state.attention.surprises=(state.attention.surprises||0)+1;
  if(item.variant==='coins')state.coins=Pressure.round(state.coins+(item.bonus||3));
  else if(item.variant==='comment')Pressure.vibeChange(state.vibe,4,'surprise','A Bia comentou numa foto sua.');
  else if(item.variant==='drop'&&item.product)addCoupon({code:'VOLTA-'+item.product.toUpperCase(),label:'15% OFF no '+productName(item.product),kind:'pct',amount:15,min:0,only:[item.product],expiresDay:item.day,source:'surprise'});
@@ -2852,8 +2854,9 @@ function vibeChart(){
  </div>`;
 }
 function endStep0(s){
- const pix=state.purchases.filter(p=>p.method==='pix').reduce((a,p)=>a+p.cost,0);
  const fixes=state.fixes.reduce((a,f)=>a+f.cost,0);
+ // Valor realmente debitado no Pix, incluindo cupons, taxas e descontos.
+ const pix=Math.max(0,Pressure.round(620-state.wallet-fixes));
  const rows=(label,value,cls='')=>`<div class="ex-row ${cls}"><span>${label}</span><b>${value}</b></div>`;
  const purchases=state.purchases.map(p=>`<div class="event-row"><span>${p.method==='trial'?'🎧':'🛍️'}</span><div><strong>${esc(p.name||productName(p.id))}</strong><p>${p.method==='pix'?'Pix':p.method==='trial'?'Teste grátis → assinatura':p.method==='card10'?'Pulso Pay 10x':p.method==='card3'?'Pulso Pay 3x':'Pulso Pay'}${p.protection?' · com Proteção Pulso+':''}</p></div><strong>${money(p.cost)}</strong></div>`).join('');
  const photo=mediaPhoto('post_p10','art-photo',s.tripPaid?'A turma reunida na viagem':'A viagem vista de longe, pelos stories');
