@@ -934,12 +934,12 @@ function setupFeedAssist(){
  const sync=()=>{
   const remaining=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop;
   if(cue)cue.classList.toggle('hidden',scroller.scrollTop>88||remaining<120);
-  if(scroller.scrollTop<120||remaining>190||loadPending||overlay||story||modal||!exitConfirm.hidden)return;
+  if(scroller.scrollTop<120||remaining>190||loadPending||overlay||story||modal||!exitConfirm.hidden||document.querySelector('.sleep-reminder,.tag-vibe-overlay'))return;
   if(dayItems().some(x=>x.kind==='night')||state.wake)return;
   loadPending=true;
   requestAnimationFrame(()=>{
    loadPending=false;
-   if(!document.contains(scroller)||overlay||story||modal||!exitConfirm.hidden)return;
+   if(!document.contains(scroller)||overlay||story||modal||!exitConfirm.hidden||document.querySelector('.sleep-reminder,.tag-vibe-overlay'))return;
    if(appendNext())renderGame(true);
   });
  };
@@ -962,6 +962,15 @@ function renderGame(keepScroll=false){
  if(keepScroll){const n=document.querySelector('#feed-scroll');if(n)n.scrollTop=y;}
  setupFeedAssist();setupFeedExposure();setupRewardCelebrations();
  if(overlay)drawOverlay();if(modal)drawModal();if(story)drawStory();
+ // Assim que abrir o feed com uma foto marcada, mostrar o bônus social uma vez.
+ if(!overlay&&!modal&&!story&&!state.wake){
+  const tagged=TAGGED_EVENTS[state.day],phone=document.querySelector('.phone');
+  if(tagged&&!state.taggedVibeSeen.includes(tagged.id))
+   setTimeout(()=>{
+    if(phone?.isConnected&&!state.wake&&!overlay&&!modal&&!story&&document.visibilityState==='visible'&&!document.querySelector('.reward-celebration,.sleep-reminder,.tag-vibe-overlay'))showTaggedVibeCelebration(tagged);
+   },420);
+  maybeSleepReminder();
+ }
  if(!bannerTimer&&bannerQueue.length)setTimeout(nextBanner,500);
  tick();
 }
@@ -1161,7 +1170,7 @@ function setupFeedExposure() {
       }
       // Relogio simulado avanca quando um post entra em cena, mesmo com rolagem rapida.
       // O algoritmo ainda aguarda permanencia antes de registrar interesse.
-      if(document.visibilityState==='visible'&&!overlay&&!story&&!modal&&exitConfirm.hidden)
+      if(document.visibilityState==='visible'&&!overlay&&!story&&!modal&&exitConfirm.hidden&&!document.querySelector('.sleep-reminder,.tag-vibe-overlay'))
         advanceClockForVisible(id);
       if (impressionTimers.has(el)) continue;
       impressionTimers.set(el,setTimeout(() => {
@@ -1425,6 +1434,7 @@ function advanceClockForVisible(id){
  state.clockSeen.push(key);state.clockViewed=(state.clockViewed||0)+1;save();
  const label=document.querySelector('.sb-time');if(label)label.innerHTML=`${clockDayLabel()} · ${clockLabel()}${afterMidnight()?' <small class="overnight-day">virou o dia</small>':''}`;
  const sleep=document.querySelector('.day-sleep-control');if(sleep){sleep.title=afterMidnight()?'Dormir até hoje, às 19h':'Dormir até amanhã, às 19h';const caption=sleep.querySelector('small');if(caption)caption.textContent=afterMidnight()?'hoje · 19h':'amanhã · 19h';}
+ maybeSleepReminder();
 }
 function expose(key,moment){if(Pressure.expose(state.pressure,key,moment))save();}
 function influenced(keys,action){for(const k of [...new Set(keys)])Pressure.influence(state.pressure,k,typeof action==='function'?action(k):action);save();}
@@ -3012,6 +3022,10 @@ root.addEventListener('click',e=>{
   return;
  }
  const a=el.dataset.action,id=el.dataset.product,post=el.dataset.post;
+ if(a==='tag-vibe-continue'){closeTaggedVibeCelebration(false);return;}
+ if(a==='tag-vibe-view'){closeTaggedVibeCelebration(true);return;}
+ if(a==='sleep-reminder-continue'){closeSleepReminder();return;}
+ if(a==='sleep-reminder-sleep'){closeSleepReminder();sleep();return;}
  if(a==='reward-close'){closeRewardCelebration();return;}
  if(a==='reward-product'){closeRewardCelebration();openProduct(id,'surprise');return;}
  if(a==='open-photo'&&performance.now()<suppressPhotoOpenUntil)return;
@@ -3202,6 +3216,18 @@ window.addEventListener('keydown',e=>{
    if(e.shiftKey&&document.activeElement===exitCancel){e.preventDefault();exitAccept.focus();}
    else if(!e.shiftKey&&document.activeElement===exitAccept){e.preventDefault();exitCancel.focus();}
   }
+  return;
+ }
+ const tagPopup=document.querySelector('.tag-vibe-overlay');
+ if(tagPopup){
+  if(e.key==='Escape'){e.preventDefault();closeTaggedVibeCelebration(false);}
+  if(e.key==='Tab'){const buttons=[...tagPopup.querySelectorAll('button')],i=buttons.indexOf(document.activeElement);if(i>=0){e.preventDefault();buttons[(i+(e.shiftKey?buttons.length-1:1))%buttons.length].focus();}}
+  return;
+ }
+ const sleepPopup=document.querySelector('.sleep-reminder');
+ if(sleepPopup){
+  if(e.key==='Escape'){e.preventDefault();closeSleepReminder();}
+  if(e.key==='Tab'){const buttons=[...sleepPopup.querySelectorAll('button')],i=buttons.indexOf(document.activeElement);if(i>=0){e.preventDefault();buttons[(i+(e.shiftKey?buttons.length-1:1))%buttons.length].focus();}}
   return;
  }
  if(document.querySelector('.reward-celebration')){
