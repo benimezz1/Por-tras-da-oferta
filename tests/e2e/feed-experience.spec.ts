@@ -42,6 +42,67 @@ async function loadAll(page) {
   }
 }
 
+test("contas distintas recebem fotografias iniciais diferentes e a recarga conserva o feed", async ({ page }) => {
+  await enter(page);
+  const signature=async()=>page.locator(".post:not(.ad-post):not(.mine-post)").evaluateAll(cards=>
+    cards.slice(0,4).map(c=>({id:c.id,photo:c.querySelector(".art-photo")?.getAttribute("src")})));
+  const first=await signature();
+  expect(first).toHaveLength(4);
+  expect(first.every(x=>x.photo)).toBe(true);
+  await page.reload();
+  await expect(page.locator(".phone")).toBeVisible();
+  expect(await signature()).toEqual(first);
+
+  await page.locator("#exit-home-trigger").click();
+  await page.locator("#exit-accept").click();
+  await expect(page.locator(".home")).toBeVisible();
+  await page.locator('[data-action="switch-player"]').click();
+  await expect(page.locator(".account-screen")).toBeVisible();
+  await page.locator('input[name="username"]').fill("outro_jogador");
+  await page.locator('input[name="password"]').fill("senha-outro-12345");
+  await page.locator('#c4-account-form button[value="signup"]').click();
+  await expect(page.locator(".home")).toBeVisible();
+  await page.locator('[data-action="start"]').click();
+  await page.locator('[data-action="intro-next"]').click();
+  await page.locator('[data-action="open-day"]').click();
+  await expect(page.locator(".tag-vibe-overlay")).toBeVisible();
+  await page.locator('[data-action="tag-vibe-continue"]').click();
+  const second=await signature();
+  expect(second).toHaveLength(4);
+  expect(second.map(x=>x.id)).not.toEqual(first.map(x=>x.id));
+});
+
+test("curtir foto da biblioteca aumenta o ranking visual sem mover posts anteriores", async ({ page }) => {
+  await enter(page);
+  for (let attempt=0;attempt<10&&!await page.locator('.post[id^="v5-post-"]').count();attempt++) {
+    await page.locator(".load-more").evaluate(el=>el.click());
+  }
+  const card=page.locator('.post[id^="v5-post-"]').first();
+  await expect(card).toBeVisible();
+  await card.scrollIntoViewIfNeeded();
+  const id=await card.getAttribute("id");
+  const calculate=async()=>page.evaluate(likedId=>{
+    const w=window as any;
+    const saved=JSON.parse(localStorage.getItem("nofeed-simulator-v4:user:player-e2e")||"{}");
+    const posts=w.NoFeedLibraryV5.posts;
+    const liked=posts.find(p=>p.id===likedId);
+    const target=posts.find(p=>p.day===liked.day&&p.metadata.category===liked.metadata.category&&p.id!==likedId);
+    if(!target)return null;
+    const postIndex=Object.fromEntries(posts.map(p=>[p.id,p]));
+    const opts={day:liked.day,phase:saved.phase,seed:"teste-v6",profile:saved.algorithm,
+       postIndex,personalized:true,visualSignals:w.NoFeedFeedRanker.compileSignals(saved.algorithm,{postIndex,phase:saved.phase})};
+    return {score:w.NoFeedFeedRanker.scorePost(target,opts).score,
+      ids:saved.feedItems.map(item=>item.id),events:saved.algorithm.events.length};
+  },id);
+  const before=await calculate();
+  expect(before).not.toBeNull();
+  await card.locator('[data-action="like"]').first().click();
+  const after=await calculate();
+  expect(after.score).toBeGreaterThan(before.score+1);
+  expect(after.ids).toEqual(before.ids);
+  expect(after.events).toBeGreaterThan(before.events);
+});
+
 test("foto marcada abre card distinto e concede vibe apenas uma vez", async ({ page }) => {
   await enter(page, true);
   const card = page.locator(".tag-vibe-overlay");
