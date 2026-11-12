@@ -2965,20 +2965,20 @@ function attentionTimeFeedback(){
 }
 function timeRevealPage(){
  const feedback=attentionTimeFeedback();
- return \`<main class="end end-impact end-time-impact"><div class="end-impact-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
+ return `<main class="end end-impact end-time-impact"><div class="end-impact-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
   <section class="end-impact-card" aria-labelledby="time-reveal-title">
    <div class="end-impact-eyebrow">A REVELAÇÃO DO SEU TEMPO</div>
-   <h1 id="time-reveal-title">\${esc(feedback.title)}</h1>
-   <div class="end-time-badge"><strong id="time-reveal-clock" data-seconds="\${feedback.actual}">\${readableDuration(feedback.actual)}</strong></div>
+   <h1 id="time-reveal-title">${esc(feedback.title)}</h1>
+   <div class="end-time-badge"><strong id="time-reveal-clock" data-seconds="${feedback.actual}">${readableDuration(feedback.actual)}</strong></div>
    <div class="end-time-comparison">
-    <div class="end-time-item"><span>Quanto você achou</span><strong>\${state.attention.guess} min</strong></div>
-    <div class="end-time-item"><span>Quanto tempo ficou</span><strong>\${readableDuration(feedback.actual)}</strong></div>
+    <div class="end-time-item"><span>Quanto você achou</span><strong>${state.attention.guess} min</strong></div>
+    <div class="end-time-item"><span>Quanto tempo ficou</span><strong>${readableDuration(feedback.actual)}</strong></div>
    </div>
-   <p class="end-impact-explanation">\${esc(feedback.explanation)}</p>
-   <p class="small muted">\${esc(feedback.observations.join(' '))}</p>
+   <p class="end-impact-explanation">${esc(feedback.explanation)}</p>
+   <p class="small muted">${esc(feedback.observations.join(' '))}</p>
    <p class="small muted">Tempo real registrado com a aba do jogo visível; não é o horário fictício da história.</p>
    <div class="end-impact-actions"><button class="primary" data-action="time-reveal-next">Ver o que aconteceu →</button></div>
-  </section></div></main>\`;
+  </section></div></main>`;
 }
 function tripRevealPage(){
  const outcome=Pressure.settle(state),went=outcome.tripPaid,sent=state.c4SyncedRunId===state.runId;
@@ -2988,25 +2988,25 @@ function tripRevealPage(){
   ?'Você manteve dinheiro suficiente para pagar os R$ 400 da viagem. Isso mostra o valor de proteger uma meta antes de fazer compras por impulso.'
   :'Faltaram '+money(outcome.missing)+' para pagar os R$ 400 da viagem. Algumas decisões de compra e cobranças futuras alteraram o dinheiro disponível na hora de embarcar.';
  const status=sent?'✓ Percurso recebido pelo MCP.':'';
- return \`<main class="end end-impact trip-impact \${went?'success':'missed'}"><div class="end-impact-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
+ return `<main class="end end-impact trip-impact ${went?'success':'missed'}"><div class="end-impact-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
  <section class="end-impact-card" aria-labelledby="trip-reveal-title">
-  <div class="trip-confetti" aria-hidden="true">\${confetti}</div>
+  <div class="trip-confetti" aria-hidden="true">${confetti}</div>
   <div class="end-impact-eyebrow">SÁBADO · O RESULTADO DA VIAGEM</div>
-  <div class="trip-icon" aria-hidden="true">\${went?'🚌🎉':'🚌💔'}</div>
-  <h1 id="trip-reveal-title">\${esc(title)}</h1>
-  <p class="end-impact-explanation">\${esc(explanation)}</p>
+  <div class="trip-icon" aria-hidden="true">${went?'🚌🎉':'🚌💔'}</div>
+  <h1 id="trip-reveal-title">${esc(title)}</h1>
+  <p class="end-impact-explanation">${esc(explanation)}</p>
   <div class="end-time-comparison">
    <div class="end-time-item"><span>Meta da viagem</span><strong>R$ 400</strong></div>
-   <div class="end-time-item"><span>Dinheiro disponível</span><strong>\${money(outcome.finalBalance)}</strong></div>
+   <div class="end-time-item"><span>Dinheiro disponível</span><strong>${money(outcome.finalBalance)}</strong></div>
   </div>
   <div class="end-impact-actions">
    <button class="primary" data-action="trip-details">Ver detalhes e entender minhas escolhas →</button>
-   <button class="secondary" data-action="trip-mcp" \${syncInFlight||sent?'disabled':''}>\${sent?'✓ Enviado ao MCP':'Apenas carregar para o MCP'}</button>
+   <button class="secondary" data-action="trip-mcp" ${syncInFlight||sent?'disabled':''}>${sent?'✓ Enviado ao MCP':'Apenas carregar para o MCP'}</button>
    <button class="subtle-quit" data-action="trip-exit">Sair sem salvar</button>
   </div>
-  <p id="trip-mcp-status" class="trip-mcp-status" role="status">\${esc(syncMessage||status)}</p>
+  <p id="trip-mcp-status" class="trip-mcp-status" role="status">${esc(syncMessage||status)}</p>
   <p class="small muted">O envio ao MCP exige conexão e confirmação do servidor. Sair sem salvar não envia sua partida e descarta os dados locais desta partida.</p>
- </section></div></main>\`;
+ </section></div></main>`;
 }
 
 function guessPage(){
