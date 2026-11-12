@@ -1070,6 +1070,81 @@ function closeRewardCelebration(){
  },240);
 }
 
+
+/* Validação social: foto marcada e aumento de vibe uma vez por publicação. */
+function showTaggedVibeCelebration(tagged){
+ const phone=document.querySelector('.phone');
+ if(!phone||!tagged||state.taggedVibeSeen.includes(tagged.id)||document.querySelector('.tag-vibe-overlay,.reward-celebration,.sleep-reminder'))return false;
+ const previous=Number(state.vibe.value)||0;
+ Pressure.vibeChange(state.vibe,8,'social_tag','Você foi marcado na foto de '+tagged.who+'.');
+ const earned=Math.max(0,Math.round((Number(state.vibe.value)||0)-previous));
+ state.taggedVibeSeen.push(tagged.id);
+ expose('validacao_social','Ao abrir o feed, a marcação numa foto de '+tagged.who+' gerou '+earned+' pontos de vibe.');
+ save();pulseVibe(earned);
+ const photo=Variation.taggedPhoto(tagged.day,state.runId)||tagged.photo;
+ const popup=document.createElement('div');
+ popup.className='tag-vibe-overlay';
+ popup.dataset.tagId=tagged.id;
+ popup.setAttribute('role','dialog');
+ popup.setAttribute('aria-modal','true');
+ popup.setAttribute('aria-labelledby','tag-vibe-title');
+ popup.innerHTML='<div class="tag-vibe-hearts" aria-hidden="true"></div><section class="tag-vibe-card"><span class="tag-vibe-label">💜 Alguém lembrou de você</span><h2 id="tag-vibe-title">Você foi marcado!</h2><p class="tag-vibe-author"><strong>'+esc(tagged.who)+'</strong> publicou uma foto com você.</p><div class="tag-vibe-photo">'+mediaPhoto(photo,'tagged-reward-photo','Foto da turma em que você foi marcado')+'</div><div class="tag-vibe-points">'+(earned?'+'+earned+' VIBE':'VIBE NO MÁXIMO')+'</div><p class="tag-vibe-footnote">Uma publicação dos amigos pode mudar como você se sente no feed.</p><div class="tag-vibe-actions"><button type="button" data-action="tag-vibe-continue">Continuar</button><button type="button" class="primary-tag" data-action="tag-vibe-view">Ver publicação</button></div></section>';
+ const sky=popup.querySelector('.tag-vibe-hearts');
+ for(let i=0;i<12;i++){
+  const heart=document.createElement('span');
+  heart.className='tag-vibe-heart';
+  heart.textContent=i%3===0?'💕':'💜';
+  heart.style.setProperty('--left',(8+i*37%85)+'%');
+  heart.style.setProperty('--size',(21+i%4*5)+'px');
+  heart.style.setProperty('--delay',(i%6*.16)+'s');
+  sky.appendChild(heart);
+ }
+ phone.classList.add('tag-vibe-open');
+ phone.appendChild(popup);
+ popup.querySelector('[data-action="tag-vibe-view"]').focus({preventScroll:true});
+ return true;
+}
+function closeTaggedVibeCelebration(viewPost){
+ const popup=document.querySelector('.tag-vibe-overlay');
+ if(!popup||popup.classList.contains('is-leaving'))return;
+ const tagId=popup.dataset.tagId;
+ popup.classList.add('is-leaving');
+ setTimeout(()=>{
+  const phone=popup.closest('.phone');
+  popup.remove();phone?.classList.remove('tag-vibe-open');
+  if(viewPost)document.getElementById(tagId)?.scrollIntoView({behavior:'smooth',block:'start'});
+  else phone?.querySelector('.shop-entry')?.focus({preventScroll:true});
+ },220);
+}
+/* O relógio avança em blocos de 18 minutos por conteúdo visto.
+ * Lembretes após 04h, 05h, 06h e 07h, nunca às 14h. */
+function maybeSleepReminder(){
+ if(!state.started||state.wake||state.finished||overlay||modal||story||!exitConfirm.hidden)return false;
+ if(document.visibilityState!=='visible'||document.querySelector('.sleep-reminder,.tag-vibe-overlay,.reward-celebration'))return false;
+ const hour=Math.floor(clockMinutes()/60);
+ if(hour<28||hour>=32)return false;
+ const phone=document.querySelector('.phone');if(!phone)return false;
+ if(!Array.isArray(state.flags.sleepReminderHours))state.flags.sleepReminderHours=[];
+ const key=state.day+':'+hour;
+ if(state.flags.sleepReminderHours.includes(key))return false;
+ state.flags.sleepReminderHours.push(key);save();
+ const popup=document.createElement('div');
+ popup.className='sleep-reminder';
+ popup.setAttribute('role','dialog');
+ popup.setAttribute('aria-modal','true');
+ popup.setAttribute('aria-labelledby','sleep-reminder-title');
+ const repeated=hour>28;
+ popup.innerHTML='<section class="sleep-reminder-card"><div class="sleep-reminder-moon" aria-hidden="true">🌙</div><div class="sleep-reminder-clock">'+esc(clockLabel())+' · Madrugada</div><h2 id="sleep-reminder-title">'+(repeated?'Mais uma hora no feed…':'Já passou das 4 da manhã')+'</h2><p>'+(repeated?'Você continuou rolando e o tempo passou. Quer dar uma pausa?':'Você está navegando desde a noite. Que tal descansar um pouco?')+'</p><div class="sleep-reminder-actions"><button type="button" class="sleep-now" data-action="sleep-reminder-sleep">Dormir agora</button><button type="button" class="sleep-continue" data-action="sleep-reminder-continue">Continuar rolando</button></div></section>';
+ phone.classList.add('sleep-reminder-open');phone.appendChild(popup);
+ popup.querySelector('.sleep-continue').focus({preventScroll:true});
+ return true;
+}
+function closeSleepReminder(){
+ const popup=document.querySelector('.sleep-reminder');if(!popup)return;
+ const phone=popup.closest('.phone');popup.remove();phone?.classList.remove('sleep-reminder-open');
+ phone?.querySelector('.shop-entry')?.focus({preventScroll:true});
+}
+
 function setupFeedExposure() {
   if (feedObserver) feedObserver.disconnect();
   for (const t of impressionTimers.values()) clearTimeout(t);
