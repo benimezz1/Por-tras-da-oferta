@@ -732,7 +732,7 @@ function newRunId(){
  return "c4-"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
- pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),rewardSeen:[],taggedVibeSeen:[],myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[],clockProgress:0});
+ pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,endFlowVersion:2,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),rewardSeen:[],taggedVibeSeen:[],myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[],clockProgress:0});
 let state=makeInitial();
 function restoreForPlayer(player) {
  state=makeInitial();
@@ -740,6 +740,13 @@ function restoreForPlayer(player) {
   const saved=JSON.parse(localStorage.getItem(USER_KEY_PREFIX+player.id)||"null");
   if(saved?.version===4&&Array.isArray(saved.feedItems)&&Array.isArray(saved.purchases)){
    state={...makeInitial(),...saved,feedItems:saved.feedItems.slice(0,MAX_WEEK_HISTORY_ITEMS)};
+   // Quem estava no quiz antigo passa pelo aprendizado; quem ja terminou segue no raio-x.
+   if(saved.endFlowVersion!==2){
+    const oldStep=Number(state.endStep)||0;
+    state.endStep=oldStep>=3?4:oldStep>=2?2:oldStep;
+   }
+   state.endFlowVersion=2;
+   state.endStep=Math.max(0,Math.min(4,Math.floor(Number(state.endStep)||0)));
    state.attention={...emptyAttention(),...(saved.attention||{})};
    if(!Array.isArray(state.attention.exitHookDays))state.attention.exitHookDays=[];
    if(!Array.isArray(state.myPosts))state.myPosts=[];
@@ -2932,26 +2939,55 @@ function endStep0(s){
  ${state.cart.length?`<p class="small muted">Ficaram na sacola: ${state.cart.map(id=>esc(productName(id))).join(', ')}.</p>`:''}</div>
  <button class="primary end-next" data-action="end-next">Ver o que estava por trás →</button>`;
 }
+
 function endStep1(){
- const prof=Pressure.profile(state.pressure);
- const total=prof.reduce((a,p)=>a+p.exposed,0),fell=prof.filter(p=>p.influenced).length;
- const cards=prof.map(p=>{
-  const status=p.influenced?'<span class="st fell">Pegou você</span>':p.exposed?'<span class="st ok">Você resistiu</span>':'<span class="st none">Não apareceu</span>';
-  return `<article class="strat ${p.influenced?'is-fell':''}"><header><span class="strat-icon">${p.icon}</span><div><strong>${esc(p.name)}</strong><small>${esc(p.short)}</small></div>${status}</header>
-  ${p.moments.length?`<div class="strat-block"><small>ONDE APARECEU PARA VOCÊ · ${p.exposed}x</small><ul>${p.moments.slice(-3).map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>`:''}
-  ${p.actions.length?`<div class="strat-block fell"><small>O QUE VOCÊ FEZ</small><ul>${p.actions.slice(-3).map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>`:''}
-  <p class="strat-research">📚 ${esc(p.research)}</p></article>`;
- }).join('');
  return `<div class="eyebrow" style="margin-top:23px">POR TRÁS DA OFERTA</div>
- <h1>Nada ali era por acaso.</h1>
- <p class="end-lead">Em cinco dias você recebeu <b>${total}</b> estímulos de <b>${prof.filter(p=>p.exposed).length}</b> estratégias psicológicas do marketing digital. ${fell?`<b>${fell}</b> delas levaram você a agir.`:'Nenhuma levou você a comprar — mas todas estavam lá, o tempo todo.'} Elas não obrigam ninguém a comprar; elas tornam mais difícil parar para pensar (Iyer et al., 2020).</p>
- <div class="end-box vibe-education-card"><div class="eyebrow">ENTENDA O QUE O FEED FEZ</div><h3>Por que sua vibe subiu e caiu?</h3>${vibeChart()}
+ <h1>O que o feed fez nos bastidores?</h1>
+ <p class="end-lead">O gráfico e a tabela mostram como a <strong>vibe fictícia</strong> mudou ao longo da semana. Aqui você analisa os dados da simulação. Na próxima etapa, vai conhecer as técnicas por trás das ofertas e refletir sobre as próprias escolhas.</p>
+ <div class="end-box vibe-education-card"><div class="eyebrow">TABELA E ANÁLISE DA PARTIDA</div><h3>Por que sua vibe subiu e caiu?</h3>${vibeChart()}
  <p class="vibe-conclusion">No jogo, compras podem produzir picos momentâneos, enquanto comparações com amigos podem reduzir a pontuação. A <strong>adaptação hedônica</strong> descreve como a satisfação com uma novidade tende a diminuir ao longo do tempo. O algoritmo também usa a vibe simulada para selecionar ofertas. Isso não significa que ele conheça suas emoções reais.</p></div>
- <h2 class="strat-title">As 10 estratégias, uma por uma</h2>
- <div class="strat-list">${cards}</div>
- <button class="primary end-next" data-action="end-next">Teste: você reconhece as estratégias? →</button>`;
+ <button class="primary end-next" data-action="end-next">Entender meu clique e as estratégias →</button>`;
 }
 function endStep2(){
+ const prof=Pressure.profile(state.pressure);
+ const total=prof.reduce((a,p)=>a+p.exposed,0),fell=prof.filter(p=>p.influenced).length;
+ const cards=prof.map((p,i)=>{
+  const status=p.influenced?'<span class="st fell">Ação registrada</span>':p.exposed?'<span class="st ok">Apareceu no feed</span>':'<span class="st none">Não apareceu</span>';
+  return `<details class="strat learn-strategy ${p.influenced?'is-fell':''}" ${i===0?'open':''}><summary><span class="strat-icon">${p.icon}</span><div><strong>${esc(p.name)}</strong><small>${esc(p.short)}</small></div>${status}<span class="learn-caret" aria-hidden="true">⌄</span></summary><div class="learn-strategy-body">
+  ${p.moments.length?`<div class="strat-block"><small>ONDE APARECEU PARA VOCÊ · ${p.exposed}x</small><ul>${p.moments.slice(-3).map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>`:''}
+  ${p.actions.length?`<div class="strat-block fell"><small>O QUE VOCÊ FEZ</small><ul>${p.actions.slice(-3).map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>`:''}
+  <p class="learn-detect"><strong>Pergunte-se:</strong> o que esta técnica queria que eu sentisse ou decidisse?</p><p class="strat-research"><strong>Base da pesquisa:</strong> ${esc(p.research)}</p></div></details>`;
+ }).join('');
+
+ const seen=prof.filter(p=>p.exposed>0);
+ const acted=prof.filter(p=>p.influenced>0);
+ const mostSeen=[...seen].sort((a,b)=>b.exposed-a.exposed)[0];
+ const mirror=acted.length
+  ?'O jogo associou algumas interações suas a '+acted.length+' técnicas. Essa associação é um convite à reflexão, não prova de que elas causaram suas decisões.'
+  :'Nenhuma ação foi associada diretamente às estratégias registradas. Isso descreve apenas esta partida, não sua capacidade de resistir à persuasão.';
+ const focus=mostSeen
+  ?'O estímulo mais repetido foi '+mostSeen.name+' ('+mostSeen.exposed+' aparições). Repetição não significa necessariamente influência.'
+  :'Não houve exposições registradas, mas você ainda pode conhecer as técnicas simuladas.';
+ return `<div class="eyebrow" style="margin-top:23px">APRENDA ANTES DO QUIZ</div>
+ <h1>Entenda seu clique.</h1>
+ <p class="end-lead">O que apareceu para você? Como você reagiu? Entenda seu percurso no jogo e aprenda a reconhecer estratégias de marketing antes de testar seus conhecimentos.</p>
+ <div class="learn-summary" role="group" aria-label="Resumo educativo da partida">
+  <div class="learn-stat"><strong>${total.toLocaleString('pt-BR')}</strong><span>estímulos registrados</span></div>
+  <div class="learn-stat"><strong>${seen.length}</strong><span>técnicas exibidas</span></div>
+  <div class="learn-stat"><strong>${acted.length}</strong><span>com ações associadas</span></div>
+ </div>
+ <section class="end-box learn-reflection"><div class="eyebrow">SOBRE VOCÊ, NESTE JOGO</div><h2>O que suas escolhas mostram?</h2>
+  <p>${esc(mirror)}</p><p class="learn-focus">${esc(focus)}</p>
+  <p class="learn-caution">As contagens descrevem escolhas fictícias desta partida, não suas emoções, personalidade ou hábitos reais.</p></section>
+ <div class="learn-pause"><strong>🧠 Três perguntas para fazer antes de comprar</strong>
+  <ol><li>Eu já queria isso antes de abrir o aplicativo?</li><li>Essa compra compromete o dinheiro de alguma meta importante?</li><li>Se a oferta terminasse agora, eu ainda iria querer esse produto amanhã?</li></ol></div>
+ <h2 class="strat-title">Aprenda a reconhecer as estratégias</h2>
+ <p class="learn-section-intro">Abra os cartões para descobrir como cada técnica funciona, onde apareceu no seu feed e quais ações foram registradas. Uma exposição não comprova que a técnica causou uma compra.</p>
+ <div class="strat-list">${cards}</div>
+ <div class="learn-ready"><strong>Agora é sua vez de reconhecer!</strong><p>No quiz que já estava no jogo, você verá cinco situações parecidas com as do feed. Cada resposta vem acompanhada de uma explicação para consolidar o aprendizado.</p></div>
+ <div class="learn-actions"><button class="secondary" data-action="end-back">← Rever análise</button><button class="primary end-next" data-action="end-next">Ir para o quiz →</button></div>`;
+}
+function endStep3(){
  const qs=Pressure.quiz(state.pressure,5);
  const answered=qs.filter(q=>state.quiz[q.id]).length;
  const items=qs.map((q,i)=>{
@@ -2962,7 +2998,8 @@ function endStep2(){
  }).join('');
  return `<div class="eyebrow" style="margin-top:23px">AGORA É COM VOCÊ</div>
  <h1>Reconheça a estratégia.</h1>
- <p class="end-lead">Estes momentos aconteceram no seu feed. Dar nome à técnica é o primeiro passo para ela perder força.</p>
+ <p class="end-lead">Estes momentos aconteceram no seu feed. Reconhecer a técnica ajuda você a refletir antes de escolher.</p>
+ <button class="secondary learn-review" data-action="end-back">← Rever o que aprendi</button>
  <div class="quiz">${items}</div>
  <button class="primary end-next" data-action="end-next" ${answered<qs.length?'disabled':''}>${answered<qs.length?`Responda as ${qs.length} perguntas`:'Ver meu raio-x →'}</button>`;
 }
@@ -2987,11 +3024,11 @@ function answerQuizOption(button){
  feedback.textContent=(correct?'✓ Isso mesmo.':'✗ Era '+Pressure.STRATEGIES[current.answer].name+'.')+' '+Pressure.STRATEGIES[current.answer].short;
  card.appendChild(feedback);
  if(questions.every(q=>state.quiz[q.id])){
-  const next=root.querySelector('.end-step-2 .end-next');
+  const next=root.querySelector('.end-step-3 .end-next');
   if(next){next.disabled=false;next.textContent='Ver meu raio-x →';}
  }
 }
-function endStep3(s){
+function endStep4(s){
  const qs=Pressure.quiz(state.pressure,5),right=qs.filter(q=>state.quiz[q.id]===q.answer).length;
  const prof=Pressure.profile(state.pressure),top=prof.filter(p=>p.influenced).slice(0,3);
  const tips=[['⏳','Espere 24 horas','Se você não queria o produto antes de abrir o app, deixe para amanhã. Ofertas “só hoje” costumam voltar.'],['🔄','Desconfie do cronômetro','Recarregue a página: se o tempo ou o “restam 3” reiniciar, era encenação.'],['🧾','Some o preço inteiro','Frete, taxa, proteção, juros e parcelas. A parcela pequena esconde o total.'],['☑️','Desmarque o que veio marcado','Proteções, VIPs e assinaturas pré-selecionadas são escolhas da loja, não suas.'],['🤳','Publi é anúncio','Mesmo vindo de quem você admira. Procure #publi, cupom e link na bio.'],['💭','Como você está se sentindo?','Cansaço, tédio e tristeza deixam a compra por impulso mais provável. Compra não resolve sentimento.']];
@@ -3137,34 +3174,34 @@ function renderEnd(){
  if(state.attention.guess==null||state.endPrelude==='guess'){root.innerHTML=guessPage();window.scrollTo(0,0);return;}
  if(state.endPrelude==='time'){root.innerHTML=timeRevealPage();window.scrollTo(0,0);animateRecordedTime();return;}
  if(state.endPrelude==='trip'||state.endPrelude==='mcp'){root.innerHTML=tripRevealPage();window.scrollTo(0,0);return;}
- const s=Pressure.settle(state),step=Math.max(0,Math.min(3,state.endStep||0));
- const body=[endStep0,endStep1,endStep2,endStep3][step](s);
+ const s=Pressure.settle(state),step=Math.max(0,Math.min(4,state.endStep||0));
+ const body=[endStep0,endStep1,endStep2,endStep3,endStep4][step](s);
  root.innerHTML=`<main class="end end-step-${step}"><div class="end-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
- <div class="end-progress">${['Sábado','Por trás','Quiz','Raio-x'].map((l,i)=>`<span class="${i<=step?'on':''}">${l}</span>`).join('')}</div>
+ <div class="end-progress">${['Sábado','Por trás','Aprenda','Quiz','Raio-x'].map((l,i)=>`<span class="${i<=step?'on':''}">${l}</span>`).join('')}</div>
  ${body}
  <p class="end-disclaimer">Simulação educativa do Colégio Rio Branco · C4. Nenhuma compra é real. Ao concluir, o jogo envia o percurso fictício ao MCP da conta identificada, se houver conexão. O jogo não faz diagnósticos.</p>
  </div></main>`;
  window.scrollTo(0,0);root.querySelector('.end')?.scrollTo?.(0,0);
- if(step===3){showC4SyncStatus();if(state.c4SyncedRunId!==state.runId||state.c4SyncedMode==='viagem-sem-quiz')void sendCompletedC4();}
+ if(step===4){showC4SyncStatus();if(state.c4SyncedRunId!==state.runId||state.c4SyncedMode==='viagem-sem-quiz')void sendCompletedC4();}
 }
 function showC4SyncStatus(){
  const node=document.getElementById('c4-sync-status'),retry=root.querySelector('[data-action="retry-c4"]');
  if(!node)return;
- const sent=state.c4SyncedRunId===state.runId&&!(state.endStep===3&&state.c4SyncedMode==='viagem-sem-quiz');
+ const sent=state.c4SyncedRunId===state.runId&&!(state.endStep===4&&state.c4SyncedMode==='viagem-sem-quiz');
  node.textContent=sent?'✓ Percurso recebido pelo MCP. Agora o ChatGPT pode consultar esta conta após o vínculo.'
   :syncInFlight?'Enviando suas respostas e escolhas ao MCP…'
   :syncMessage||'O envio será realizado automaticamente.';
  if(retry){retry.hidden=sent||syncInFlight;retry.textContent=ContaC4.account()?'Tentar enviar novamente':'Entrar novamente para enviar';}
 }
 async function sendCompletedC4(){
- if(!identity||!state.finished||(state.endStep!==3&&state.endPrelude!=='mcp')||syncInFlight)return;
- if(state.c4SyncedRunId===state.runId&&(state.endStep!==3||state.c4SyncedMode!=='viagem-sem-quiz'))return;
+ if(!identity||!state.finished||(state.endStep!==4&&state.endPrelude!=='mcp')||syncInFlight)return;
+ if(state.c4SyncedRunId===state.runId&&(state.endStep!==4||state.c4SyncedMode!=='viagem-sem-quiz'))return;
  const playerId=identity.id,run=state.runId;
  syncInFlight=true;syncMessage='';
  showC4SyncStatus();
  try{
   const payload=ExportC4.build(state,{pressure:Pressure,recommender:Recommender});
-  if(state.endPrelude==='mcp'&&state.endStep!==3)payload.modoEnvio='viagem-sem-quiz';
+  if(state.endPrelude==='mcp'&&state.endStep!==4)payload.modoEnvio='viagem-sem-quiz';
   const result=await ContaC4.complete(payload);
   if(result?.usuario?.id!==playerId||result?.partida!==run)
    throw Error('O servidor não confirmou a conta e a partida corretas.');
@@ -3409,7 +3446,8 @@ root.addEventListener('click',e=>{
  }
  else if(a==='retry-c4'){if(ContaC4.account())void sendCompletedC4();else void switchPlayer();}
  else if(a==='switch-player'){void switchPlayer();}
- else if(a==='end-next'){state.endStep=Math.min(3,(state.endStep||0)+1);save();renderEnd();}
+ else if(a==='end-back'){state.endStep=Math.max(0,(state.endStep||0)-1);save();renderEnd();}
+ else if(a==='end-next'){state.endStep=Math.min(4,(state.endStep||0)+1);save();renderEnd();}
  else if(a==='quiz'){answerQuizOption(el);}
  else if(a==='inbox'){if(story)stopStory();closeModal();overlay={type:'inbox'};drawOverlay();}
  else if(a==='chat'){el.closest('.push-banner')?.remove();openChat(el.dataset.thread);}
@@ -3505,7 +3543,7 @@ root.addEventListener('click',e=>{
   }
  }
  else if(a==='restart'){
-  if(state.finished&&state.endStep===3&&state.c4SyncedRunId!==state.runId&&
+  if(state.finished&&state.endStep===4&&state.c4SyncedRunId!==state.runId&&
     !confirm('Seu percurso ainda não foi recebido pelo MCP. Reiniciar agora pode impedir o envio. Quer continuar?'))return;
   restart();
  }
