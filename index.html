@@ -991,12 +991,12 @@ function commentTeaser(id,original=[]){
  <div class="social-comment-preview">${rows.slice(-2).map(x=>`<p><strong>${esc(x[0])}</strong> ${esc(x[1])}</p>`).join('')}</div>
  <button class="social-comment-add" data-action="comments" data-post="${esc(id)}">Adicione um comentário...</button>`;
 }
-function postCard(post){
+function postCard(post,instanceId=null){
  const liked=state.liked.includes(post.id),saved=state.bookmarks.includes(post.id),isPage=post.source==="page";
  const link=relatedPostLinks[post.id];
  const button=link?`<button class="post-shop-link" data-action="product" data-product="${link.topic}" data-source="post">${esc(link.label)} · ${money(price(link.topic).price)} <span aria-hidden="true">→</span></button>`:"";
  const photoAction=link?` data-action="open-photo" data-product="${link.topic}" data-source="post"`:"";
- return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":"amigo"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(post.who)}</strong> ${esc(post.caption)}</p>${commentTeaser(post.id,post.comments||[])}${button}</article>`;
+ return `<article class="post" id="${esc(instanceId||post.id)}" data-rec-id="${post.id}" data-clock-id="${esc(instanceId||post.id)}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":"amigo"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(post.who)}</strong> ${esc(post.caption)}</p>${commentTeaser(post.id,post.comments||[])}${button}</article>`;
 }
 function setupFeedAssist(){
  const scroller=document.querySelector('#feed-scroll'),cue=document.querySelector('.scroll-cue');
@@ -1260,7 +1260,7 @@ function setupFeedExposure() {
   if (!scroll || !("IntersectionObserver" in window)) return;
   feedObserver=new IntersectionObserver(entries => {
     for (const entry of entries) {
-      const el=entry.target, id=el.dataset.recId;
+      const el=entry.target, id=el.dataset.recId,clockId=el.dataset.clockId||id;
       if (!id) continue;
       if (!entry.isIntersecting || entry.intersectionRatio < 0.2) {
         if (impressionTimers.has(el)) { clearTimeout(impressionTimers.get(el)); impressionTimers.delete(el); }
@@ -1269,7 +1269,7 @@ function setupFeedExposure() {
       // Relogio simulado avanca quando um post entra em cena, mesmo com rolagem rapida.
       // O algoritmo ainda aguarda permanencia antes de registrar interesse.
       if(document.visibilityState==='visible'&&!overlay&&!story&&!modal&&exitConfirm.hidden&&!document.querySelector('.sleep-reminder,.tag-vibe-overlay'))
-        advanceClockForVisible(id);
+        advanceClockForVisible(clockId);
       if (impressionTimers.has(el)) continue;
       impressionTimers.set(el,setTimeout(() => {
         impressionTimers.delete(el);
@@ -1626,6 +1626,12 @@ function streamArgs(d){
   postIndex,visualSignals:FeedRanker.compileSignals(state.algorithm,{postIndex,phase:state.phase}),
   infinite:false,exclude:dayItems().filter(x=>x.kind==='post').map(x=>x.id),fastScroll:fastScroll(),lowVibe:state.vibe.value<40};
 }
+/* Publicacoes retomadas mantem o ID original para likes, mas recebem ID
+ * de exibicao proprio para contar uma nova visualizacao ao rever a foto. */
+function streamItemWithInstance(item,d,position){
+ return {...item,day:d.n,...(item.recycled&&item.kind==='post'
+  ?{instanceId:'repost-'+d.n+'-'+position+'-'+item.id}:{})};
+}
 function trackStreamItem(item,d){
  Pressure.vibeTick(state.vibe);
  if(item.swap){state.attention.adSwaps++;expose('rolagem_infinita','Quando você rolou rápido, o feed trocou um anúncio por post de amigo para te segurar.');}
@@ -1679,9 +1685,9 @@ function appendNext(){
  insertEvents();
  // Sem fim: depois do mínimo do dia o feed continua; o dia só acaba pelo menu ⋯.
  for(let i=0;i<5;i++){
-  const batch=Stream.nextBatch(contentPool(),streamArgs(d),1);
+  const batch=Stream.nextBatch(contentPool(),{...streamArgs(d),infinite:true},1);
   if(!batch.length)break;
-  const item={...batch[0],day:d.n};
+  const item=streamItemWithInstance(batch[0],d,state.feedItems.length);
   state.feedItems.push(item);added++;
   trackStreamItem(item,d);
   if(dayStreamCount()>d.minQuota){
@@ -2291,8 +2297,8 @@ function refreshAndReturnToTop(reason='manual'){
  setTimeout(()=>{
   if(generation!==refreshGeneration||run!==state.runId||day!==state.day||state.finished){refreshing=false;loader.remove();return;}
   const d=dayInfo();
-  const batch=d?Stream.nextBatch(contentPool(),{...streamArgs(d),preferFriends:true},3):[];
-  const items=batch.map(item=>({...item,day:d.n,fresh:true}));
+  const batch=d?Stream.nextBatch(contentPool(),{...streamArgs(d),preferFriends:true,infinite:true},3):[];
+  const items=batch.map((item,i)=>({...streamItemWithInstance(item,d,state.feedItems.length+i),fresh:true}));
   if(items.length){
    let idx=state.feedItems.findIndex(item=>(item.day||1)===state.day);
    idx=idx<0?state.feedItems.length:idx;
@@ -2560,7 +2566,7 @@ function stageFeed(){
  const m=Pressure.vibeMood(state.vibe.value),n=unreadCount();
  const cards=items.map((item,i)=>{
   let card='';
-  if(item.kind==='post'){if(!state.hiddenPosts.includes(item.id)){const post=pool.find(p=>p.id===item.id);if(post)card=postCard(post);}}
+  if(item.kind==='post'){if(!state.hiddenPosts.includes(item.id)){const post=pool.find(p=>p.id===item.id);if(post)card=postCard(post,item.instanceId||null);}}
   else if(item.kind==='ad'){if(!state.hiddenPosts.includes(item.id))card=adCard(item.topic,item.retarget,item);}
   else if(item.kind==='event')card=eventCard(item);
   else if(item.kind==='night')card=nightCard(item);
