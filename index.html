@@ -585,6 +585,7 @@
 <script src="/library-v5.js"></script>
 <script src="/feed-variation.js"></script>
 <script src="/recommendation.js"></script>
+<script src="/feed-ranker.js"></script>
 <script src="/stream.js"></script>
 <script src="/pressure.js"></script>
 <script src="/week.js"></script>
@@ -606,19 +607,30 @@ const emptyAttention=()=>({extraItems:0,realMs:0,exitHooks:0,exitHookDays:[],sur
 const Recommender=window.NoFeedRecommender;
 
 const Stream=window.NoFeedStream;
-const Variation=window.NoFeedVariation,LibraryV5=window.NoFeedLibraryV5;
+const Variation=window.NoFeedVariation,LibraryV5=window.NoFeedLibraryV5,FeedRanker=window.NoFeedFeedRanker;
 let loadPending=false;
 const dayForTopic={fone:1,tenis:2,plano:3,mochila:4,powerbank:4,garrafa:4,luminaria:3,ingresso:5};
+// Identidade fictícia da conta participa do sorteio; nenhuma senha é usada.
+function accountFeedSeed(){return String(state.runId)+':account:'+String(identity?.id||'demo');}
+let catalogIndexCache=null;
+function catalogIndex(){
+ if(!catalogIndexCache)catalogIndexCache=Object.fromEntries(
+  phases.flatMap(ph=>ph.posts.map(post=>[post.id,{...post,topic:ph.id,author:post.who}]))
+ );
+ return catalogIndexCache;
+}
 const contentPool=()=>{
  const items=phases.flatMap((ph,themeIndex)=>ph.posts
   .filter(p=>(p.day||dayForTopic[ph.id]||1)===state.day)
   .map((p,postIndex)=>({...p,topic:ph.id,author:p.who,phase:Stream.release[ph.id]||0,order:postIndex*phases.length+themeIndex})));
- return Variation.varyPosts(items,{runId:state.runId,day:state.day});
+ const seed=accountFeedSeed(),varied=Variation.varyPosts(items,{runId:seed,day:state.day});
+ // A escolha evita repetir a fotografia real que será renderizada.
+ return varied.map(p=>({...p,photo:Variation.distinctAuthorPhoto(p,{runId:seed,day:state.day},varied)}));
 };
 const storyPool=()=>Variation.varyStories([
  ...phases.flatMap(ph=>ph.stories.map(s=>({...s,product:ph.id}))),
  ...(state.myStories||[]).map((entry,i)=>({...entry,user:'você',source:'friend',idx:nextStoryIndex+i,day:entry.day,product:entry.product||'fone'}))
-],{runId:state.runId,day:state.day});
+],{runId:accountFeedSeed(),day:state.day});
 const storyItemAt=idx=>storyPool().find(s=>s.idx===idx);
 let feedObserver=null;
 const impressionTimers=new Map();
@@ -635,7 +647,7 @@ function postInfo(id){
     const mapped={...p,phase,order,author:p.who,topic:phases[phase].id};
     if(!["bia.m","gabi.n"].includes(String(p.who).replace(/^@/,""))||p.contentVersion===5)return mapped;
     const sameDay=phases.flatMap(ph=>ph.posts.filter(x=>(x.day||dayForTopic[ph.id]||1)===state.day));
-    return {...mapped,photo:Variation.distinctAuthorPhoto(mapped,{runId:state.runId,day:state.day},sameDay)};
+    return {...mapped,photo:Variation.distinctAuthorPhoto(mapped,{runId:accountFeedSeed(),day:state.day},sameDay)};
    }
  }
   const c=Week.COMPARE_POSTS[id];
@@ -976,6 +988,7 @@ function renderGame(keepScroll=false){
 }
 function algorithmResults(){
  const summary=Recommender.summary(state.algorithm,state.phase);
+ const visualTopics=FeedRanker.summarize(state.algorithm,catalogIndex(),state.phase);
  const ads=state.feedItems.filter(item=>item.kind==="ad");
  const posts=state.feedItems.filter(item=>item.kind==="post");
  const retargets=ads.filter(item=>item.campaign==="retarget").length;
@@ -996,6 +1009,8 @@ function algorithmResults(){
    <h3>Interesses que a simulação inferiu</h3>
    ${entries}
    <p class="small muted">Pontuações ilustrativas, não percentuais de consumo. Um tema mais pontuado pode aparecer mais vezes porque você o curtiu, visualizou, salvou ou pesquisou.</p>
+   <h3>Fotos e assuntos que você demonstrou gostar</h3>
+   <p class="small muted">${visualTopics.length?visualTopics.map(x=>esc(x.label)).join(' · '):'Ainda não houve curtidas suficientes para inferir preferências visuais.'} Essas preferências vêm dos assuntos e tags das fotos, nunca de reconhecimento facial.</p>
    <div class="algo-steps"><strong>Como a recomendação se formou</strong>
     <ol>
      <li>O sistema escolheu conteúdos de amigos, páginas e marcas entre vários assuntos.</li>
@@ -1090,7 +1105,7 @@ function showTaggedVibeCelebration(tagged){
  state.taggedVibeSeen.push(tagged.id);
  expose('validacao_social','Ao abrir o feed, a marcação numa foto de '+tagged.who+' gerou '+earned+' pontos de vibe.');
  save();pulseVibe(earned);
- const photo=Variation.taggedPhoto(tagged.day,state.runId)||tagged.photo;
+ const photo=Variation.taggedPhoto(tagged.day,accountFeedSeed())||tagged.photo;
  const popup=document.createElement('div');
  popup.className='tag-vibe-overlay';
  popup.dataset.tagId=tagged.id;
@@ -1522,7 +1537,9 @@ function evAt(ev,d){
 let scrollFastAt=0,lastScroll=null;
 const fastScroll=()=>Date.now()-scrollFastAt<4000;
 function streamArgs(d){
- return {shown:dayItems().filter(x=>x.kind==='post'||x.kind==='ad'),profile:state.algorithm,personalized:state.personalized,phase:state.phase,cart:state.cart,viewed:state.viewed,purchased:state.purchases.map(p=>p.id),allowed:d.allow,focus:d.focus,seed:state.runId+':'+d.n,
+ const postIndex=catalogIndex();
+ return {shown:dayItems().filter(x=>x.kind==='post'||x.kind==='ad'),profile:state.algorithm,personalized:state.personalized,phase:state.phase,cart:state.cart,viewed:state.viewed,purchased:state.purchases.map(p=>p.id),allowed:d.allow,focus:d.focus,day:d.n,seed:accountFeedSeed()+':'+d.n,
+  postIndex,visualSignals:FeedRanker.compileSignals(state.algorithm,{postIndex,phase:state.phase}),
   infinite:false,exclude:dayItems().filter(x=>x.kind==='post').map(x=>x.id),fastScroll:fastScroll(),lowVibe:state.vibe.value<40};
 }
 function trackStreamItem(item,d){
@@ -2148,7 +2165,7 @@ function tryExitHook(src){
  const hook=EXIT_HOOK_DAYS[state.day];if(!hook)return false;
  state.attention.exitHookDays.push(state.day);
  expose('gancho_saida',`Tentou sair, mas recebeu nova atividade de ${hook.who}: ${hook.title}.`);
- save();modal={type:'exit-hook',src,photo:Variation.taggedPhoto(state.day,state.runId)};drawModal();return true;
+ save();modal={type:'exit-hook',src,photo:Variation.taggedPhoto(state.day,accountFeedSeed())};drawModal();return true;
 }
 function topOfToday(items){
  const idx=state.feedItems.findIndex(x=>(x.day||1)===state.day);
@@ -2305,7 +2322,7 @@ function surpriseCard(item){
 }
 function taggedCard(item){
  const base=TAGGED_EVENTS[item?.day];
- const c=base?{...base,photo:Variation.taggedPhoto(item.day,state.runId)||base.photo}:null,id=c?.id;
+ const c=base?{...base,photo:Variation.taggedPhoto(item.day,accountFeedSeed())||base.photo}:null,id=c?.id;
  if(!c)return '';
  const liked=state.liked.includes(id),saved=state.bookmarks.includes(id);
  return `<article class="post compare-post tagged-post" id="${id}" data-rec-id="${id}" data-rec-topic="${c.topic}" data-rec-author="${esc(c.who)}">

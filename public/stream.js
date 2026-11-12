@@ -15,6 +15,12 @@
    const recentTopic=count(recent,x=>x.topic===post.topic);
    const recentAuthor=count(recent,x=>x.author===post.author);
    const affinity=args.personalized?model.affinity(args.profile,post.topic,args.phase||0):0;
+   // Os metadados V5 complementam o motor anterior sem substituir seus
+   // controles de publicidade, diversidade e decaimento de interesses.
+   const photoRanker=root.NoFeedFeedRanker;
+   const visual=photoRanker&&args.seed
+     ?photoRanker.scorePost(post,{...args,recentTopics:recent.map(x=>x.topic)})
+     :null;
    const parts={
     atualidade:clamp(2.2-age*.20,.3,2.2),
     popularidade:Math.log10(1+Math.max(0,post.likes||0))*.32,
@@ -35,12 +41,15 @@
    const retencao=(args.personalized?model.engagement(args.profile,post.topic,args.phase||0):0)
      +(args.fastScroll&&post.source==="friend"?2.5:0);
    parts.retencao=retencao;
-   return {score:.6*retencao+.4*venda,parts};
+   if(visual)parts.fotoInteresse=visual.parts.afinidadeVisual||0;
+   return {score:.6*retencao+.4*venda+(visual?.eligible?visual.score:0),parts};
   }
   function choosePost(posts,args){
    const published=new Set((args.shown||[]).filter(x=>x.kind==="post").map(x=>x.id));
    const allowed=Array.isArray(args.allowed)?args.allowed:null;
-   const available=posts.filter(post=>!published.has(post.id)&&(allowed?allowed.includes(post.topic):(post.phase||0)<=(args.phase||0)));
+   const available=posts.filter(post=>!published.has(post.id)
+     &&(allowed?allowed.includes(post.topic):(post.phase||0)<=(args.phase||0))
+     &&(!root.NoFeedFeedRanker||root.NoFeedFeedRanker.eligible(post,args.day)));
    if(!available.length)return null;
    // Biblioteca extensa: evitar reapresentar a mesma fotografia em posts proximos.
    const byId=new Map(posts.map(p=>[p.id,p.photo]));
