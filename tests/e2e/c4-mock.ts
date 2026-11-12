@@ -33,9 +33,11 @@ export async function mockC4Service(page: Page) {
     }
     if (path.endsWith("/complete")) {
       const doc = input;
-      if (doc.formato !== "por-tras-da-oferta/c4-semana" ||
-          doc.estado?.endStep !== 3 || Object.keys(doc.estado.quiz || {}).length !== 5)
-        return route.fulfill({ status: 422, headers: cors, body: '{"erro":"Quiz incompleto"}' });
+      const complete=doc.estado?.finished===true&&doc.estado?.endStep===3&&Object.keys(doc.estado.quiz||{}).length===5;
+      const tripOnly=doc.modoEnvio==="viagem-sem-quiz"&&doc.estado?.finished===true&&doc.estado?.day===5&&
+        doc.estado?.endStep===0&&Object.keys(doc.estado.quiz||{}).length===0;
+      if(doc.formato!=="por-tras-da-oferta/c4-semana"||(!complete&&!tripOnly))
+        return route.fulfill({ status: 422, headers: cors, body: '{"erro":"Quiz incompleto ou envio sem escolha explícita"}' });
       return route.fulfill({ status: 201, headers: cors, body: JSON.stringify({
         sucesso: true, importado: true, partida: doc.sessao.id,
         usuario: current,
