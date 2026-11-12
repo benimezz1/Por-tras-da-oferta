@@ -1001,21 +1001,36 @@ function postCard(post){
 function setupFeedAssist(){
  const scroller=document.querySelector('#feed-scroll'),cue=document.querySelector('.scroll-cue');
  if(!scroller)return;
+ // O topo (stories) funciona como atualizar: so apos uma rolagem real para
+ // baixo e o retorno de volta ao inicio. Nunca na abertura ou em loop.
+ const away=Math.max(260,Math.min(420,scroller.clientHeight*.55)),storyTop=100;
+ let wasBelowStories=scroller.scrollTop>=away,previousTop=scroller.scrollTop;
+ const blocked=()=>loadPending||refreshing||overlay||story||modal||!exitConfirm.hidden||
+  !!document.querySelector('.sleep-reminder,.tag-vibe-overlay,.reward-celebration,.feed-refresh-loading');
  const sync=()=>{
-  const remaining=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop;
-  if(cue)cue.classList.toggle('hidden',scroller.scrollTop>88||remaining<120);
-  if(scroller.scrollTop<120||remaining>190||loadPending||refreshing||overlay||story||modal||!exitConfirm.hidden||document.querySelector('.sleep-reminder,.tag-vibe-overlay'))return;
+  const y=scroller.scrollTop,remaining=scroller.scrollHeight-scroller.clientHeight-y;
+  if(cue)cue.classList.toggle('hidden',y>88||remaining<120);
+  if(y>=away)wasBelowStories=true;
+  const returned=wasBelowStories&&previousTop>storyTop&&y<=storyTop&&y<previousTop;
+  previousTop=y;
+  if(returned){
+   wasBelowStories=false;
+   if(!blocked()&&!state.wake&&!state.finished){
+    refreshAndReturnToTop('retorno aos stories');
+    return;
+   }
+  }
+  if(y<120||remaining>190||blocked())return;
   if(dayItems().some(x=>x.kind==='night')||state.wake)return;
   loadPending=true;
   requestAnimationFrame(()=>{
    loadPending=false;
-   if(!document.contains(scroller)||overlay||story||modal||!exitConfirm.hidden||document.querySelector('.sleep-reminder,.tag-vibe-overlay'))return;
+   if(!document.contains(scroller)||blocked())return;
    if(appendNext())renderGame(true);
   });
  };
  sync();scroller.addEventListener('scroll',sync,{passive:true});
 }
-
 function renderGame(keepScroll=false){
  if(state.finished){renderEnd();return;}
  exitHomeButton.hidden=false;
