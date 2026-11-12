@@ -464,7 +464,7 @@ test("cada apelido mantém seu próprio progresso no mesmo Chrome", async ({ pag
   expect((await saved(page)).runId).toBe(first.runId);
 });
 
-test("feed infinito: novidades, postagem própria e gancho de saída", async ({ page }) => {
+test("feed infinito: novidades, postagem própria e marcação sem repetição", async ({ page }) => {
   await enter(page);
   for (let i = 0; i < 4; i++) await page.locator(".load-more").evaluate((b: HTMLElement) => b.click());
   await expect(page.locator(".load-more")).toBeVisible();
@@ -482,8 +482,8 @@ test("feed infinito: novidades, postagem própria e gancho de saída", async ({ 
   await expect(page.locator(".mine-post")).toBeVisible();
   await page.locator('[data-action="day-menu"]').click();
   await page.locator('[data-action="end-day"]').click();
-  await expect(page.locator(".bottom-sheet")).toContainText("publicou uma foto com você");
-  await page.locator('[data-action="hook-accept"]').click();
-  await expect(page.locator(".tagged-post")).toBeVisible();
-  expect((await saved(page)).attention.exitHooks).toBe(1);
+  await expect(page.locator(".wake")).toBeVisible();
+  // A Bia ja marcou o jogador e ele ja recebeu o popup: nao repetir o aviso.
+  await expect(page.locator(".bottom-sheet")).toHaveCount(0);
+  expect((await saved(page)).attention.exitHooks).toBe(0);
 });

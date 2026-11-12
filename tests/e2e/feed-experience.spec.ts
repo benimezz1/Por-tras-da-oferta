@@ -42,6 +42,55 @@ async function loadAll(page) {
   }
 }
 
+test("voltar para os stories atualiza o feed sem criar um loop",async ({page})=>{
+ await enter(page);
+ const previous=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')).attention.refreshes);
+ const feed=page.locator('#feed-scroll');
+ await feed.evaluate(el=>{el.scrollTop=560;el.dispatchEvent(new Event('scroll'));});
+ await expect.poll(()=>feed.evaluate(el=>el.scrollTop)).toBeGreaterThan(300);
+ await feed.evaluate(el=>{el.scrollTop=0;el.dispatchEvent(new Event('scroll'));});
+ await expect(page.locator('.feed-refresh-loading')).toBeVisible();
+ await expect(page.locator('.feed-refresh-loading')).toHaveCount(0);
+ const updated=await page.evaluate(()=>{
+  const s=JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e'));
+  return {refreshes:s.attention.refreshes,newPosts:s.feedItems.filter(x=>x.day===s.day&&x.fresh&&x.kind==='post').length,
+   ids:s.feedItems.filter(x=>x.day===s.day&&x.kind==='post').map(x=>x.id)};
+ });
+ expect(updated.refreshes).toBe(previous+1);
+ expect(updated.newPosts).toBeGreaterThan(0);
+ expect(new Set(updated.ids).size).toBe(updated.ids.length);
+ await page.locator('#feed-scroll').evaluate(el=>{
+  el.scrollTop=45;el.dispatchEvent(new Event('scroll'));
+  el.scrollTop=0;el.dispatchEvent(new Event('scroll'));
+ });
+ await page.waitForTimeout(1150);
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')).attention.refreshes))
+  .toBe(updated.refreshes);
+});
+
+test("Enter publica comentario e Shift+Enter insere nova linha",async ({page})=>{
+ await enter(page);
+ const post=page.locator('.post:not(.ad-post):not(.mine-post):not(.tagged-post)').first();
+ const id=await post.getAttribute('data-rec-id');
+ await post.locator('[data-action="comments"]').first().click();
+ const input=page.locator('#own-comment-input');
+ await input.fill('Publicado com Enter');
+ await input.press('Enter');
+ await expect(page.locator('.sheet-scroll .comment p').filter({hasText:'Publicado com Enter'})).toHaveCount(1);
+ await expect(input).toHaveValue('');
+ await input.fill('Linha um');
+ await input.press('Shift+Enter');
+ await input.type('Linha dois');
+ await expect(input).toHaveValue('Linha um\nLinha dois');
+ await input.press('Enter');
+ await expect(page.locator('.sheet-scroll .comment p').filter({hasText:'Linha um'})).toContainText('Linha dois');
+ const message=await page.evaluate(id=>{
+  const state=JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e'));
+  return state.postComments[id]?.at(-1)?.[1];
+ },id);
+ expect(message).toBe('Linha um\nLinha dois');
+});
+
 test("surpresa dispara popup explosivo ao chegar no gatilho, credita uma vez e nao deixa card",async ({page})=>{
  await enter(page);
  // A aplicacao salva o estado ao descarregar a pagina. A injecao deve
@@ -582,24 +631,30 @@ test("editor de post permite escolher foto, personalizar legenda e editar public
   await page.locator('[data-action="save-my-post"]').click();
   await expect(page.locator('.mine-post')).toContainText('Legenda revisada');
 });
-test("dormir passa para as 19h e rolar bastante atravessa a meia-noite", async ({page}) => {
-  await enter(page);
-  await expect(page.locator('.sb-time')).toContainText('SEG · 19:');
-  await expect(page.locator('.day-sleep-control')).toBeVisible();
-  await page.locator('.day-sleep-control').click();
-  await page.locator('[data-action="open-day"]').click();
-  await expect(page.locator('.sb-time')).toContainText('TER · 19:');
-  const posts=page.locator('.post[data-rec-id]');
-  for(let i=0;i<22;i++){
-    while(await posts.count()<=i && await page.locator('.load-more').count()){
-      await page.locator('.load-more').evaluate(node=>node.click());
-    }
-    const card=posts.nth(i);
-    await card.scrollIntoViewIfNeeded();
-    await expect.poll(async()=>page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')||'{}').clockViewed||0)).toBeGreaterThanOrEqual(i+1);
-  }
-  await expect(page.locator('.sb-time')).toContainText('QUA · 0');
-  await expect(page.locator('.day-sleep-control')).toContainText('hoje · 19h');
+test("relogio avanca apos grupos alternados de 2 e 3 posts",async ({page})=>{
+ await enter(page);
+ await expect(page.locator('.sb-time')).toContainText('SEG · 19:');
+ await page.locator('.day-sleep-control').click();
+ await page.locator('[data-action="open-day"]').click();
+ await expect(page.locator('.sb-time')).toContainText('TER · 19:');
+ const posts=page.locator('.post[data-rec-id]');
+ for(let i=0;i<12;i++){
+  while(await posts.count()<=i&&await page.locator('.load-more').count())
+   await page.locator('.load-more').evaluate(el=>el.click());
+  await posts.nth(i).scrollIntoViewIfNeeded();
+  await expect.poll(async()=>page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')).clockSeen.length))
+   .toBeGreaterThanOrEqual(i+1);
+  const progress=await page.evaluate(()=>{
+   const state=JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e'));
+   return {seen:state.clockSeen.length,ticks:state.clockViewed};
+  });
+  expect(progress.ticks).toBe(Math.floor(progress.seen/5)*2+(progress.seen%5>=2?1:0));
+ }
+ const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')).clockViewed);
+ await page.reload();
+ await expect(page.locator('.phone')).toBeVisible();
+ const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')).clockViewed);
+ expect(after).toBe(before);
 });
 
 test("cada novo dia mostra publicações inéditas e stories renovados", async ({page}) => {
@@ -697,36 +752,26 @@ test("é possível comentar no post de amigo e no anúncio com texto próprio", 
   expect(Object.values(await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')||'{}').postComments)).flat().length).toBeGreaterThanOrEqual(2);
 });
 
-test("gancho do menu alterna foto da Bia e da Gabi em dias distintos", async ({page}) => {
-  await enter(page);
-  await page.locator('[data-action="day-menu"]').click();
-  await page.locator('[data-action="end-day"]').click();
-  await expect(page.locator('.bottom-sheet')).toContainText('Bia publicou uma foto com você');
-  await page.locator('[data-action="hook-accept"]').click();
-  await expect(page.locator('.tagged-post')).toContainText('bia.m');
-  await expect(page.locator('.tagged-post .post-actions [data-action="like"]')).toBeVisible();
-  await expect(page.locator('.tagged-post .post-actions [data-action="comments"]')).toBeVisible();
-  await expect(page.locator('.tagged-post .post-actions [data-action="bookmark"]')).toBeVisible();
-  await expect(page.locator('.tagged-post .likecount')).toContainText('curtidas');
-  await page.locator('.tagged-post [data-action="comments"]').first().click();
-  await expect(page.locator('.insta-comment-form')).toBeVisible();
-  await expect(page.locator('.insta-comment-form [data-action="add-my-comment"]')).toContainText('Publicar');
-  await page.locator('#own-comment-input').fill('Adorei nossa foto!');
-  await page.locator('[data-action="add-my-comment"]').click();
-  await expect(page.locator('.bottom-sheet')).toContainText('Adorei nossa foto!');
-  await page.locator('[data-action="close-modal"]').click();
-  await page.locator('.day-sleep-control').click();
-  for(let day=2;day<=4;day++){
-    await page.locator('[data-action="open-day"]').click();
-    await page.locator('[data-action="day-menu"]').click();
-    await page.locator('[data-action="end-day"]').click();
-    await expect(page.locator('.bottom-sheet')).not.toContainText('Bia publicou uma foto com você');
-    await page.locator('[data-action="hook-decline"]').click();
-  }
+test("Bia e Gabi sao notificadas so uma vez, sem segundo aviso de saida",async ({page})=>{
+ await enter(page);
+ await expect(page.locator('.tagged-post')).toContainText('bia.m');
+ await page.locator('[data-action="day-menu"]').click();
+ await page.locator('[data-action="end-day"]').click();
+ await expect(page.locator('.wake')).toBeVisible();
+ await expect(page.locator('.bottom-sheet')).toHaveCount(0);
+ for(let day=2;day<=5;day++){
   await page.locator('[data-action="open-day"]').click();
-  await expect(page.locator(".tag-vibe-overlay")).toBeVisible();
-  await page.locator('[data-action="tag-vibe-continue"]').click();
-  await page.locator('[data-action="day-menu"]').click();
-  await page.locator('[data-action="end-day"]').click();
-  await expect(page.locator('.bottom-sheet')).toContainText('Gabi publicou uma foto com você');
+  if(day<5)await page.locator('.day-sleep-control').click();
+ }
+ const card=page.locator('.tag-vibe-overlay');
+ await expect(card).toBeVisible();
+ await expect(card).toContainText('gabi.n');
+ await card.locator('[data-action="tag-vibe-continue"]').click();
+ await page.locator('[data-action="day-menu"]').click();
+ await page.locator('[data-action="end-day"]').click();
+ await expect(page.locator('.bottom-sheet')).toHaveCount(0);
+ await expect(page.locator('.time-guess')).toBeVisible();
+ const state=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')));
+ expect(state.taggedVibeSeen.filter(id=>id==='tag-1')).toHaveLength(1);
+ expect(state.taggedVibeSeen.filter(id=>id==='tag-5')).toHaveLength(1);
 });

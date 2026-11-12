@@ -524,6 +524,7 @@
 .insta-comment-form textarea{flex:1;min-width:0;width:100%;max-height:85px;min-height:39px;border:1px solid #eee6eb;border-radius:20px;padding:10px 13px;font-size:12px;line-height:18px;resize:none;background:#fff}
 .insta-comment-submit{flex:0 0 auto;background:transparent;border:0;color:#008bfa;font-size:13px;font-weight:750;padding:9px 0;cursor:pointer}
 .insta-comment-submit:hover{color:#026cbe}
+.sheet-scroll .comment p,.social-comment-preview p,.mine-comment-preview p{white-space:pre-wrap;overflow-wrap:anywhere}
 .profile-gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
 .profile-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:16px}
 .profile-gallery-tile{padding:0;border:0;position:relative;aspect-ratio:1;background:#eee;overflow:hidden;border-radius:6px;cursor:pointer}
@@ -642,6 +643,7 @@
 <script src="/recommendation.js"></script>
 <script src="/feed-ranker.js"></script>
 <script src="/stream.js"></script>
+<script src="/game-clock.js"></script>
 <script src="/pressure.js"></script>
 <script src="/week.js"></script>
 <script src="/c4-export.js"></script>
@@ -661,7 +663,7 @@ const emptyAttention=()=>({extraItems:0,realMs:0,exitHooks:0,exitHookDays:[],sur
 
 const Recommender=window.NoFeedRecommender;
 
-const Stream=window.NoFeedStream;
+const Stream=window.NoFeedStream,GameClock=window.NoFeedClock;
 const Variation=window.NoFeedVariation,LibraryV5=window.NoFeedLibraryV5,FeedRanker=window.NoFeedFeedRanker;
 let loadPending=false;
 const dayForTopic={fone:1,tenis:2,plano:3,mochila:4,powerbank:4,garrafa:4,luminaria:3,ingresso:5};
@@ -730,7 +732,7 @@ function newRunId(){
  return "c4-"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
- pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),rewardSeen:[],taggedVibeSeen:[],myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[]});
+ pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),rewardSeen:[],taggedVibeSeen:[],myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[],clockProgress:0});
 let state=makeInitial();
 function restoreForPlayer(player) {
  state=makeInitial();
@@ -748,6 +750,7 @@ function restoreForPlayer(player) {
    for(const p of state.myPosts){if(!Array.isArray(p.comments))p.comments=[];}
    if(!Array.isArray(state.clockSeen))state.clockSeen=[];
    if(!Number.isFinite(state.clockViewed))state.clockViewed=0;
+   if(!Number.isFinite(state.clockProgress)||state.clockProgress<0||state.clockProgress>=GameClock.nextThreshold(state))state.clockProgress=0;
    if(!Array.isArray(state.liked))state.liked=[];
    if(!Array.isArray(state.likedAds))state.likedAds=[];
     if(!Array.isArray(state.rewardSeen))state.rewardSeen=[];
@@ -988,31 +991,46 @@ function commentTeaser(id,original=[]){
  <div class="social-comment-preview">${rows.slice(-2).map(x=>`<p><strong>${esc(x[0])}</strong> ${esc(x[1])}</p>`).join('')}</div>
  <button class="social-comment-add" data-action="comments" data-post="${esc(id)}">Adicione um comentário...</button>`;
 }
-function postCard(post){
+function postCard(post,instanceId=null){
  const liked=state.liked.includes(post.id),saved=state.bookmarks.includes(post.id),isPage=post.source==="page";
  const link=relatedPostLinks[post.id];
  const button=link?`<button class="post-shop-link" data-action="product" data-product="${link.topic}" data-source="post">${esc(link.label)} · ${money(price(link.topic).price)} <span aria-hidden="true">→</span></button>`:"";
  const photoAction=link?` data-action="open-photo" data-product="${link.topic}" data-source="post"`:"";
- return `<article class="post" id="${post.id}" data-rec-id="${post.id}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":"amigo"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(post.who)}</strong> ${esc(post.caption)}</p>${commentTeaser(post.id,post.comments||[])}${button}</article>`;
+ return `<article class="post" id="${esc(instanceId||post.id)}" data-rec-id="${post.id}" data-clock-id="${esc(instanceId||post.id)}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":"amigo"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(post.who)}</strong> ${esc(post.caption)}</p>${commentTeaser(post.id,post.comments||[])}${button}</article>`;
 }
 function setupFeedAssist(){
  const scroller=document.querySelector('#feed-scroll'),cue=document.querySelector('.scroll-cue');
  if(!scroller)return;
+ // O topo (stories) funciona como atualizar: so apos uma rolagem real para
+ // baixo e o retorno de volta ao inicio. Nunca na abertura ou em loop.
+ const away=Math.max(260,Math.min(420,scroller.clientHeight*.55)),storyTop=100;
+ let wasBelowStories=scroller.scrollTop>=away,previousTop=scroller.scrollTop;
+ const blocked=()=>loadPending||refreshing||overlay||story||modal||!exitConfirm.hidden||
+  !!document.querySelector('.sleep-reminder,.tag-vibe-overlay,.reward-celebration,.feed-refresh-loading');
  const sync=()=>{
-  const remaining=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop;
-  if(cue)cue.classList.toggle('hidden',scroller.scrollTop>88||remaining<120);
-  if(scroller.scrollTop<120||remaining>190||loadPending||refreshing||overlay||story||modal||!exitConfirm.hidden||document.querySelector('.sleep-reminder,.tag-vibe-overlay'))return;
+  const y=scroller.scrollTop,remaining=scroller.scrollHeight-scroller.clientHeight-y;
+  if(cue)cue.classList.toggle('hidden',y>88||remaining<120);
+  if(y>=away)wasBelowStories=true;
+  const returned=wasBelowStories&&previousTop>storyTop&&y<=storyTop&&y<previousTop;
+  previousTop=y;
+  if(returned){
+   wasBelowStories=false;
+   if(!blocked()&&!state.wake&&!state.finished){
+    refreshAndReturnToTop('retorno aos stories');
+    return;
+   }
+  }
+  if(y<120||remaining>190||blocked())return;
   if(dayItems().some(x=>x.kind==='night')||state.wake)return;
   loadPending=true;
   requestAnimationFrame(()=>{
    loadPending=false;
-   if(!document.contains(scroller)||overlay||story||modal||!exitConfirm.hidden||document.querySelector('.sleep-reminder,.tag-vibe-overlay'))return;
+   if(!document.contains(scroller)||blocked())return;
    if(appendNext())renderGame(true);
   });
  };
  sync();scroller.addEventListener('scroll',sync,{passive:true});
 }
-
 function renderGame(keepScroll=false){
  if(state.finished){renderEnd();return;}
  exitHomeButton.hidden=false;
@@ -1242,7 +1260,7 @@ function setupFeedExposure() {
   if (!scroll || !("IntersectionObserver" in window)) return;
   feedObserver=new IntersectionObserver(entries => {
     for (const entry of entries) {
-      const el=entry.target, id=el.dataset.recId;
+      const el=entry.target, id=el.dataset.recId,clockId=el.dataset.clockId||id;
       if (!id) continue;
       if (!entry.isIntersecting || entry.intersectionRatio < 0.2) {
         if (impressionTimers.has(el)) { clearTimeout(impressionTimers.get(el)); impressionTimers.delete(el); }
@@ -1251,7 +1269,7 @@ function setupFeedExposure() {
       // Relogio simulado avanca quando um post entra em cena, mesmo com rolagem rapida.
       // O algoritmo ainda aguarda permanencia antes de registrar interesse.
       if(document.visibilityState==='visible'&&!overlay&&!story&&!modal&&exitConfirm.hidden&&!document.querySelector('.sleep-reminder,.tag-vibe-overlay'))
-        advanceClockForVisible(id);
+        advanceClockForVisible(clockId);
       if (impressionTimers.has(el)) continue;
       impressionTimers.set(el,setTimeout(() => {
         impressionTimers.delete(el);
@@ -1504,14 +1522,17 @@ const dayItems=(d=state.day)=>state.feedItems.filter(x=>(x.day||1)===d);
 const streamItems=()=>state.feedItems.filter(x=>x.kind==='post'||x.kind==='ad');
 const dayStreamCount=()=>dayItems().filter(x=>x.kind==='post'||x.kind==='ad').length;
 const pad2=n=>String(n).padStart(2,'0');
-function clockMinutes(){return 19*60 + (state.clockViewed||0)*18;}
+function clockMinutes(){return GameClock.minutes(state);}
 function clockLabel(){const m=clockMinutes()%(24*60);return pad2(Math.floor(m/60))+':'+pad2(m%60);}
 function afterMidnight(){return clockMinutes()>=24*60;}
 function clockDayLabel(){return afterMidnight()?(Week.DAYS[state.day]?.short||'SÁB'):dayInfo().short;}
 function advanceClockForVisible(id){
- const key=state.day+':'+id;
- if(state.clockSeen.includes(key))return;
- state.clockSeen.push(key);state.clockViewed=(state.clockViewed||0)+1;save();
+ // Depois de 2 posts vistos, o relogio avanca 18 min; depois de 3,
+ // depois de 2, depois de 3... Reabrir posts nao adianta o horario.
+ const result=GameClock.advanceViewedPost(state,state.day,id);
+ if(!result.seen)return;
+ save();
+ if(!result.tick)return;
  const label=document.querySelector('.sb-time');if(label)label.innerHTML=`${clockDayLabel()} · ${clockLabel()}${afterMidnight()?' <small class="overnight-day">virou o dia</small>':''}`;
  const sleep=document.querySelector('.day-sleep-control');if(sleep){sleep.title=afterMidnight()?'Dormir até hoje, às 19h':'Dormir até amanhã, às 19h';const caption=sleep.querySelector('small');if(caption)caption.textContent=afterMidnight()?'hoje · 19h':'amanhã · 19h';}
  maybeSleepReminder();
@@ -1605,6 +1626,12 @@ function streamArgs(d){
   postIndex,visualSignals:FeedRanker.compileSignals(state.algorithm,{postIndex,phase:state.phase}),
   infinite:false,exclude:dayItems().filter(x=>x.kind==='post').map(x=>x.id),fastScroll:fastScroll(),lowVibe:state.vibe.value<40};
 }
+/* Publicacoes retomadas mantem o ID original para likes, mas recebem ID
+ * de exibicao proprio para contar uma nova visualizacao ao rever a foto. */
+function streamItemWithInstance(item,d,position){
+ return {...item,day:d.n,...(item.recycled&&item.kind==='post'
+  ?{instanceId:'repost-'+d.n+'-'+position+'-'+item.id}:{})};
+}
 function trackStreamItem(item,d){
  Pressure.vibeTick(state.vibe);
  if(item.swap){state.attention.adSwaps++;expose('rolagem_infinita','Quando você rolou rápido, o feed trocou um anúncio por post de amigo para te segurar.');}
@@ -1658,9 +1685,9 @@ function appendNext(){
  insertEvents();
  // Sem fim: depois do mínimo do dia o feed continua; o dia só acaba pelo menu ⋯.
  for(let i=0;i<5;i++){
-  const batch=Stream.nextBatch(contentPool(),streamArgs(d),1);
+  const batch=Stream.nextBatch(contentPool(),{...streamArgs(d),infinite:true},1);
   if(!batch.length)break;
-  const item={...batch[0],day:d.n};
+  const item=streamItemWithInstance(batch[0],d,state.feedItems.length);
   state.feedItems.push(item);added++;
   trackStreamItem(item,d);
   if(dayStreamCount()>d.minQuota){
@@ -2208,7 +2235,7 @@ function sleep(){
  else Pressure.vibeChange(state.vibe,9,'night','Uma noite de sono');
  if(state.flags.boughtToday){state.flags.boughtToday=false;Pressure.vibeChange(state.vibe,-10,'afterglow','A empolgação da compra passou');}
  state.day++;
- state.clockViewed=0;state.clockSeen=[];
+ GameClock.resetDay(state);
  state.flags.cartHold=0;
  state.wakeList=overnight();
  state.wake=true;save();
@@ -2239,6 +2266,8 @@ function tryExitHook(src){
  if(!state.started||state.finished||state.wake||state.attention.exitHookDays.includes(state.day))return false;
  if(src!=='end'&&(overlay||modal||story))return false;
  const hook=EXIT_HOOK_DAYS[state.day];if(!hook)return false;
+ // A foto marcada ja apareceu no feed. Nao repetir o mesmo anuncio ao sair.
+ if(hook.kind==='tag'&&(state.taggedVibeSeen.includes('tag-'+state.day)||state.feedItems.some(x=>x.id==='tag-'+state.day)))return false;
  state.attention.exitHookDays.push(state.day);
  expose('gancho_saida',`Tentou sair, mas recebeu nova atividade de ${hook.who}: ${hook.title}.`);
  save();modal={type:'exit-hook',src,photo:Variation.taggedPhoto(state.day,accountFeedSeed())};drawModal();return true;
@@ -2268,8 +2297,8 @@ function refreshAndReturnToTop(reason='manual'){
  setTimeout(()=>{
   if(generation!==refreshGeneration||run!==state.runId||day!==state.day||state.finished){refreshing=false;loader.remove();return;}
   const d=dayInfo();
-  const batch=d?Stream.nextBatch(contentPool(),{...streamArgs(d),preferFriends:true},3):[];
-  const items=batch.map(item=>({...item,day:d.n,fresh:true}));
+  const batch=d?Stream.nextBatch(contentPool(),{...streamArgs(d),preferFriends:true,infinite:true},3):[];
+  const items=batch.map((item,i)=>({...streamItemWithInstance(item,d,state.feedItems.length+i),fresh:true}));
   if(items.length){
    let idx=state.feedItems.findIndex(item=>(item.day||1)===state.day);
    idx=idx<0?state.feedItems.length:idx;
@@ -2312,8 +2341,8 @@ function eventCard(item){
  if(t==='live')return `<section class="ev ev-live" data-action="live" role="button" tabindex="0" aria-label="Entrar na live da Lívia"><div class="ev-live-photo" style="background-image:url('${mediaSrc('story_tenis_1')}')"><span class="live-badge">AO VIVO</span><span class="ev-live-viewers">👀 1,2 mil</span></div><div class="ev-live-text"><span class="avatar photo-avatar">${mediaPhoto('avatar_livia','avatar-photo','Foto de perfil da Lívia')}</span><div><strong>livia.looks está ao vivo</strong><p>“Cupom exclusivo só pra quem está aqui agora 🔥”</p></div></div><button class="ev-btn live" data-action="live">Entrar na live</button></section>`;
  if(t==='trial')return bought('plano')?'':`<section class="ev ev-trial"><span class="ev-emoji big">🎧</span><div><strong>Estudar com foco? MODO+ 3 dias GRÁTIS</strong><p>Sem anúncios entre as músicas. Cancele quando quiser.</p></div><button class="ev-btn" data-action="product" data-product="plano" data-source="trial">Testar grátis</button></section>`;
  if(t==='mood'){
-  const low=state.vibe.value<55,ids=['luminaria','garrafa'].filter(id=>!bought(id));
-  return `<section class="ev ev-mood"><small class="sponsored-label">Patrocinado</small><strong>${low?'23:12 · Dia puxado? 💜':'Antes de dormir… 💜'}</strong><p>${low?'Você merece um mimo. Frete grátis hoje, só pra você.':'Um presentinho pra fechar o dia. Frete grátis hoje.'}</p><div class="mood-grid">${ids.map(id=>`<button class="shop-mini-card" data-action="product" data-product="${id}" data-source="mood">${art(products[id].kind,true)}<strong>${esc(productName(id))}</strong><b>${money(price(id).price)}</b></button>`).join('')}</div></section>`;
+  const low=state.vibe.value<55,late=clockMinutes()>=22*60,ids=['luminaria','garrafa'].filter(id=>!bought(id));
+  return `<section class="ev ev-mood"><small class="sponsored-label">Patrocinado · ${clockLabel()}</small><strong>${low?'Dia puxado? 💜':late?'Antes de dormir… 💜':'Um presente para você 💜'}</strong><p>${low?'Você merece um mimo. Frete grátis hoje, só pra você.':late?'Um presentinho pra fechar o dia. Frete grátis hoje.':'Frete grátis hoje em produtos escolhidos para você.'}</p><div class="mood-grid">${ids.map(id=>`<button class="shop-mini-card" data-action="product" data-product="${id}" data-source="mood">${art(products[id].kind,true)}<strong>${esc(productName(id))}</strong><b>${money(price(id).price)}</b></button>`).join('')}</div></section>`;
  }
  if(t==='flash')return `<section class="ev ev-flash" data-action="sale" role="button" tabindex="0"><strong>🔥 MEGA LIQUIDA 48H</strong><p>Até <b>70% OFF</b> no que você viu esta semana</p><div class="flash-clock">termina em <b class="js-countdown" data-until="${state.flags.saleEnd}">47:59:59</b></div><button class="ev-btn" data-action="sale">Ver ofertas</button></section>`;
  if(t==='cartnudge'){
@@ -2537,7 +2566,7 @@ function stageFeed(){
  const m=Pressure.vibeMood(state.vibe.value),n=unreadCount();
  const cards=items.map((item,i)=>{
   let card='';
-  if(item.kind==='post'){if(!state.hiddenPosts.includes(item.id)){const post=pool.find(p=>p.id===item.id);if(post)card=postCard(post);}}
+  if(item.kind==='post'){if(!state.hiddenPosts.includes(item.id)){const post=pool.find(p=>p.id===item.id);if(post)card=postCard(post,item.instanceId||null);}}
   else if(item.kind==='ad'){if(!state.hiddenPosts.includes(item.id))card=adCard(item.topic,item.retarget,item);}
   else if(item.kind==='event')card=eventCard(item);
   else if(item.kind==='night')card=nightCard(item);
@@ -2658,7 +2687,8 @@ function drawModal(){
   <div class="own-comment-form insta-comment-form">
    <span class="comment-me-avatar" aria-hidden="true">🙂</span>
    <label class="comment-access-label" for="own-comment-input">Seu comentário</label>
-   <textarea id="own-comment-input" maxlength="180" rows="1" aria-label="Escreva um comentário" placeholder="Adicione um comentário..."></textarea>
+   <textarea id="own-comment-input" maxlength="180" rows="1" aria-label="Escreva um comentário" aria-keyshortcuts="Enter" aria-describedby="comment-keyboard-hint" placeholder="Adicione um comentário..."></textarea>
+    <span id="comment-keyboard-hint" class="comment-access-label">Enter publica. Shift + Enter quebra a linha.</span>
    <button class="insta-comment-submit" data-action="add-my-comment" data-post="${esc(v.post)}">Publicar</button>
    </div>`;
  }else if(v.type==='more'){
@@ -3482,6 +3512,14 @@ root.addEventListener('click',e=>{
  else if(a==='sources'){const node=document.querySelector('#sources');if(node){node.hidden=!node.hidden;if(!node.hidden)node.scrollIntoView({block:'nearest',behavior:'smooth'});}}
 });
 
+root.addEventListener('keydown',e=>{
+ // Enter publica o comentário; Shift+Enter mantém a quebra de linha nativa.
+ // Entrada por métodos de composição não deve enviar acidentalmente.
+ if(e.target?.id!=='own-comment-input'||modal?.type!=='comments'||e.key!=='Enter'
+    ||e.shiftKey||e.ctrlKey||e.altKey||e.metaKey||e.isComposing||e.keyCode===229)return;
+ e.preventDefault();
+ e.target.closest('.insta-comment-form')?.querySelector('[data-action="add-my-comment"]')?.click();
+});
 root.addEventListener('dblclick',e=>{
  const photo=e.target.closest('.feed-photo');
  if(!photo)return;
