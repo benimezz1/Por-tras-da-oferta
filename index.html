@@ -345,6 +345,45 @@
 .phone.low-vibe .phone-content{filter:saturate(.65) brightness(.97)}
 .ev-surprise{display:flex;align-items:center;gap:12px}.ev-surprise.empty{opacity:.75}
 
+/* Foto marcada: celebração de validação social, diferente da explosão monetária. */
+.tag-vibe-open .phone-content,.sleep-reminder-open .phone-content{overflow:hidden;touch-action:none}
+.tag-vibe-overlay{position:absolute;inset:0;z-index:78;display:grid;place-items:center;isolation:isolate;padding:18px;background:rgba(41,17,54,.68);backdrop-filter:blur(8px);animation:reward-veil-in .25s ease-out}
+.tag-vibe-overlay.is-leaving{animation:reward-veil-out .22s ease-in both;pointer-events:none}
+.tag-vibe-hearts{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.tag-vibe-heart{position:absolute;left:var(--left,50%);bottom:-40px;font-size:var(--size,27px);opacity:0;animation:tag-heart-float 2.3s var(--delay,0s) ease-out both;filter:drop-shadow(0 4px 12px #35163a88)}
+.tag-vibe-card{position:relative;z-index:1;width:100%;max-width:355px;max-height:calc(100% - 16px);overflow-y:auto;background:linear-gradient(160deg,#fff9fd 0%,#f7eaff 65%,#f2e9ff);color:#3d254b;border-radius:27px;padding:22px 19px 19px;text-align:center;border:1px solid #fff;box-shadow:0 25px 75px #201027aa,0 0 45px #e8b6ff66;animation:tag-reward-pop .65s cubic-bezier(.14,1.25,.34,1) both}
+.tag-vibe-label{font-size:10px;letter-spacing:.18em;font-weight:900;color:#9669bb;text-transform:uppercase}
+.tag-vibe-card h2{font-size:27px;line-height:1.12;letter-spacing:-.055em;margin:9px 0 5px}
+.tag-vibe-author{font-size:12px;color:#836e8b;margin:0 0 11px}
+.tag-vibe-photo{height:175px;max-height:27svh;border-radius:19px;overflow:hidden;background:#e5d4eb;position:relative;margin:11px auto 16px;border:4px solid #fff;box-shadow:0 9px 22px #5d2e7340}
+.tag-vibe-photo img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 39%}
+.tag-vibe-photo::after{content:"💜";position:absolute;bottom:8px;right:11px;font-size:25px;filter:drop-shadow(0 3px 6px #2b173855);animation:tag-heart-beat .9s ease-in-out 3}
+.tag-vibe-points{font-size:35px;font-weight:950;line-height:1;color:#b34dd2;letter-spacing:-.055em;margin:4px 0}
+.tag-vibe-footnote{font-size:12px;color:#816e88;line-height:1.55;margin:10px 0 15px}
+.tag-vibe-actions{display:flex;gap:9px}
+.tag-vibe-actions button{flex:1;border-radius:13px;padding:12px 9px;font-weight:850;font-size:12px;border:1px solid #e7cee9;background:#fff;color:#725180}
+.tag-vibe-actions button.primary-tag{background:linear-gradient(110deg,#bd4fc1,#8f62db);border:0;color:#fff}
+.tag-vibe-actions button:focus-visible{outline:3px solid #9337bb;outline-offset:2px}
+/* Lembretes só durante 04:00-07:59 do relógio simulado. */
+.sleep-reminder{position:absolute;inset:0;z-index:76;display:grid;place-items:center;padding:19px;background:rgba(18,17,35,.7);backdrop-filter:blur(7px);animation:reward-veil-in .24s ease-out}
+.sleep-reminder-card{width:100%;max-width:355px;border:1px solid #84759a;background:radial-gradient(circle at 50% 0%,#52406c,#211d37 76%);color:white;border-radius:25px;text-align:center;padding:27px 19px 22px;box-shadow:0 23px 58px #130a27aa;animation:tag-reward-pop .46s cubic-bezier(.18,1.2,.28,1) both}
+.sleep-reminder-moon{font-size:44px;line-height:1;margin-bottom:13px}
+.sleep-reminder-clock{font-weight:850;letter-spacing:.13em;font-size:11px;color:#d6bbee}
+.sleep-reminder-card h2{font-size:25px;line-height:1.15;letter-spacing:-.04em;margin:13px 0 11px}
+.sleep-reminder-card p{font-size:13px;line-height:1.65;color:#ddd3e5;margin:0 0 18px}
+.sleep-reminder-actions{display:grid;gap:9px}
+.sleep-reminder-actions button{border-radius:13px;min-height:44px;border:0;font-weight:850;font-size:13px}
+.sleep-reminder-actions .sleep-now{background:#fff;color:#352441}
+.sleep-reminder-actions .sleep-continue{background:#ffffff18;border:1px solid #ffffff45;color:#fff}
+.sleep-reminder-actions button:focus-visible{outline:3px solid #e8d1ff;outline-offset:3px}
+.feed-mystery-note{padding:10px 16px;margin:8px 14px 16px;border-radius:13px;border:1px dashed #e8d4ed;background:#fef9ff;text-align:center;color:#927594;font-size:11px;line-height:1.5}
+@keyframes tag-heart-float{0%{opacity:0;transform:translateY(25px) rotate(-22deg) scale(.6)}22%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translateY(-430px) rotate(35deg) scale(1.35)}}
+@keyframes tag-reward-pop{0%{opacity:0;transform:translateY(36px) scale(.77)}65%{opacity:1;transform:translateY(-7px) scale(1.04)}100%{transform:translateY(0) scale(1)}}
+@keyframes tag-heart-beat{0%,100%{transform:scale(1)}50%{transform:scale(1.27)}}
+@media(max-height:680px){.tag-vibe-photo{height:125px}.tag-vibe-card{padding:16px}.tag-vibe-card h2{font-size:24px}.sleep-reminder-card{padding:20px 16px}}
+@media(prefers-reduced-motion:reduce){.tag-vibe-overlay,.tag-vibe-card,.tag-vibe-heart,.tag-vibe-photo::after,.sleep-reminder,.sleep-reminder-card{animation:none!important}.tag-vibe-heart{display:none}}
+
+
 /* Recompensa variável animada: moedas, cupom e validação social. */
 .ev-surprise[data-surprise-kind="coins"]{background:linear-gradient(110deg,#fff7ec,#fff4fa);border-color:#f5e4cc}
 .reward-open .phone-content{overflow:hidden;touch-action:none}
@@ -624,7 +663,7 @@ function newRunId(){
  return "c4-"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
- pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),rewardSeen:[],myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[]});
+ pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),rewardSeen:[],taggedVibeSeen:[],myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[]});
 let state=makeInitial();
 function restoreForPlayer(player) {
  state=makeInitial();
@@ -645,6 +684,7 @@ function restoreForPlayer(player) {
    if(!Array.isArray(state.liked))state.liked=[];
    if(!Array.isArray(state.likedAds))state.likedAds=[];
     if(!Array.isArray(state.rewardSeen))state.rewardSeen=[];
+    if(!Array.isArray(state.taggedVibeSeen))state.taggedVibeSeen=[];
    if(!Array.isArray(state.hiddenPosts))state.hiddenPosts=[];
    state.signals={...makeInitial().signals,...state.signals};
   }
@@ -1415,13 +1455,13 @@ function trackStreamItem(item,d){
 function maybeSurprise(d){
  const postsToday=dayStreamCount();
  // Não premiar logo no início: pelo menos 10 posts/anúncios do dia.
- if(postsToday<10)return;
+ if(postsToday<12)return;
  // Após cada surpresa, mostrar 8 novos posts/anúncios antes da próxima.
  const itemsToday=dayItems();
  const previous=itemsToday.findLastIndex(x=>x.type==='surprise');
- if(previous>=0&&itemsToday.slice(previous+1).filter(x=>x.kind==='post'||x.kind==='ad').length<8)return;
+ if(previous>=0&&itemsToday.slice(previous+1).filter(x=>x.kind==='post'||x.kind==='ad').length<16)return;
  const n=state.feedItems.length,extra=postsToday>d.minQuota;
- if(Pressure.hash(state.runId+':s:'+n)%6>(extra?1:0))return;
+ if(Pressure.hash(state.runId+':s:'+n)%(extra?7:10)!==0)return;
  const seen=state.viewed.find(id=>products[id]&&!bought(id));
  const kinds=['coins','comment','nothing'].concat(seen?['drop']:[]);
  const variant=kinds[Pressure.hash(state.runId+':v:'+n)%kinds.length];
@@ -2198,7 +2238,7 @@ function comparePostCard(c){
 }
 function nightCard(item){
  const last=item.day>=Week.DAYS.length;
- return `<section class="night-card" id="night"><div class="night-moon">🌙</div><strong>${last?'23:51 · Amanhã é a viagem!':'23:47 · Já está tarde'}</strong><p>${last?'O ônibus sai às 6h30 do portão da escola.':`Amanhã é ${Week.DAYS[item.day].label.toLowerCase()}. Faltam ${5-item.day} dias para a viagem.`}</p><button class="primary" data-action="sleep">${last?'Dormir e acordar no sábado 🚌':'Dormir 💤'}</button></section>`;
+ return '<section class="night-card" id="night"><div class="night-moon">📱</div><strong>Você está em dia com o feed</strong><p>Sem novas publicações por enquanto. Você pode continuar explorando ou encerrar este dia quando quiser.</p><div class="night-actions"><button class="secondary" data-action="feedtop">Continuar no feed</button> <button class="primary" data-action="sleep">'+(last?'Avançar para a viagem 🚌':'Encerrar este dia')+'</button></div></section>';
 }
 function refreshHeader(){
  const dm=document.querySelector('[data-action="inbox"].hud-dm');
@@ -2303,7 +2343,7 @@ function stageFeed(){
   else if(item.kind==='mine')card=mineCard(item);
   if(card&&item.recycled)card=sectionDivider('Sugerido para você','page')+card;
   else if(card&&item.fresh)card=sectionDivider('Novo')+card;
-  return card+(i===4?shopStrip():'');
+  return card+(i===4?shopStrip():'')+(i===8?'<p class="feed-mystery-note">🎁 Nem toda rolagem traz um bônus. Algumas surpresas só aparecem de vez em quando…</p>':'');
  }).join('');
  const ended=items.some(x=>x.kind==='night');
  const extraToday=Math.max(0,dayStreamCount()-(d.minQuota||7));
@@ -2319,7 +2359,7 @@ function stageFeed(){
  ${renderStories(storyPool())}
  <div class="recommendation-caption">${state.personalized?'Para você':'Publicações em ordem cronológica'}</div>
  <div class="feed-tools"><button class="secondary" data-action="refresh-feed">↻ Novidades</button><button class="secondary" data-action="new-post">＋ Postar</button></div>
- ${cards}${ended?'':`${extraToday>=15?'<p class="late-hint small muted">Já está tarde… (⋯ → Encerrar o dia)</p>':''}<button class="load-more" data-action="load-more">Mais publicações para você ↓</button>`}
+ ${cards}${ended?'':`${extraToday>=15?'<p class="late-hint small muted">Você já viu bastante conteúdo. Pode encerrar o dia pelo menu ⋯.</p>':''}<button class="load-more" data-action="load-more">Mais publicações para você ↓</button>`}
  </div><button class="scroll-cue" data-action="scroll-cue" aria-label="Role para baixo para continuar">Continue rolando ↓</button>
  <footer class="phone-footer"><button class="icon-button" data-action="feedtop" aria-label="Início do feed">${icon('home')}</button>
  <button class="icon-button" data-action="search" aria-label="Explorar lojas">${icon('search')}</button>
