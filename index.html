@@ -437,6 +437,53 @@
 .post-choice{display:flex;flex-direction:column;gap:6px;padding:0;border:1px solid #0001;border-radius:12px;overflow:hidden;background:none;cursor:pointer;text-align:left}
 .post-choice img,.post-choice .art-photo{width:100%;aspect-ratio:1;object-fit:cover;display:block}.post-choice span{padding:0 8px 8px;font-size:13px}
 .time-guess input{width:100%}.time-guess p{text-align:center;font-size:18px}
+
+/* Encerramento em tres momentos: tempo, viagem e explicacao educativa. */
+.end-impact{min-height:100svh;display:grid;place-items:center;padding:22px 14px;background:radial-gradient(circle at 50% 24%,#f1d9f4,transparent 42%),#faf6fb}
+.end-impact-inner{width:100%;max-width:680px;margin:auto}
+.end-impact-card{position:relative;overflow:hidden;isolation:isolate;padding:34px clamp(22px,5vw,38px);border-radius:28px;background:linear-gradient(156deg,#fff,#fcf3ff 76%,#eae3ff);border:2px solid #fff;text-align:center;box-shadow:0 20px 65px #4c285022;animation:end-impact-pop .7s cubic-bezier(.14,1.3,.31,1) both}
+.end-impact-eyebrow{font-weight:900;letter-spacing:.13em;font-size:11px;color:#9957ae;text-transform:uppercase}
+.end-impact-card h1{margin:15px auto 12px;font-size:clamp(31px,6vw,51px);line-height:1.05;letter-spacing:-.06em;max-width:600px}
+.end-time-badge{display:flex;gap:7px;justify-content:center;align-items:baseline;margin:18px 0;font-weight:900;color:#6b3786}
+.end-time-badge strong{font-size:clamp(46px,9vw,73px);line-height:1;letter-spacing:-.08em;font-variant-numeric:tabular-nums}
+.end-time-comparison{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin:18px 0}
+.end-time-item{padding:17px 12px;border:1px solid #e6d6f0;border-radius:18px;background:#fff}
+.end-time-item span{display:block;font-size:12px;color:#7c6e80}
+.end-time-item strong{display:block;font-size:24px;margin-top:5px;color:#553366}
+.end-impact-explanation{margin:16px auto 22px;font-size:14px;line-height:1.65;max-width:540px;color:#6e577a}
+.end-impact-actions{display:grid;gap:10px;max-width:410px;margin:18px auto 0}
+.end-impact-actions button{width:100%;min-height:49px;font-size:14px;font-weight:850}
+.end-impact-actions button:disabled{opacity:.55;cursor:not-allowed}
+.end-impact-actions .subtle-quit{background:transparent;border:0;color:#947e97;text-decoration:underline;font-weight:600;font-size:12px}
+.trip-impact{background:radial-gradient(circle at 50% 32%,#fad8c8,transparent 44%),#fdf8f7}
+.trip-impact.missed{background:radial-gradient(circle at 50% 32%,#e6d9ed,transparent 44%),#f5f2f5}
+.trip-icon{font-size:69px;line-height:1.3;margin:6px 0 9px;filter:drop-shadow(0 9px 10px #b9858c77);animation:trip-bounce .9s .18s cubic-bezier(.15,1.4,.31,1) both}
+.trip-impact .end-impact-card{background:linear-gradient(140deg,#fffdf7,#fff0f3 82%,#eae3ff)}
+.trip-impact.missed .end-impact-card{background:linear-gradient(140deg,#fff,#f3eef5 80%)}
+.trip-impact .end-impact-card h1{font-size:clamp(38px,7vw,60px)}
+.trip-confetti{position:absolute;inset:0;pointer-events:none;z-index:-1}
+.trip-confetti i{position:absolute;left:var(--cx);top:-20px;width:8px;height:15px;border-radius:2px;background:var(--cc);opacity:0;animation:trip-confetti-fall 2.3s var(--cd) ease-in-out both}
+.trip-impact.missed .trip-confetti{display:none}
+.trip-mcp-status{min-height:20px;font-size:13px;font-weight:750;line-height:1.5;color:#7c527d;margin:12px auto}
+.budget-timeline .budget-intro{font-size:13px;line-height:1.65;color:#746977}
+.budget-step{border:1px solid #eae1ea;background:#fcfafc;border-radius:15px;margin:13px 0;padding:15px}
+.budget-step h4{margin:0 0 11px;font-size:15px;letter-spacing:-.02em;color:#4e3b55}
+.budget-step .ex-row{padding:9px 0;border-top:1px solid #f0e7ef;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;font-size:12px}
+.budget-step .ex-row b{text-align:right;white-space:nowrap;font-size:13px;font-variant-numeric:tabular-nums}
+.budget-step .ex-row:first-of-type{border-top:0}
+.budget-step .ex-row.sub{font-weight:850}
+.budget-outcome{border-radius:15px;padding:17px 15px;background:#f5f6fc;border:1px solid #dedcec;margin:14px 0}
+.budget-outcome.success{background:#f1f9f3;border-color:#c4e8d3}
+.budget-outcome.missed{background:#fff6f5;border-color:#efd3ce}
+.budget-outcome strong{font-size:17px;display:block;margin-bottom:7px}
+.budget-outcome p,.budget-lesson p{font-size:12px;line-height:1.65;margin:5px 0}
+.budget-lesson{padding:13px;border-radius:12px;background:#f5eefb;border-left:4px solid #ad65c0;color:#594961}
+@keyframes end-impact-pop{0%{opacity:0;transform:scale(.35) translateY(75px) rotate(-4deg)}60%{opacity:1;transform:scale(1.055) translateY(-10px) rotate(1deg)}100%{transform:scale(1) translateY(0)}}
+@keyframes trip-bounce{0%{transform:translateY(45px) scale(.55);opacity:0}65%{transform:translateY(-15px) scale(1.13);opacity:1}100%{transform:translateY(0) scale(1)}}
+@keyframes trip-confetti-fall{0%{opacity:0;transform:translateY(-30px) rotate(0)}22%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translateY(460px) rotate(520deg)}}
+@media(max-width:460px){.end-impact-card{padding:23px 17px}.end-time-comparison{gap:7px}.end-time-item{padding:13px 8px}}
+@media(prefers-reduced-motion:reduce){.end-impact-card,.trip-icon,.trip-confetti i{animation:none!important}.trip-confetti{display:none}}
+
 </style>
 
 <style>
@@ -2249,7 +2296,7 @@ function publishPost(choice){
  expose('validacao_social',boosted?`Seu post com ${productName(c.topic)} rendeu 3x mais curtidas.`:`Seu post rendeu poucas curtidas, e o app sugeriu que com ${productName(c.topic)} renderia 3x mais.`);
  modal=null;save();refreshAndReturnToTop('publicacao no feed');
 }
-function finishWeek(){stopStory();clearInterval(liveTimer);state.finished=true;state.finishedAt ||= new Date().toISOString();state.endStep=0;save();overlay=null;modal=null;renderEnd();}
+function finishWeek(){stopStory();clearInterval(liveTimer);state.finished=true;state.finishedAt ||= new Date().toISOString();state.endStep=0;state.endPrelude='guess';save();overlay=null;modal=null;renderEnd();}
 
 /* ---------- cards do roteiro ---------- */
 function eventCard(item){
@@ -2885,11 +2932,11 @@ function endStep3(s){
 }
 function guessPage(){
  return `<main class="end"><div class="end-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
- ${state.flags.timeLimit?'<div class="end-box"><h3>⏹ 30 minutos de jogo</h3><p>A partida foi encerrada automaticamente. Plataformas reais não fazem isso. Nós fazemos.</p></div>':''}
+ ${state.flags.timeLimit?'<div class="end-box"><h3>⏹ Limite de tempo da experiência</h3><p>A partida foi encerrada automaticamente após atingir o tempo máximo da simulação.</p></div>':''}
  <div class="eyebrow" style="margin-top:23px">ANTES DE VER O RESULTADO</div>
  <h1>Quanto tempo você acha que jogou?</h1>
  <div class="end-box time-guess"><input type="range" id="time-guess" min="1" max="60" value="10" aria-label="Minutos estimados"><p><strong id="time-guess-out">10</strong> minutos</p></div>
- <button class="primary" data-action="guess-time">Ver o que aconteceu →</button></div></main>`;
+ <button class="primary" data-action="guess-time">Continuar →</button></div></main>`;
 }
 function attentionBox(){
  const a=state.attention,real=Math.max(1,Math.round(a.realMs/60000)),diff=real-(a.guess||0);
