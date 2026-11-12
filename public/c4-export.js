@@ -24,9 +24,15 @@
       throw Error("Identificador da partida inválido.");
     if (!pressure || !recommender)
       throw Error("Motores da campanha indisponíveis.");
+    // O backend MCP v1 usa quatro etapas (0–3). A interface agora tem cinco
+    // (0 resultado, 1 análise, 2 aprendizado, 3 quiz, 4 raio-x).
+    // Mantemos a numeração original nos dados enviados.
+    const uiStep = Math.max(0, Math.floor(num(state.endStep)));
+    const legacyEndStep = Math.min(3, state.endFlowVersion === 2 && uiStep >= 2 ? uiStep - 1 : uiStep);
     const snapshot = {};
     for (const key of FIELDS) if (Object.prototype.hasOwnProperty.call(state, key))
       snapshot[key] = state[key] === undefined ? null : clone(state[key]);
+    snapshot.endStep = legacyEndStep;
     // Somente contagens de interacoes proprias sao enviadas, sem legenda ou texto
     // de comentarios digitados pelo jogador. As decisoes sobre compartilhar
     // compras sao registros da simulacao (nao atitudes reais).
@@ -55,7 +61,7 @@
       estado: snapshot,
       resumo: {
         jornada: { iniciada: true, concluida: !!state.finished, diaAtual: state.day,
-          etapaFinal: state.endStep, conteudosExibidos: safeArray(state.feedItems).length },
+          etapaFinal: legacyEndStep, conteudosExibidos: safeArray(state.feedItems).length },
         economia: { saldoInicial: 620, metaViagem: state.goal, saldoAtual: state.wallet,
           moedas: state.coins, fechamento: settlement },
         consumo: { compras: safeArray(state.purchases).length,
