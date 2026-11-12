@@ -74,6 +74,12 @@
     choices:[{id:"trip-yes",label:"Tô dentro! 🙌",reply:""}]},
    {day:4,ifMissing:{product:"tenis",messages:[["bia","foto da viagem: só quem tiver o Motion 88 no meio 😂👟"],["lucca","já criei o grupo “time Motion” pra combinar"]]},messages:[["bia","gente comprei a Trail Mini na mega liquida 😍"],["nina","eu comprei a garrafa da vida.fit"],["gabi","eu não comprei nada e tô de boa kkk"],["gabi","amanhã 6h30 no portão!! 🚌"]]}
   ]},
+  motion:{name:"time Motion 👟",avatar:"group",kind:"group",blocks:[
+   {day:2,messages:[["lucca","criei o time Motion! 👟 você também pegou o Motion 88?"],["bia","a gente pode combinar um look pra foto da viagem"],["gabi","só não esquece do dinheiro do boleto, hein 😂"]]},
+   {day:3,messages:[["mia","quem já testou o tênis novo?"],["lucca","a foto da galera vai ficar massa"]]},
+   {day:4,messages:[["lucca","bem-vindo ao time Motion! 👟"],["bia","que bom que você conseguiu o seu!"],["gabi","roupa confortável pra viagem e já era"]]},
+   {day:5,messages:[["lucca","amanhã cedo no portão, hein 👟🚌"],["bia","foto da turma antes de embarcar!"],["gabi","lembrem dos R$ 400 do boleto, gente"]]}
+  ]},
   fest:{name:"Pocket Fest 🎉",avatar:"group",kind:"group",blocks:[
    {day:5,messages:[["bia","LOTE FINAL ACABANDO 😱"],["mia","comprei!!"],["lucca","comprei tbm 🎟️"],["nina","só falta você 👀👀"],["bia","é hoje às 20h, termina cedo, dá pra ir pra viagem amanhã"]],
     choices:[{id:"fest-buy",label:"Vou comprar agora!",reply:"AEEEE 🎉🎉"},
