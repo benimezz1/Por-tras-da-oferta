@@ -2823,20 +2823,39 @@ function endStep0(s){
  <h1>${s.tripPaid?'Você embarcou. 🚌':'O ônibus saiu sem você.'}</h1>
  <div class="trip-photo ${s.tripPaid?'':'missed'}">${photo}<span>${s.tripPaid?'Viagem da turma · você está na foto':'Story da gabi.n · “saudades de quem ficou 💔”'}</span></div>
  <p class="end-lead">${s.tripPaid?`O boleto de R$ 400 foi pago às 6h02. Ninguém na viagem perguntou de que marca era seu fone ou seu tênis.${s.future?` Mas atenção: ${money(s.future)} em parcelas continuam chegando nos próximos meses.`:''}`:`Depois da fatura do Pulso Pay${s.subscriptionDue?' e da assinatura':''}, faltaram <b>${money(s.missing)}</b> para pagar os R$ 400. Às 6h30 o ônibus saiu do portão. Você acompanhou a viagem pelos stories.`}</p>
- <div class="end-box extrato"><h3>Seu extrato da semana</h3>
- ${rows('Saldo no domingo',money(620))}
- ${pix?rows('Compras no Pix','−'+money(pix)):''}
- ${fixes?rows('Conserto do fone','−'+money(fixes)):''}
- ${rows('Saldo na conta no sábado',money(state.wallet),'sub')}
- ${s.dueNow?rows('Fatura Pulso Pay (vence hoje)','−'+money(s.dueNow)):''}
- ${s.subscriptionDue?rows('MODO+ (fim do teste grátis)','−'+money(s.subscriptionDue)):''}
- ${rows('Disponível para a viagem',money(s.finalBalance),'sub')}
- ${rows('Boleto da viagem',s.tripPaid?'✅ R$ 400,00 pago':'❌ R$ 400,00 recusado',s.tripPaid?'good':'bad')}
- ${s.future?rows('Parcelas nos próximos meses',money(s.future),'warn'):''}
- ${s.interest?rows('Juros do parcelamento',money(s.interest),'warn'):''}
- ${s.monthly?rows('Assinatura que continua todo mês',money(s.monthly)+'/mês','warn'):''}
- ${state.coins?rows('Moedas que sobraram (não pagam a viagem)','🪙 '+money(state.coins)):''}
+ <section class="end-box budget-timeline" aria-labelledby="budget-title">
+ <h3 id="budget-title">Para onde foi seu dinheiro?</h3>
+ <p class="budget-intro">Você começou com <strong>R$ 620,00</strong> e precisava de <strong>R$ 400,00</strong> para a viagem. Veja como suas decisões alteraram o saldo até sábado.</p>
+ <div class="budget-step">
+  <h4>1. Dinheiro da conta</h4>
+  ${rows('Domingo: saldo inicial',money(620))}
+  ${pix?rows('Compras no Pix','−'+money(pix)):rows('Compras no Pix','Nenhuma')}
+  ${fixes?rows('Conserto do fone','−'+money(fixes)):''}
+  ${rows('Sábado: saldo antes da fatura',money(state.wallet),'sub')}
+  <p class="small muted">O Pix desconta o dinheiro na hora. Compras no crédito podem dar a impressão de que ele ainda está disponível.</p>
  </div>
+ <div class="budget-step">
+  <h4>2. Contas que venceram no sábado</h4>
+  ${s.dueNow?rows('Fatura do Pulso Pay','−'+money(s.dueNow)):rows('Fatura do Pulso Pay','Nenhuma')}
+  ${s.subscriptionDue?rows('MODO+ / fim do teste grátis','−'+money(s.subscriptionDue)):''}
+  ${rows('Dinheiro livre após essas cobranças',money(s.finalBalance),'sub')}
+  <p class="small muted">Parcelar uma compra não elimina o gasto: apenas muda quando as cobranças chegam.</p>
+ </div>
+ <div class="budget-outcome ${s.tripPaid?'success':'missed'}">
+  <strong>${s.tripPaid?'✅ A meta de R$ 400 foi alcançada.':'❌ Faltou dinheiro para a viagem.'}</strong>
+  <p>${s.tripPaid?'Você manteve o valor necessário para pagar o boleto. Priorizar uma meta pode ajudar a resistir a compras por impulso.':'Faltaram '+money(s.missing)+'. O saldo antes da fatura não era todo dinheiro disponível para a viagem.'}</p>
+ </div>
+ ${(s.future||s.monthly||s.interest||state.coins)?`<div class="budget-step"><h4>3. O que ainda merece atenção</h4>
+   ${s.future?rows('Parcelas dos próximos meses',money(s.future)):''}
+   ${s.monthly?rows('Assinatura que continua todo mês',money(s.monthly)+'/mês'):''}
+   ${s.interest?rows('Juros do parcelamento',money(s.interest)):''}
+   ${state.coins?rows('Moedas fictícias do app',money(state.coins)):''}
+   <p class="small muted">Não some esses valores novamente ao saldo do sábado: são compromissos futuros, custos informativos ou moedas que não pagam boletos.</p>
+  </div>`:''}
+ <div class="budget-lesson"><strong>📚 O que aprender com isso?</strong>
+  <p>Antes de comprar, reserve o dinheiro das suas metas e avalie o custo total — incluindo parcelas, assinaturas, taxas e juros. Desconto e cashback não significam dinheiro livre na conta.</p>
+ </div>
+ </section>
  <div class="end-box"><h3>O que você comprou</h3>${purchases||'<p class="small muted">Nenhuma compra. O feed tentou bastante.</p>'}
  ${state.fixes.length?`<p class="small muted" style="margin-top:10px">Alternativas que você usou: ${state.fixes.map(f=>esc(f.label)).join(' · ')}.</p>`:''}
  ${state.cart.length?`<p class="small muted">Ficaram na sacola: ${state.cart.map(id=>esc(productName(id))).join(', ')}.</p>`:''}</div>
