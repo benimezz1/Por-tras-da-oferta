@@ -101,7 +101,7 @@ test("grupo time Motion aparece depois de comprar o tenis e nao antes",async ({p
  await page.locator('.day-sleep-control').click();
  await page.locator('[data-action="open-day"]').click();
  await page.locator('.phone-head [data-action="inbox"]').click();
- await expect(page.locator('.inbox-row')).not.toContainText('time Motion');
+ await expect(page.locator('.inbox-row').filter({hasText:'time Motion'})).toHaveCount(0);
  await page.locator('.layer-head [data-action="close-overlay"]').click();
  await page.locator('.phone-head [data-action="shop"]').click();
  await page.locator('.shop-product[data-product="tenis"]').click();
