@@ -266,6 +266,12 @@ test("sem compras o jogador embarca e passa pelo final em quatro etapas", async 
   await expect(page.locator(".end")).toContainText("Nada ali era por acaso");
   await expect(page.locator(".strat")).toHaveCount(15);
   await expect(page.locator(".vibe-chart svg")).toBeVisible();
+  await expect(page.locator(".vibe-education-card")).toContainText("0 a 100");
+  await expect(page.locator(".vibe-metrics>div")).toHaveCount(3);
+  await expect(page.locator(".vibe-chart .vibe-axis-text")).toHaveCount(7);
+  await expect(page.locator(".vibe-events")).toContainText("O que provocou as mudanças?");
+  await expect(page.locator(".vibe-lesson")).toContainText("Aprenda a reconhecer o ciclo");
+  await expect(page.locator(".vibe-education-card")).toContainText("não mede seus sentimentos reais");
   await page.locator('[data-action="end-next"]').click();
   const questions = page.locator(".quiz-q");
   await expect(questions).toHaveCount(5);
