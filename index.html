@@ -424,6 +424,14 @@
 @media(prefers-reduced-motion:reduce){.reward-celebration,.reward-celebration::before,.reward-panel,.reward-medallion,.reward-amount,.reward-hud-pulse{animation:none!important}.reward-particle{display:none}.reward-continue{transition:none}}
 
 .reward-trigger{display:block;width:100%;height:4px;pointer-events:none;visibility:hidden}
+
+/* Atualizacao de feed com rolagem automatica e indicador transparente de espera. */
+.feed-refresh-loading{position:absolute;z-index:14;top:112px;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:11px;min-width:190px;padding:13px 19px;border:1px solid #f0d8ef;border-radius:999px;background:#fffffff5;color:#75477c;box-shadow:0 13px 45px #3e1b4550;font-size:12px;font-weight:850;white-space:nowrap;animation:feed-loader-arrive .24s both;pointer-events:none}
+.feed-refresh-spinner{width:21px;height:21px;flex:none;border-radius:50%;border:3px solid #e9dcef;border-top-color:#bc419c;animation:feed-refresh-spin .7s linear infinite}
+@keyframes feed-refresh-spin{to{transform:rotate(360deg)}}
+@keyframes feed-loader-arrive{from{opacity:0;transform:translate(-50%,-18px)}to{opacity:1;transform:translate(-50%,0)}}
+@media(prefers-reduced-motion:reduce){.feed-refresh-loading,.feed-refresh-spinner{animation:none!important}}
+
 .mine-post .post-caption{padding:10px 14px}.mine-hint{padding:0 14px 12px;margin:0}
 .post-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .post-choice{display:flex;flex-direction:column;gap:6px;padding:0;border:1px solid #0001;border-radius:12px;overflow:hidden;background:none;cursor:pointer;text-align:left}
@@ -945,7 +953,7 @@ function setupFeedAssist(){
  const sync=()=>{
   const remaining=scroller.scrollHeight-scroller.clientHeight-scroller.scrollTop;
   if(cue)cue.classList.toggle('hidden',scroller.scrollTop>88||remaining<120);
-  if(scroller.scrollTop<120||remaining>190||loadPending||overlay||story||modal||!exitConfirm.hidden||document.querySelector('.sleep-reminder,.tag-vibe-overlay'))return;
+  if(scroller.scrollTop<120||remaining>190||loadPending||refreshing||overlay||story||modal||!exitConfirm.hidden||document.querySelector('.sleep-reminder,.tag-vibe-overlay'))return;
   if(dayItems().some(x=>x.kind==='night')||state.wake)return;
   loadPending=true;
   requestAnimationFrame(()=>{
@@ -2070,8 +2078,9 @@ function sharePurchase(channel){
  const choiceLabel={feed:'no feed',story:'nos stories',ambos:'no feed e nos stories',nenhum:'não compartilhar'}[channel];
  pushEvent('compartilhamento_compra',`Após comprar ${o.items.map(productName).join(' + ')}, escolheu ${choiceLabel}.`);
  if(feed||storyShare)expose('fomo','Uma compra foi apresentada como conteúdo para amigos: isso pode gerar comparação e receio de ficar de fora.');
- overlay=null;modal=null;save();renderGame(!feed);
- if(feed)document.querySelector('#feed-scroll')?.scrollTo(0,0);
+ overlay=null;modal=null;save();
+ if(feed||storyShare)refreshAndReturnToTop('compartilhamento da compra');
+ else {document.querySelector('.layer')?.remove();document.querySelector('.layer-backdrop')?.remove();renderGame(true);}
  toast(channel==='nenhum'?'Compra não publicada.':'Sua compra apareceu '+choiceLabel+'! 💜');
 }
 function publishOwnStory(choice){
@@ -2082,7 +2091,7 @@ function publishOwnStory(choice){
  state.myStories.push({id:'story-me-'+state.day+'-'+(state.myStories.length+1),photo:c.photo,
   day:state.day,product:c.topic,text:caption,origin:'organic'});
  pushEvent('story_proprio','Publicou um story com foto selecionada na galeria.');
- storyPhotoPromises.clear();modal=null;save();renderGame(true);toast('Seu story está no começo da lista! 📸');
+ storyPhotoPromises.clear();modal=null;save();refreshAndReturnToTop('publicacao de story');toast('Seu story está no começo da lista! 📸');
 }
 function shareOwnPostToStory(id){
  const p=state.myPosts.find(x=>x.id===id);if(!p)return;
@@ -2091,7 +2100,7 @@ function shareOwnPostToStory(id){
  state.myStories.push({id:'story-me-'+state.day+'-'+(state.myStories.length+1),photo:p.photo||c?.photo||'post_p1',
   day:state.day,product:p.topic||c?.topic||'fone',text:p.caption||c?.caption||'Minha publicação',origin:'post'});
  pushEvent('story_proprio','Compartilhou uma publicação própria nos stories.');
- save();renderGame(true);toast('Compartilhado nos seus stories!');
+ save();refreshAndReturnToTop('compartilhamento em story');toast('Compartilhado nos seus stories!');
 }
 
 /* ---------- assinatura: entrar é fácil, sair é difícil ---------- */
@@ -2176,21 +2185,47 @@ function topOfToday(items){
  const idx=state.feedItems.findIndex(x=>(x.day||1)===state.day);
  state.feedItems.splice(idx<0?state.feedItems.length:idx,0,...items);
 }
-let refreshing=false;
-function refreshFeed(){
- if(refreshing)return;refreshing=true;
- const btn=document.querySelector('[data-action="refresh-feed"]');if(btn)btn.textContent='Atualizando…';
+let refreshing=false,refreshGeneration=0;
+/* Publicar, compartilhar story e atualizar manualmente compartilham uma
+ * unica operacao. Os posts anteriores ficam estaveis; so o proximo lote
+ * da recomendacao V6 e inserido no topo depois das publicacoes proprias. */
+function refreshAndReturnToTop(reason='manual'){
+ if(refreshing)return;
+ const scroller=document.querySelector('#feed-scroll'),phone=document.querySelector('.phone');
+ if(!scroller||!phone||state.finished||state.wake)return;
+ refreshing=true;
+ const generation=++refreshGeneration,run=state.runId,day=state.day;
+ const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ document.querySelector('.layer-backdrop')?.remove();
+ document.querySelector('.layer')?.remove();
+ scroller.scrollTo({top:0,behavior:reduce?'instant':'smooth'});
+ const loader=document.createElement('div');
+ loader.className='feed-refresh-loading';loader.setAttribute('role','status');
+ loader.innerHTML='<span class="feed-refresh-spinner" aria-hidden="true"></span><span>Atualizando seu feed…</span>';
+ phone.appendChild(loader);
  setTimeout(()=>{
-  refreshing=false;const d=dayInfo();state.attention.refreshes++;
-  expose('recompensa_variavel','Puxar para atualizar: às vezes vinha novidade, às vezes “nada novo ainda”.');
-  const lucky=Pressure.hash(state.runId+':r:'+state.attention.refreshes)%2===0;
-  const batch=lucky&&d?Stream.nextBatch(contentPool(),{...streamArgs(d),preferFriends:true},2):[];
-  if(!batch.length){save();renderGame(true);toast('Nada novo ainda. Tente de novo daqui a pouco.');return;}
-  const items=batch.map(b=>({...b,day:d.n,fresh:true}));
-  topOfToday(items);for(const it of items)trackStreamItem(it,d);
-  save();renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);toast(items.length+' publicações novas');
- },1500);
+  if(generation!==refreshGeneration||run!==state.runId||day!==state.day||state.finished){refreshing=false;loader.remove();return;}
+  const d=dayInfo();
+  const batch=d?Stream.nextBatch(contentPool(),{...streamArgs(d),preferFriends:true},3):[];
+  const items=batch.map(item=>({...item,day:d.n,fresh:true}));
+  if(items.length){
+   let idx=state.feedItems.findIndex(item=>(item.day||1)===state.day);
+   idx=idx<0?state.feedItems.length:idx;
+   // As fotos que o jogador acabou de postar continuam em primeiro lugar.
+   while(state.feedItems[idx]?.day===state.day&&state.feedItems[idx]?.kind==='mine')idx++;
+   state.feedItems.splice(idx,0,...items);
+   for(const item of items)trackStreamItem(item,d);
+  }
+  state.attention.refreshes++;
+  expose('personalizacao',items.length
+    ?'Atualizacao do feed apos '+reason+': '+items.length+' conteudos novos selecionados pelo ranking de interesses, sem repetir postagens vistas.'
+    :'Atualizacao do feed apos '+reason+': nenhuma nova publicacao estava disponivel na biblioteca do dia.');
+  save();refreshing=false;renderGame(false);
+  if(reason==='manual'&&!items.length)toast('Sem novas publicações neste momento.');
+ },reduce?280:1050);
 }
+function refreshFeed(){refreshAndReturnToTop('atualizacao manual');}
+
 function publishPost(choice){
  const c=postChoices().find(x=>x.id===choice);if(!c)return;
  if(state.myPosts.filter(p=>p.day===state.day).length>=10){toast('Você publicou bastante hoje. Continue amanhã.');return;}
@@ -2199,7 +2234,7 @@ function publishPost(choice){
  state.myPosts.push({id,choice,caption,time:clockLabel(),day:state.day,clockViewed:state.clockViewed,at:Date.now(),boosted,target:(28+Pressure.hash(state.runId+id)%43)*(boosted?3:1),comments:[],origin:'organic'});
  topOfToday([{kind:'mine',id,day:state.day}]);
  expose('validacao_social',boosted?`Seu post com ${productName(c.topic)} rendeu 3x mais curtidas.`:`Seu post rendeu poucas curtidas, e o app sugeriu que com ${productName(c.topic)} renderia 3x mais.`);
- modal=null;save();renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);
+ modal=null;save();refreshAndReturnToTop('publicacao no feed');
 }
 function finishWeek(){stopStory();clearInterval(liveTimer);state.finished=true;state.finishedAt ||= new Date().toISOString();state.endStep=0;save();overlay=null;modal=null;renderEnd();}
 
