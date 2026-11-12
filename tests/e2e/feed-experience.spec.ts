@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-async function enter(page) {
+async function enter(page, keepTaggedOverlay = false) {
   await page.goto("/");
   await expect(page.locator(".account-screen")).toBeVisible();
   await page.locator('input[name="username"]').fill("aluno_teste");
@@ -26,6 +26,11 @@ async function enter(page) {
   await page.locator('[data-action="intro-next"]').click();
   await page.locator('[data-action="open-day"]').click();
   await expect(page.locator(".phone")).toBeVisible();
+  if (!keepTaggedOverlay) {
+    await expect(page.locator(".tag-vibe-overlay")).toBeVisible();
+    await page.locator('[data-action="tag-vibe-continue"]').click();
+    await expect(page.locator(".tag-vibe-overlay")).toHaveCount(0);
+  }
 }
 async function loadAll(page) {
   for (let n = 0; n < 12; n++) {
@@ -37,7 +42,7 @@ async function loadAll(page) {
   }
 }
 
-test("surpresas só aparecem após 10 publicações e respeitam intervalo de 8", async ({ page }) => {
+test("surpresas ficam raras e espaçadas durante a rolagem", async ({ page }) => {
   await enter(page);
   await loadAll(page);
   const items = await page.evaluate(() => {
@@ -51,11 +56,11 @@ test("surpresas só aparecem após 10 publicações e respeitam intervalo de 8",
     if (item.kind === "post" || item.kind === "ad") postsSeen += 1;
     if (item.type !== "surprise") continue;
     surprises += 1;
-    expect(postsSeen).toBeGreaterThanOrEqual(10);
-    if (previousSurpriseAt !== -1) expect(postsSeen - previousSurpriseAt).toBeGreaterThanOrEqual(8);
+    expect(postsSeen).toBeGreaterThanOrEqual(12);
+    if (previousSurpriseAt !== -1) expect(postsSeen - previousSurpriseAt).toBeGreaterThanOrEqual(16);
     previousSurpriseAt = postsSeen;
   }
-  expect(surprises).toBeGreaterThan(0);
+  expect(surprises).toBeLessThanOrEqual(5);
 });
 
 test("o botão de retorno funciona por cima dos stories", async ({ page }) => {
