@@ -74,13 +74,20 @@ test("contas distintas recebem fotografias iniciais diferentes e a recarga conse
 
 test("curtir foto da biblioteca aumenta o ranking visual sem mover posts anteriores", async ({ page }) => {
   await enter(page);
-  for (let attempt=0;attempt<10&&!await page.locator('.post[id^="v5-post-"]').count();attempt++) {
+  const suitableId=()=>page.evaluate(()=>{
+    const w=window as any,posts=w.NoFeedLibraryV5.posts;
+    const categories=Object.create(null);
+    for(const p of posts.filter(p=>p.day===1))categories[p.metadata.category]=(categories[p.metadata.category]||0)+1;
+    return [...document.querySelectorAll('.post[id^="v5-post-"]')]
+      .map(el=>el.id).find(id=>categories[posts.find(p=>p.id===id)?.metadata.category]>1)||null;
+  });
+  for(let attempt=0;attempt<12&&!await suitableId();attempt++)
     await page.locator(".load-more").evaluate(el=>el.click());
-  }
-  const card=page.locator('.post[id^="v5-post-"]').first();
+  const id=await suitableId();
+  expect(id).toBeTruthy();
+  const card=page.locator('#'+id);
   await expect(card).toBeVisible();
   await card.scrollIntoViewIfNeeded();
-  const id=await card.getAttribute("id");
   const calculate=async()=>page.evaluate(likedId=>{
     const w=window as any;
     const saved=JSON.parse(localStorage.getItem("nofeed-simulator-v4:user:player-e2e")||"{}");
