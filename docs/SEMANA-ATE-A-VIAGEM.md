@@ -95,3 +95,53 @@ A semana agora também reproduz o que uma rede faz **antes** de vender: prender 
 **Limite real:** depois de 30 minutos reais de jogo, a partida vai direto para o sábado ("Plataformas reais não fazem isso. Nós fazemos.").
 
 **Revelação:** antes do resultado, o jogador estima quanto tempo jogou. O raio-x ganhou o bloco **Raio-X da atenção** (tempo estimado × real, itens extras, noites após 23h, ganchos, surpresas, trocas de anúncio, curtidas). O quiz e o perfil agora cobrem 15 estratégias: as 10 do relatório + rolagem infinita, recompensa variável, gancho de saída, validação social e controle de fachada.
+
+## Direct como jogo de dilemas e brechas fechadas
+
+A versão anterior deixava um caminho fácil: ignorar o direct, dormir logo e não comprar nada. Esta etapa fecha essas saídas sem tirar as alternativas honestas, e transforma o direct em conversas com escolhas.
+
+### Motor de conversas (`public/direct.js`)
+
+Cada conversa é uma árvore de nós com falas (`say`), respostas (`ask`), efeitos (`fx`) e saltos (`go`). O motor entrega as falas com indicador de "digitando…", aceita 2 a 4 respostas por pergunta, cobra quem não responde (`nag`) e encerra ofertas com prazo ao dormir (`expire`). As conversas correm em paralelo: o aviso de uma chega enquanto o jogador está em outra. Três tipos de cartão aparecem dentro da conversa: contato ("Abrir conversa"), produto e cupom.
+
+| Dia | Conversa | O que testa |
+| --- | --- | --- |
+| Seg | Lucca manda o contato do tio Jorge; o tio responde devagar ("pego quarta, devolvo sexta, uns R$ 35") | Esforço e espera do caminho barato |
+| Seg | Pulso Shop interrompe a conversa com o tio: "ENTREGA AMANHÃ" e cupom FONEJA até 23:59 | Personalização e urgência |
+| Seg a Sex | Gabi e a surpresa do professor (sem venda) | Motivo para voltar ao direct |
+| Ter | Lívia pergunta a numeração e "separa um par no seu nome" até o fim da live | Influência, compromisso, escassez |
+| A partir de Ter | Duda, a atendente: 10% para quem diz "tá caro", 15% "do gerente" por 5 minutos reais | Negociação encenada |
+| Qua | Bia e o cupom de indicação: "se você usar, eu ganho R$ 20 também" | Reciprocidade entre amigos |
+| Qui | Mia pede opinião sobre a cor e depois manda "tem a sua também" | Envolvimento antes do link |
+| Sex | Nina tem um ingresso sobrando: "preciso saber AGORA, o Davi também quer" | Urgência e escassez vindas de amiga |
+| Sex | Lucca: "só achei o powerbank velho, serve?" | Atrito na alternativa gratuita |
+
+Depois de cada compra, um amigo comenta no direct. Quem só olhou um produto pode receber, no dia seguinte, "vi que você estava olhando…".
+
+### Brechas fechadas
+
+| Antes | Agora |
+| --- | --- |
+| A introdução avisava que o app "vai fazer de tudo para você gastar" e dava a missão de guardar R$ 400 | A introdução apresenta a semana e o boleto, sem antecipar a lição |
+| Dormir cedo pulava live, roleta e conversas | Conversas chegam mesmo assim; live (em replay), roleta, cartão, teste grátis e posts de comparação voltam no dia seguinte |
+| O conserto de R$ 35 era um toque e resolvia na hora | O conserto passa pela conversa com o tio, só é pago na entrega e deixa o jogador dias sem fone |
+| O fone quebrado não pesava depois da segunda | Toda manhã: "mais 50 minutos de ônibus em silêncio" e vibe −5, até resolver |
+| Comprar não mudava nada no jogo | Amigos reagem no direct e o ônibus com música sobe a vibe |
+| Cupons vencidos sumiam em silêncio | A manhã seguinte mostra "você perdeu o cupom…": um prazo real entre os blefes |
+| "Minha meta" dizia se a viagem estava garantida | O painel mostra saldo e fatura; a conta é do jogador |
+| Proteção Pulso+ e VIP saíam com um clique | Desmarcar abre "Tem certeza?" uma vez por item |
+| A Gabi desarmava a pressão nos picos | A voz honesta continua, mas fora do pico e abafada pelo grupo |
+
+### Estratégias novas fora do direct
+
+- **Microcompra**: Tema Neon por R$ 4,90, com R$ 3,00 pagos em moedas (segunda-feira).
+- **Kit viagem**: barra "1 de 6" na loja a partir de quarta, com o primeiro item já marcado.
+- **Perda no lugar de ganho**: "não perca seus R$ 50", "você vai perder R$ X em moedas".
+
+### Revelação
+
+A etapa **Aprenda** ganhou o bloco **Seu direct, por trás**, que explica cada conversa pela qual o jogador passou. O quiz troca o enunciado pela cena do direct quando ela aconteceu na partida. Nenhuma estratégia nova foi criada: as conversas registram momentos nas 15 estratégias existentes.
+
+### Dados e MCP
+
+O contrato `c4-semana` versão 1 não mudou. `threads` mantém o formato anterior (dias, não lidas e a última resposta de cada dia). O histórico das falas fica em `state.dm`, e as microcompras em `state.extras`; nenhum dos dois é exportado. O servidor MCP não foi alterado nem testado com estas mudanças.

@@ -225,14 +225,15 @@
   validacao_social:"Seu post rendeu poucas curtidas, e o app avisou que posts com o tênis da moda rendem 3x mais.",
   personalizacao_dificil:"Você clicou em “Mostrar menos”, mas o mesmo tema voltou poucos posts depois por um assunto “parecido”."
  };
- function quiz(ledger,count=5){
+ /* variants: enunciados alternativos por estratégia, tirados da própria partida. */
+ function quiz(ledger,count=5,variants=null){
   const ranked=profile(ledger);
   const chosen=ranked.filter(x=>x.exposed>0).slice(0,count).map(x=>x.key);
   for(const k of KEYS){if(chosen.length>=count)break;if(!chosen.includes(k))chosen.push(k);}
   return chosen.map((answer,i)=>{
    const others=KEYS.filter(k=>k!==answer).sort((a,b)=>hash(answer+a)-hash(answer+b)).slice(0,2);
    const options=[answer,...others].sort((a,b)=>hash(i+":"+a)-hash(i+":"+b));
-   return {id:"q"+i,answer,prompt:QUIZ_BANK[answer],options};
+   return {id:"q"+i,answer,prompt:(variants&&variants[answer])||QUIZ_BANK[answer],options};
   });
  }
 

@@ -23,7 +23,7 @@ async function enter(page: Page) {
   await page.locator('#c4-account-form button[value="signup"]').click();
   await expect(page.locator(".home")).toBeVisible();
   await page.locator('[data-action="start"]').click();
-  await expect(page.locator(".cinematic")).toContainText("guardar R$ 400");
+  await expect(page.locator(".cinematic")).toContainText("Falta só uma semana");
   await expect(page.locator(".cinematic")).toContainText("Nenhum pagamento é real");
   await page.locator('[data-action="intro-next"]').click();
   await expect(page.locator(".wake")).toContainText("SEGUNDA-FEIRA");
@@ -229,14 +229,67 @@ test("a roleta para ao lado do prêmio maior e dá um cupom com valor mínimo", 
   expect(s.coupons.find((c: { code: string }) => c.code === "ROLETA50").min).toBe(249);
 });
 
-test("o amigo oferece uma alternativa barata pelo direct", async ({ page }) => {
+test("o conserto barato passa pela conversa com o tio, e a loja interrompe no meio", async ({ page }) => {
   await enter(page);
   await page.locator('[data-action="inbox"].hud-dm').click();
   await page.locator('.inbox-row[data-thread="lucca"]').click();
   await expect(page.locator(".chat-body")).toContainText("conserta fone");
   await page.locator('[data-choice="repair"]').click();
-  await expect(page.locator(".chat-body")).toContainText("devolve quinta");
-  expect((await saved(page)).wallet).toBe(585);
+  // O contato chega como cartão; nada é cobrado ainda.
+  await page.locator('[data-action="open-contact"][data-thread="tio"]').click();
+  expect((await saved(page)).wallet).toBe(620);
+  await page.locator('[data-choice="tio-oi"]').click();
+  await page.locator('[data-choice="tio-um"]').click();
+  await expect(page.locator(".chat-body")).toContainText("devolver sexta");
+  await page.locator('[data-choice="tio-ok"]').click();
+  await expect(page.locator(".chat-body")).toContainText("Paga quando eu devolver");
+  let s = await saved(page);
+  expect(s.wallet).toBe(620);
+  expect(s.flags.repair).toMatchObject({ cost: 35, status: "booked" });
+  // Enquanto isso, o Pulso Shop entrou no direct com entrega amanhã e cupom com prazo.
+  await expect.poll(async () => (await saved(page)).coupons.some((c: { code: string }) => c.code === "FONEJA")).toBe(true);
+  await page.locator('.layer-head [data-action="inbox"]').click();
+  await page.locator('.inbox-row[data-thread="pulso"]').click();
+  await expect(page.locator(".chat-body")).toContainText("ENTREGA AMANHÃ");
+  await expect(page.locator('.dm-product [data-product="fone"]')).toBeVisible();
+  s = await saved(page);
+  expect(s.pressure.moments.personalizacao.join(" ")).toContain("entrega amanhã");
+  expect(s.threads.lucca.picked[1]).toBe("repair");
+});
+
+test("dormir cedo não apaga o roteiro: mensagens chegam e o que faltou volta no dia seguinte", async ({ page }) => {
+  await enter(page);
+  await page.locator(".day-sleep-control").click();
+  await expect(page.locator(".wake")).toContainText("ônibus em silêncio");
+  await expect(page.locator(".wake")).toContainText("no direct");
+  await page.locator('[data-action="open-day"]').click();
+  const s = await saved(page);
+  // As conversas do dia chegam mesmo sem rolar o feed até elas.
+  for (const k of ["lucca", "gabi", "pulso"]) expect(s.threads[k].days).toContain(1);
+  expect(s.threads.lucca.unread + s.threads.gabi.unread).toBeGreaterThan(0);
+  // Cada evento da segunda ou já apareceu, ou foi guardado para voltar na terça.
+  const seen = (type: string) => s.feedItems.some((x: { id: string }) => x.id.startsWith(`ev-1-${type}-`));
+  const carried = s.flags.carry.map((c: { type: string }) => c.type);
+  for (const type of ["roleta", "compare"]) expect(seen(type) || carried.includes(type)).toBe(true);
+  expect(s.flags.carry.every((c: { day: number }) => c.day === 2)).toBe(true);
+  if (carried.length) {
+    for (let i = 0; i < 3; i++) await page.locator(".load-more").evaluate((b: HTMLElement) => b.click());
+    const items = (await saved(page)).feedItems;
+    expect(items.some((x: { id: string; carried?: boolean }) => x.carried && x.id.startsWith("ev-2-carry-"))).toBe(true);
+  }
+});
+
+test("desmarcar a proteção pede confirmação antes de aceitar", async ({ page }) => {
+  await enter(page);
+  await page.locator('[data-action="shop"]').first().click();
+  await page.locator('.shop-product[data-product="fone"]').click();
+  await page.locator('.shop-footer [data-action="checkout"]').click();
+  await page.locator('[data-protect="fone"]').uncheck({ force: true }).catch(() => {});
+  await expect(page.locator(".exit-offer")).toContainText("1 em cada 3");
+  await expect(page.locator('[data-protect="fone"]')).toBeChecked();
+  await page.locator('[data-action="protect-remove"]').click();
+  await expect(page.locator('[data-protect="fone"]')).not.toBeChecked();
+  expect((await saved(page)).protection.fone).toBe(false);
 });
 
 test("a semana tem cinco dias, live na terça e Mega Liquida com preço “de” inflado", async ({ page }) => {
@@ -265,8 +318,7 @@ test("sem compras o jogador embarca e passa pelo final em quatro etapas", async 
   await expect(page.locator(".end")).toContainText("Você embarcou");
   await expect(page.locator(".budget-outcome.success")).toContainText("A meta de R$ 400 foi alcançada");
   await page.locator('[data-action="end-next"]').click();
-  await expect(page.locator(".end")).toContainText("Nada ali era por acaso");
-  await expect(page.locator(".strat")).toHaveCount(15);
+  await expect(page.locator(".end")).toContainText("O que o feed fez nos bastidores?");
   await expect(page.locator(".vibe-chart svg")).toBeVisible();
   await expect(page.locator(".vibe-education-card")).toContainText("0 a 100");
   await expect(page.locator(".vibe-metrics>div")).toHaveCount(3);
@@ -275,6 +327,11 @@ test("sem compras o jogador embarca e passa pelo final em quatro etapas", async 
   await expect(page.locator(".vibe-lesson")).toContainText("Aprenda a reconhecer o ciclo");
   await expect(page.locator(".vibe-education-card")).toContainText("não mede seus sentimentos reais");
   await page.locator('[data-action="end-next"]').click();
+  await expect(page.locator(".end")).toContainText("Entenda seu clique");
+  await expect(page.locator(".strat")).toHaveCount(15);
+  // As conversas do direct também entram na revelação.
+  await expect(page.locator(".dm-reveal")).toContainText("As conversas também vendiam");
+  await page.locator(".end-next").click();
   const questions = page.locator(".quiz-q");
   await expect(questions).toHaveCount(5);
   await expect(page.locator('[data-action="end-next"]')).toBeDisabled();
@@ -321,6 +378,7 @@ test("comprar no Pix além da folga faz perder a viagem", async ({ page }) => {
   await passGuess(page);
   await expect(page.locator(".end")).toContainText("O ônibus saiu sem você");
   await expect(page.locator(".budget-outcome.missed")).toContainText("Faltou dinheiro para a viagem");
+  await page.locator('[data-action="end-next"]').click();
   await page.locator('[data-action="end-next"]').click();
   await expect(page.locator(".strat.is-fell").first()).toBeVisible();
 });
@@ -385,15 +443,15 @@ test("baixa cópia JSON pelo perfil, além do envio automático final", async ({
 test("o encerramento inclui exportação do percurso para o MCP", async ({ page }) => {
   await enter(page);
   for (let d = 0; d < 5; d++) await nextDay(page);
-  for (let i = 0; i < 3; i++) {
-    if (i === 2) {
+  for (let i = 0; i < 4; i++) {
+    if (i === 3) {
       for (let q = 0; q < 5; q++) await page.locator(".quiz-q").nth(q).locator(".quiz-opt").first().click();
     }
-    await page.locator('[data-action="end-next"]').click();
+    await page.locator('.end-next').click();
   }
-  await expect(page.locator('.end-step-3 [data-action="export-c4"]')).toBeVisible();
+  await expect(page.locator('.end-step-4 [data-action="export-c4"]')).toBeVisible();
   const dl = page.waitForEvent("download");
-  await page.locator('.end-step-3 [data-action="export-c4"]').click();
+  await page.locator('.end-step-4 [data-action="export-c4"]').click();
   const file = await dl;
   const data = JSON.parse(await readFile((await file.path())!, "utf8"));
   expect(data.estado.finished).toBe(true);
@@ -404,8 +462,7 @@ test("o encerramento inclui exportação do percurso para o MCP", async ({ page 
 test("final do quiz envia JSON automaticamente ao MCP da conta correta", async ({ page }) => {
   await enter(page);
   for (let d=0; d<5; d++) await nextDay(page);
-  await page.locator('[data-action="end-next"]').click();
-  await page.locator('[data-action="end-next"]').click();
+  for (let i=0; i<3; i++) await page.locator('.end-next').click();
   const quiz = page.locator(".quiz-q");
   await expect(quiz).toHaveCount(5);
   for (let i=0; i<5; i++) await quiz.nth(i).locator(".quiz-opt").first().click();
@@ -434,7 +491,7 @@ test("final do quiz envia JSON automaticamente ao MCP da conta correta", async (
   await page.reload();
   await expect(page.locator("#c4-sync-status")).toContainText("Percurso recebido pelo MCP");
   const baixarNovamente = page.waitForEvent("download");
-  await page.locator('.end-step-3 [data-action="export-c4"]').click();
+  await page.locator('.end-step-4 [data-action="export-c4"]').click();
   const arquivoRestaurado = await baixarNovamente;
   const payloadRestaurado = JSON.parse(await readFile((await arquivoRestaurado.path())!, "utf8"));
   expect(payloadRestaurado.estado.feedItems.map((item: { id: string }) => item.id)).toEqual(feedAntes);

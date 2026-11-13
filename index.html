@@ -646,6 +646,7 @@
 <script src="/game-clock.js"></script>
 <script src="/pressure.js"></script>
 <script src="/week.js"></script>
+<script src="/direct.js"></script>
 <script src="/c4-export.js"></script>
 <script src="/c4-account.js"></script>
 <script>
@@ -654,7 +655,7 @@
 const USER_KEY_PREFIX='nofeed-simulator-v4:user:';
 const ContaC4=window.PorTrasContaC4;
 let identity=null,syncInFlight=false,syncMessage='';
-const Pressure=window.PorTrasPressure,Week=window.PorTrasWeek,ExportC4=window.PorTrasExportC4;
+const Pressure=window.PorTrasPressure,Week=window.PorTrasWeek,Direct=window.PorTrasDirect,ExportC4=window.PorTrasExportC4;
 // O feed agora é infinito: o histórico salvo só tem um teto de segurança.
 const MAX_WEEK_HISTORY_ITEMS=2500;
 // Limite real da partida (30 min). Plataformas reais não fazem isso.
@@ -732,14 +733,15 @@ function newRunId(){
  return "c4-"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
- pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,endFlowVersion:2,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),rewardSeen:[],taggedVibeSeen:[],myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[],clockProgress:0});
+ pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,endFlowVersion:2,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),rewardSeen:[],taggedVibeSeen:[],myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[],clockProgress:0,dm:emptyDm(),extras:[]});
 let state=makeInitial();
 function restoreForPlayer(player) {
- state=makeInitial();
+ state=makeInitial();let migrateLegacyDm=false;
  try{
   const saved=JSON.parse(localStorage.getItem(USER_KEY_PREFIX+player.id)||"null");
   if(saved?.version===4&&Array.isArray(saved.feedItems)&&Array.isArray(saved.purchases)){
    state={...makeInitial(),...saved,feedItems:saved.feedItems.slice(0,MAX_WEEK_HISTORY_ITEMS)};
+   migrateLegacyDm=!saved.dm;
    // Quem estava no quiz antigo passa pelo aprendizado; quem ja terminou segue no raio-x.
    if(saved.endFlowVersion!==2){
     const oldStep=Number(state.endStep)||0;
@@ -771,8 +773,9 @@ function restoreForPlayer(player) {
  state.vibe=Pressure.normalizeVibe(state.vibe);
  for(const key of ['card','variant','flags','threads','timers','stock','context','anchors','protection','quiz'])
   if(!state[key]||typeof state[key]!=='object'||Array.isArray(state[key]))state[key]=makeInitial()[key];
- for(const key of ['coupons','invoice','subscriptions','notifs','fixes','exitOffers','wakeList'])
+ for(const key of ['coupons','invoice','subscriptions','notifs','fixes','exitOffers','wakeList','extras'])
   if(!Array.isArray(state[key]))state[key]=[];
+ if(migrateLegacyDm)migrateDm();else{const dm=dmState();for(const k of Object.keys(dm.boxes))dm.boxes[k]=Direct.normalizeBox(dm.boxes[k]);}
 }
 let overlay=null,story=null,modal=null,toastTimer=null,introTimer=null,scene=0;
 let rewardObserver=null;
@@ -1523,7 +1526,7 @@ function cancelPhotoShopClick(){
 
 function restart(){clearTimeout(introTimer);stopStory();clearInterval(liveTimer);bannerQueue=[];state=makeInitial();save();overlay=null;modal=null;renderHome();}
 /* ================= Semana até a viagem: camada de pressão comercial ================= */
-const SOURCE_STRATEGIES={ad:['personalizacao'],prospecting:['personalizacao'],retarget:['personalizacao'],pair:['personalizacao'],post:['influencia','prova_social'],story:['influencia'],live:['influencia','urgencia','escassez','prova_social'],flash:['preco','urgencia'],mood:['emocao','personalizacao'],fest:['fomo','prova_social'],nudge:['personalizacao','urgencia'],compare:['prova_social','fomo'],strip:['personalizacao'],lastcall:['fomo','escassez','urgencia'],trial:['dark_patterns','preco'],notification:['personalizacao'],roleta:['recompensa'],exit:['dark_patterns'],shop:[],cart:[],feed:[]};
+const SOURCE_STRATEGIES={dm:['personalizacao','prova_social'],kit:['recompensa'],ad:['personalizacao'],prospecting:['personalizacao'],retarget:['personalizacao'],pair:['personalizacao'],post:['influencia','prova_social'],story:['influencia'],live:['influencia','urgencia','escassez','prova_social'],flash:['preco','urgencia'],mood:['emocao','personalizacao'],fest:['fomo','prova_social'],nudge:['personalizacao','urgencia'],compare:['prova_social','fomo'],strip:['personalizacao'],lastcall:['fomo','escassez','urgencia'],trial:['dark_patterns','preco'],notification:['personalizacao'],roleta:['recompensa'],exit:['dark_patterns'],shop:[],cart:[],feed:[]};
 const dayInfo=()=>Week.DAYS[Math.min(Week.DAYS.length,Math.max(1,state.day))-1];
 const dayItems=(d=state.day)=>state.feedItems.filter(x=>(x.day||1)===d);
 const streamItems=()=>state.feedItems.filter(x=>x.kind==='post'||x.kind==='ad');
@@ -1587,6 +1590,8 @@ function eventApplies(ev){
  if(ev.type==='cartnudge')return state.cart.length>0||state.viewed.some(id=>!bought(id));
  if(ev.type==='trial')return !bought('plano');
  if(ev.type==='lastcall')return !bought('ingresso');
+ if(ev.type==='theme')return !state.flags.theme;
+ if(ev.type==='roleta')return !state.flags.roleta;
  return true;
 }
 function onEventInserted(item){
@@ -1616,7 +1621,8 @@ function onEventInserted(item){
  }else if(item.type==='card'){state.card.offered=true;expose('preco','Pulso Pay: “compre agora, pague depois” com limite pré-aprovado de R$ 500.');}
  else if(item.type==='trial')expose('dark_patterns','MODO+: “3 dias grátis” que viram assinatura automática, com VIP já marcado.');
  else if(item.type==='cartnudge'){expose('personalizacao','Lembrete do carrinho e de produtos que você visitou.');expose('urgencia','“Seus itens estão quase esgotando.”');}
- else if(item.type==='live')expose('influencia','A Lívia entrou ao vivo vendendo o tênis da semana.');
+ else if(item.type==='live')expose('influencia',item.carried?'Você perdeu a live, mas o replay voltou no dia seguinte com o mesmo cupom “exclusivo”.':'A Lívia entrou ao vivo vendendo o tênis da semana.');
+ else if(item.type==='theme')expose('recompensa','Tema Neon por R$ 4,90: “suas moedas cobrem R$ 3,00, você paga só R$ 1,90”.');
 }
 /* Posição sorteada dentro da janela [mín, máx], com semente da partida:
  * cada partida tem o roteiro em ordem diferente. */
@@ -1689,6 +1695,14 @@ function appendNext(){
    if(ok){added++;onEventInserted(item);}
   }
  };
+ /* O que ficou sem ver ontem volta hoje no começo do feed. */
+ for(const [i,c] of (state.flags.carry||[]).entries()){
+  const id=`ev-${d.n}-carry-${c.type}-${i}`;
+  if(c.day!==d.n||state.feedItems.some(x=>x.id===id)||dayStreamCount()<1+i*2)continue;
+  if(!eventApplies(c))continue;
+  const item={kind:'event',id,type:c.type,thread:'',post:c.post||'',day:d.n,carried:true,topic:c.post?(Week.COMPARE_POSTS[c.post]?.topic||''):''};
+  state.feedItems.push(item);added++;onEventInserted(item);
+ }
  insertEvents();
  // Sem fim: depois do mínimo do dia o feed continua; o dia só acaba pelo menu ⋯.
  for(let i=0;i<5;i++){
@@ -1705,28 +1719,240 @@ function appendNext(){
   insertEvents();
   checkLate(d);
  }
+ dmNagCheck();
  if(!added){insertEvents(true);state.feedItems.push({kind:'night',id:'night-'+d.n,day:d.n});added++;}
  save();
  return added>0;
 }
 
 /* ---------- conversas ---------- */
-function deliverThread(key,day){
+/* O estado legado (state.threads: dias, não lidas, escolha por dia) continua
+ * sendo o que vai para o MCP. O histórico de falas, a fila de "digitando…" e
+ * a pergunta pendente ficam em state.dm, só neste navegador. */
+const SENDERS={pulso:'Pulso Shop',lucca:'lucca.r',livia:'livia.looks',gabi:'gabi.n',bia:'bia.m',mia:'mia',nina:'nina.mov',tio:'Tio Jorge'};
+function emptyDm(){return {boxes:{},done:[],vars:{},reveals:[],order:[],ignored:[],replies:0};}
+function dmState(){
+ const base=emptyDm(),dm=state.dm&&typeof state.dm==='object'&&!Array.isArray(state.dm)?state.dm:(state.dm=base);
+ for(const k of ['done','reveals','order','ignored'])if(!Array.isArray(dm[k]))dm[k]=[];
+ for(const k of ['boxes','vars'])if(!dm[k]||typeof dm[k]!=='object'||Array.isArray(dm[k]))dm[k]={};
+ if(!Number.isFinite(dm.replies))dm.replies=0;
+ return dm;
+}
+function dmBox(k){
+ const dm=dmState();
+ if(!dm.boxes[k])dm.boxes[k]=Direct.emptyBox();
+ if(!state.threads[k])state.threads[k]={days:[],unread:0,picked:{}};
+ return dm.boxes[k];
+}
+function dmTouch(k){const dm=dmState();dm.order=dm.order.filter(x=>x!==k);dm.order.push(k);}
+const chatOpen=k=>overlay?.type==='chat'&&overlay.thread===k&&!!document.querySelector('.chat-body');
+const dmSpeed=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches?.12:1;
+function dmReveal(id,icon,title,text){const dm=dmState();if(!dm.reveals.some(r=>r.id===id))dm.reveals.push({id,icon,title,text});}
+let dmBannerAt={};
+function dmArrived(k,entries){
+ if(!entries.length)return;
+ const th=state.threads[k],t=Week.THREADS[k];dmTouch(k);
+ if(chatOpen(k)){refreshChat();return;}
+ th.unread=(th.unread||0)+entries.length;
+ refreshHeader();
+ if(overlay?.type==='inbox')drawOverlay();
+ if(state.wake||state.finished||!t)return;
+ const now=Date.now();
+ if(now-(dmBannerAt[k]||0)<5000)return;
+ dmBannerAt[k]=now;
+ banner(`<span class="push-app">💬 ${esc(t.name)}</span><span class="push-text">${esc(Direct.preview(entries.at(-1)))}</span>`,{'data-action':'chat','data-thread':k});
+}
+/* Entrega as falas cujo tempo de "digitando…" já passou. */
+function dmPump(all=false){
+ if(!identity||!state.started||state.finished)return;
+ const dm=dmState(),now=Date.now();let changed=false;
+ for(const k of Object.keys(dm.boxes)){
+  const box=dm.boxes[k];
+  if(!box.queue.length)continue;
+  const r=Direct.pump(box,now,all);
+  if(!r.delivered.length)continue;
+  changed=true;
+  for(const f of r.fx)dmFx(f,k);
+  dmArrived(k,r.delivered);
+ }
+ if(changed)save();
+}
+function dmStart(dialog,opts={}){
+ const d=Direct.DIALOGS[dialog],dm=dmState();
+ if(!d||dm.done.includes(dialog))return false;
+ dm.done.push(dialog);
+ const k=d.thread,box=dmBox(k),th=state.threads[k];
+ if(!th.days.includes(state.day))th.days.push(state.day);
+ dmTouch(k);
+ const r=Direct.play(box,dialog,'start',{now:Date.now(),day:state.day,vars:dm.vars,instant:!!opts.instant,speed:dmSpeed()});
+ for(const f of r.fx)dmFx(f,k);
+ if(opts.instant){const p=Direct.pump(box,0,true);for(const f of p.fx)dmFx(f,k);if(opts.silent)th.unread=(th.unread||0)+p.delivered.length;else dmArrived(k,p.delivered);}
+ save();return true;
+}
+/* Falas avulsas de um amigo (reações a compras, lembretes). */
+function dmSay(k,lines,opts={}){
+ if(!Week.THREADS[k])return;
+ const box=dmBox(k),th=state.threads[k];
+ if(!th.days.includes(state.day))th.days.push(state.day);
+ let at=Math.max(Date.now()+(opts.wait||0),box.queue.length?box.queue.at(-1).at:0);
+ for(const [from,text] of lines){at+=opts.instant?0:1500*dmSpeed();box.queue.push({d:state.day,f:from,t:text,at});}
+ dmTouch(k);
+ if(opts.instant){const p=Direct.pump(box,0,true);if(opts.silent)th.unread=(th.unread||0)+p.delivered.length;else dmArrived(k,p.delivered);}
+ save();
+}
+/* Efeitos das conversas: cupons, combinados, compras e o que entra na revelação. */
+function dmFx(name,k){
+ const dm=dmState(),v=dm.vars;
+ if(name==='pulso-fone'){dmStart('pulso-fone');}
+ else if(name==='coupon-foneja'){
+  addCoupon({code:'FONEJA',label:'10% OFF no fone',kind:'pct',amount:10,min:0,only:['fone'],expiresDay:state.day,source:'dm'});
+  expose('personalizacao','Você falou do fone quebrado no direct e, logo depois, o Pulso Shop mandou um fone com “entrega amanhã”.');
+  expose('urgencia','Cupom FONEJA no direct: “só até 23:59”.');
+  dmReveal('pulso-fone','🎯','O Pulso Shop “ouviu” a conversa','Enquanto você combinava o conserto de R$ 35, a loja entrou no direct com “entrega amanhã” e um cupom com prazo. O caminho barato pedia espera; o caro, um toque.');
+ }
+ else if(name==='reveal-como')expose('personalizacao','O Pulso Shop respondeu: “usamos sua atividade no app para oferecer o que você precisa”.');
+ else if(name==='open-fone'){state.context.fone='dm';openProduct('fone','dm');}
+ else if(name==='open-garrafa'){state.context.garrafa='dm';influenced(['prova_social'],'Abriu a garrafa que a Mia mandou depois de pedir sua opinião sobre a cor.');openProduct('garrafa','dm');}
+ else if(name==='repair-book'||name==='repair-book-rush'){
+  const rush=name==='repair-book-rush',cost=rush?45:35;
+  state.flags.repair={cost,rush,bookedDay:state.day,status:'booked'};v.repairCost=cost;
+  pushEvent('repair',`Combinou o conserto do fone por R$ ${cost}`);
+  toast(rush?'Conserto combinado: quinta à noite, R$ 45 🔧':'Conserto combinado: sexta, R$ 35 🔧');
+ }
+ else if(name==='repair-pay'){
+  const r=state.flags.repair,cost=r?.cost||35;
+  if(state.wallet<cost)return 'semsaldo';
+  state.wallet=Pressure.round(state.wallet-cost);
+  state.fixes.push({id:'repair',label:'Conserto do fone com o tio do Lucca',cost});
+  if(r)r.status='paid';
+  state.flags.foneFixed=true;
+  pushEvent('repair',`Consertou o fone por R$ ${cost}`);
+  Pressure.vibeChange(state.vibe,6,'need','Fone consertado');
+  toast(`Fone consertado por ${money(cost)} no Pix 🎧`);refreshHeader();
+ }
+ else if(name==='livia-reserve'){
+  state.flags.liviaSize=String(v.size||'38');
+  expose('influencia','No direct, a Lívia “separou um par no seu nome”, mas só até o fim da live.');
+  expose('escassez','A reserva da Lívia valia “só até o fim da live”.');
+  dmReveal('livia','🤳','A Lívia não estava digitando','A resposta chegou em segundos porque era automática: a mesma mensagem, com “separei um par no seu nome”, vai para milhares de seguidores. Perguntar seu número cria um pequeno compromisso antes da venda.');
+ }
+ else if(name==='livia-sorteio')expose('recompensa','A Lívia insistiu: “entra só pra dar um oi, vou sortear um par na live”.');
+ else if(name==='duda-start')expose('personalizacao',`Uma atendente do Pulso Shop puxou conversa sobre ${v.produto||'o produto'} que você deixou para trás.`);
+ else if(name==='duda-10'){
+  if(v.dudaItem)addCoupon({code:'DUDA10',label:'10% OFF da atendente',kind:'pct',amount:10,min:0,only:[v.dudaItem],expiresDay:state.day,source:'dm'});
+  expose('preco','Bastou dizer “tá caro” para aparecer 10% de desconto.');
+ }
+ else if(name==='duda-15'){
+  if(v.dudaItem)addCoupon({code:'DUDA15',label:'15% OFF do gerente',kind:'pct',amount:15,min:0,only:[v.dudaItem],expiresDay:state.day,until:Date.now()+300000,source:'dm'});
+  expose('dark_patterns','A atendente “falou com o gerente” e voltou com 15% OFF.');
+  expose('urgencia','O desconto do gerente valia “só por 5 minutos”.');
+  dmReveal('duda','🕳️','Você não venceu a negociação','O desconto “do gerente” já estava previsto: recusar duas vezes sempre libera os 15%. A sensação de ter conquistado o preço e o prazo de 5 minutos servem para fechar a compra na hora.');
+ }
+ else if(name==='open-duda'){
+  if(v.dudaItem&&products[v.dudaItem]){state.context[v.dudaItem]='dm';influenced(['dark_patterns','urgencia'],`Aceitou o desconto negociado no direct para ${productName(v.dudaItem)}.`);openProduct(v.dudaItem,'dm');}
+ }
+ else if(name==='duda-olhando')expose('escassez','A atendente avisou que “restam poucas unidades e o preço pode subir amanhã”.');
+ else if(name==='bia-offer'){
+  expose('prova_social','A Bia mandou um cupom de indicação: se você comprar, ela também ganha R$ 20.');
+  dmReveal('bia','🤝','O cupom que custava uma amizade','No programa de indicação, recusar a compra passa a parecer recusar um favor à amiga. A loja usa a reciprocidade entre vocês para vender.');
+ }
+ else if(name==='bia-accept'){state.flags.biaRef=true;addCoupon({code:'BIA20',label:'R$ 20 OFF acima de R$ 80',kind:'value',amount:20,min:80,expiresDay:Math.max(4,state.day),source:'dm'});}
+ else if(name==='bia-decline'){vibe(-4,'fomo','Recusou o cupom e a Bia ficou chateada');expose('fomo','Ao recusar o cupom de indicação: “poxa, era pra eu completar o meu também”.');}
+ else if(name==='mia-link'){
+  expose('prova_social','A Mia pediu sua opinião sobre a cor e, em seguida, mandou “tem a sua também”.');
+  dmReveal('mia','💬','Opinar já era o primeiro passo','Quem ajuda a escolher a cor se envolve com o produto. Só depois veio o link, com “a gente ia combinando”.');
+ }
+ else if(name==='nina-offer'){
+  expose('escassez','A Nina tinha “um ingresso sobrando”, mas precisava saber AGORA.');
+  expose('fomo','“O Davi também quer”: a oferta da Nina tinha um concorrente.');
+  dmReveal('nina','⏳','Pressa também vem de amigo','Prazo curto e um concorrente (“o Davi também quer”) são urgência e escassez, mesmo sem loja nenhuma na conversa.');
+ }
+ else if(name==='nina-buy'){
+  if(state.wallet<50)return 'semsaldo';
+  state.wallet=Pressure.round(state.wallet-50);
+  state.purchases.push({id:'ingresso',name:'Ingresso Pocket Fest (da Nina)',cost:50,phase:state.phase,day:state.day,method:'pix',source:'dm',protection:false,at:Date.now()});
+  pushEvent('buy','Comprou o ingresso da Nina por R$ 50');
+  influenced(['fomo','escassez'],'Ficou com o ingresso da Nina quando ela disse que precisava saber AGORA.');
+  Pressure.vibeBuy(state.vibe,12,'Comprou o ingresso da Nina');state.flags.boughtToday=true;refreshHeader();
+ }
+ else if(name==='nina-no')vibe(-4,'fomo','Recusou o ingresso da Nina');
+ else if(name==='pb-drop')state.fixes=state.fixes.filter(f=>f.id!=='borrow');
+ return null;
+}
+function dmChoose(k,choiceId){
+ const box=dmBox(k),dm=dmState();
+ const r=Direct.choose(box,choiceId,{day:state.day});
+ if(!r)return;
+ if(r.set)Object.assign(dm.vars,r.set);
+ state.threads[k].picked[state.day]=r.choice.id;
+ dm.replies++;dmTouch(k);
+ let go=r.go;
+ const opens=r.fx&&r.fx.startsWith('open-');
+ if(r.fx&&!opens){const alt=dmFx(r.fx,k);if(typeof alt==='string')go=alt;}
+ if(go){const p=Direct.play(box,r.dialog,go,{now:Date.now(),day:state.day,vars:dm.vars,speed:dmSpeed()});for(const f of p.fx)dmFx(f,k);}
+ save();
+ if(opens)dmFx(r.fx,k);
+ else refreshChat();
+}
+/* Pergunta sem resposta depois de alguns posts: o amigo cobra. */
+function dmNagCheck(){
+ const dm=dmState(),seen=streamItems().length;
+ for(const k of Object.keys(dm.boxes)){
+  const box=dm.boxes[k],ask=box.ask;
+  if(!ask||ask.legacy||ask.nagged||box.queue.length)continue;
+  if(!Number.isFinite(ask.seen)){ask.seen=seen;continue;}
+  if(seen-ask.seen<6)continue;
+  const out=Direct.nag(box,{day:state.day,vars:dm.vars});
+  if(out.length){expose('fomo',`${SENDERS[k]||k} cobrou no direct quando você demorou a responder.`);dmArrived(k,out);}
+ }
+}
+/* Ao dormir: chega o que estava sendo digitado e ofertas com prazo vencem. */
+function dmNight(){
+ const dm=dmState();
+ for(const k of Object.keys(dm.boxes)){
+  const box=dm.boxes[k];
+  const p=Direct.pump(box,0,true);for(const f of p.fx)dmFx(f,k);
+  if(p.delivered.length)state.threads[k].unread=(state.threads[k].unread||0)+p.delivered.length;
+  const ask=box.ask;
+  if(ask&&!ask.legacy&&Direct.node(ask.dialog,ask.node)?.expire){
+   const before=box.log.length;
+   Direct.expire(box,{day:state.day,vars:dm.vars});
+   dm.ignored.push(ask.dialog);
+   state.threads[k].unread=(state.threads[k].unread||0)+(box.log.length-before);
+  }
+ }
+}
+function deliverThread(key,day,opts={}){
  const t=Week.THREADS[key];if(!t)return;
+ const dialog=Direct.BY_EVENT[key+':'+day];
+ if(dialog){
+  if(dialog==='lucca-5'&&!state.fixes.some(f=>f.id==='borrow'))return;
+  if(dialog==='nina-5'&&bought('ingresso'))return;
+  if(dialog==='mia-4'&&bought('garrafa'))return;
+  if(dmStart(dialog,opts)&&key==='livia')expose('influencia','DM da Lívia: “cupom exclusivo SÓ pros meus seguidores”.');
+  return;
+ }
  const block=t.blocks.find(b=>b.day===day);if(!block)return;
- const th=state.threads[key]||(state.threads[key]={days:[],unread:0,picked:{}});
+ const box=dmBox(key),th=state.threads[key];
  if(th.days.includes(day))return;
- th.days.push(day);th.unread+=block.messages.length;
+ th.days.push(day);dmTouch(key);
+ let lines=block.messages;
  if(block.ifMissing&&!bought(block.ifMissing.product)){
-  (th.left||(th.left={}))[day]=true;th.unread+=block.ifMissing.messages.length;
+  (th.left||(th.left={}))[day]=true;lines=lines.concat(block.ifMissing.messages);
   expose('fomo','No grupo da turma, combinaram algo só para quem tinha o tênis da moda.');
  }
- const preview=block.messages[Math.min(1,block.messages.length-1)][1];
- banner(`<span class="push-app">💬 ${esc(t.name)}</span><span class="push-text">${esc(preview)}</span>`,{'data-action':'chat','data-thread':key});
+ let at=Math.max(Date.now(),box.queue.length?box.queue.at(-1).at:0);
+ lines.forEach(([from,text],i)=>{
+  at+=opts.instant?0:1300*dmSpeed();
+  const m={d:day,f:from,t:text,at};
+  if(i===lines.length-1&&block.choices)m.ask={legacy:true};
+  box.queue.push(m);
+ });
+ if(opts.instant){const p=Direct.pump(box,0,true);if(opts.silent)th.unread=(th.unread||0)+p.delivered.length;else dmArrived(key,p.delivered);}
  if(key==='turma')expose('fomo','Grupo da turma comentando quem vai de tênis novo e quem comprou o quê.');
  if(key==='fest'){expose('fomo','Grupo do Pocket Fest: “só falta você 👀”.');expose('prova_social','No grupo, amigos dizendo “comprei!!”.');}
- if(key==='livia')expose('influencia','DM da Lívia: “cupom exclusivo SÓ pros meus seguidores”.');
  if(key==='pulso')expose('recompensa','Pulso Shop: “giro GRÁTIS na roleta, prêmio garantido”.');
+ save();
 }
 /* O grupo prometido so aparece para quem comprou Motion 88.
  * Quem comprou antes do dia 2 entra quando a turma fica ativa; compras
@@ -1739,45 +1965,80 @@ function ensureMotionGroup(){
  expose('prova_social','Apos comprar o tenis Motion 88, o jogador foi incluido no grupo time Motion, validando socialmente a compra.');
  save();return true;
 }
+/* Partidas salvas antes do novo direct: remonta o histórico a partir dos blocos. */
+function migrateDm(){
+ state.dm=emptyDm();
+ for(const k of Object.keys(state.threads)){
+  const t=Week.THREADS[k],th=state.threads[k];if(!t||!th||!Array.isArray(th.days))continue;
+  const box=dmBox(k);dmTouch(k);
+  for(const day of th.days){
+   const b=t.blocks.find(x=>x.day===day);if(!b)continue;
+   for(const [from,text] of b.messages.concat(th.left?.[day]&&b.ifMissing?b.ifMissing.messages:[]))box.log.push({d:day,f:from,t:text});
+   const pick=th.picked?.[day],c=b.choices?.find(x=>x.id===pick);
+   if(c){box.log.push({d:day,f:'me',t:c.label});if(c.reply)box.log.push({d:day,f:k==='fest'?'bia':k==='turma'?'gabi':k,t:c.reply});}
+   else if(b.choices)box.ask={legacy:true,day,nagged:true};
+  }
+ }
+}
 function unreadCount(){return Object.values(state.threads).reduce((s,t)=>s+(t.unread||0),0);}
 function threadAvatar(k){
  const t=Week.THREADS[k];
  if(t.kind==='brand')return '<span class="avatar brand-av chat-av">PS</span>';
  if(t.kind==='group')return `<span class="avatar chat-av group-av">${k==='fest'?'🎉':k==='motion'?'👟':'✈️'}</span>`;
+ if(!t.avatar)return `<span class="avatar chat-av letter-av">${esc(t.letter||t.name[0].toUpperCase())}</span>`;
  return `<span class="avatar photo-avatar chat-av">${mediaPhoto(t.avatar,'avatar-photo','Foto de '+t.name)}</span>`;
 }
-const SENDERS={pulso:'Pulso Shop',lucca:'lucca.r',livia:'livia.looks',gabi:'gabi.n',bia:'bia.m',mia:'mia',nina:'nina.mov'};
 function lastMessage(k){
- const th=state.threads[k],t=Week.THREADS[k],day=th.days.at(-1),b=t.blocks.find(x=>x.day===day),pick=th.picked[day];
- if(pick){const c=b.choices.find(c=>c.id===pick);return c.reply||'Você: '+c.label;}
- return b.messages.at(-1)[1];
+ const box=dmBox(k);
+ return Direct.preview(box.log.at(-1))||(box.queue.length?'digitando…':'Toque para conversar');
 }
 function inboxPage(){
- const keys=Object.keys(state.threads);
+ const order=dmState().order;
+ const keys=Object.keys(state.threads).filter(k=>Week.THREADS[k]).sort((a,b)=>order.indexOf(b)-order.indexOf(a));
  return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon('arrow')}</button><strong>Mensagens</strong></header>
- <div class="layer-body inbox">${keys.length?keys.slice().reverse().map(k=>{const t=Week.THREADS[k],th=state.threads[k];
-  return `<button class="inbox-row ${th.unread?'unread':''}" data-action="chat" data-thread="${k}">${threadAvatar(k)}<span class="inbox-text"><strong>${esc(t.name)}</strong><small>${esc(lastMessage(k))}</small></span>${th.unread?`<b class="inbox-dot">${th.unread}</b>`:''}</button>`;}).join('')
+ <div class="layer-body inbox">${keys.length?keys.map(k=>{const t=Week.THREADS[k],th=state.threads[k],box=dmBox(k);
+  return `<button class="inbox-row ${th.unread?'unread':''}" data-action="chat" data-thread="${k}">${threadAvatar(k)}<span class="inbox-text"><strong>${esc(t.name)}</strong><small>${box.queue.length&&!th.unread?'<em class="inbox-typing">digitando…</em>':esc(lastMessage(k))}</small></span>${th.unread?`<b class="inbox-dot">${th.unread}</b>`:''}</button>`;}).join('')
  :'<div class="empty"><div style="font-size:40px">💬</div><h3>Nenhuma mensagem ainda</h3><p>Quando seus amigos escreverem, as conversas aparecem aqui.</p></div>'}</div>`;
 }
+function dmCard(c){
+ if(c.type==='contact')return `<div class="msg in dm-card"><span class="dm-card-kind">📇 Contato</span><strong>${esc(c.name)}</strong><small>${esc(c.sub||'')}</small><button class="dm-card-btn" data-action="open-contact" data-thread="${esc(c.thread)}">Abrir conversa</button></div>`;
+ if(c.type==='product'&&products[c.id]){const pr=price(c.id);return `<div class="msg in dm-card dm-product"><span class="dm-card-thumb">${art(products[c.id].kind,true)}</span><strong>${esc(pr.name)}</strong><small>${pr.old?`<del>${money(pr.old)}</del> `:''}<b>${money(pr.price)}</b></small><button class="dm-card-btn" data-action="product" data-product="${c.id}" data-source="${esc(c.source||'dm')}">${bought(c.id)?'Ver produto':'Ver na loja →'}</button></div>`;}
+ if(c.type==='coupon')return `<div class="msg in dm-card dm-coupon"><span class="dm-card-kind">🎟️ Cupom</span><strong>${esc(c.code)}</strong><small>${esc(c.label||'')}</small></div>`;
+ return '';
+}
+function chatBody(k){
+ const t=Week.THREADS[k],box=dmBox(k);
+ const who=from=>t.kind==='group'?`<small>${esc(SENDERS[from]||from)}</small>`:'';
+ let html='',day=0;
+ for(const m of box.log){
+  if(m.d!==day){day=m.d;html+=`<div class="chat-day">${Week.DAYS[Math.max(1,Math.min(5,day))-1].label}</div>`;}
+  if(m.c)html+=dmCard(m.c);
+  else html+=m.f==='me'?`<div class="msg out">${esc(m.t)}</div>`:`<div class="msg in">${who(m.f)}${esc(m.t)}</div>`;
+ }
+ if(box.queue.length)html+='<div class="msg in typing" role="status" aria-label="digitando"><i></i><i></i><i></i></div>';
+ else if(box.ask?.legacy){
+  const b=t.blocks.find(x=>x.day===box.ask.day);
+  if(b?.choices)html+=`<div class="chat-choices">${b.choices.map(c=>`<button class="chat-choice" data-action="chat-choice" data-thread="${k}" data-day="${box.ask.day}" data-choice="${c.id}">${esc(c.label)}</button>`).join('')}</div>`;
+ }else{
+  const cs=Direct.choices(box);
+  if(cs.length)html+=`<div class="chat-choices">${cs.map(c=>`<button class="chat-choice" data-action="dm-choice" data-thread="${k}" data-choice="${c.id}">${esc(c.label)}</button>`).join('')}</div>`;
+ }
+ if(k==='livia'&&state.day===2)html+='<button class="chat-cta" data-action="live">🔴 Entrar na live</button>';
+ else if(k==='pulso'&&!state.flags.roleta&&state.day===1)html+='<button class="chat-cta" data-action="roleta">🎁 Girar a roleta</button>';
+ else if(k==='pulso'&&state.day===4)html+='<button class="chat-cta" data-action="sale">🔥 Ver a Mega Liquida</button>';
+ return html;
+}
 function chatPage(){
- const k=overlay.thread,t=Week.THREADS[k],th=state.threads[k];
- if(!t||!th)return inboxPage();
- const body=th.days.map(day=>{
-  const b=t.blocks.find(x=>x.day===day),pick=th.picked[day];
-  const who=from=>t.kind==='group'?`<small>${esc(SENDERS[from]||from)}</small>`:'';
-  const msgs=b.messages.concat(th.left?.[day]&&b.ifMissing?b.ifMissing.messages:[]).map(([from,text])=>`<div class="msg in">${who(from)}${esc(text)}</div>`).join('');
-  let tail='';
-  if(b.choices){
-   if(pick){const c=b.choices.find(c=>c.id===pick);tail=`<div class="msg out">${esc(c.label)}</div>${c.reply?`<div class="msg in">${who(k==='fest'?'bia':k==='turma'?'gabi':k)}${esc(c.reply)}</div>`:''}`;}
-   else tail=`<div class="chat-choices">${b.choices.map(c=>`<button class="chat-choice" data-action="chat-choice" data-thread="${k}" data-day="${day}" data-choice="${c.id}">${esc(c.label)}</button>`).join('')}</div>`;
-  }
-  return `<div class="chat-day">${Week.DAYS[day-1].label}</div>${msgs}${tail}`;
- }).join('');
- let cta='';
- if(k==='livia'&&state.day===2)cta='<button class="chat-cta" data-action="live">🔴 Entrar na live</button>';
- else if(k==='pulso'&&!state.flags.roleta&&state.day===1)cta='<button class="chat-cta" data-action="roleta">🎁 Girar a roleta</button>';
- else if(k==='pulso'&&state.day===4)cta='<button class="chat-cta" data-action="sale">🔥 Ver a Mega Liquida</button>';
- return `<header class="layer-head"><button class="icon-button" data-action="inbox" aria-label="Voltar às mensagens">${icon('arrow')}</button>${threadAvatar(k)}<strong>${esc(t.name)}</strong></header><div class="layer-body chat-body">${body}${cta}</div>`;
+ const k=overlay.thread,t=Week.THREADS[k];
+ if(!t||!state.threads[k])return inboxPage();
+ return `<header class="layer-head"><button class="icon-button" data-action="inbox" aria-label="Voltar às mensagens">${icon('arrow')}</button>${threadAvatar(k)}<strong>${esc(t.name)}</strong></header><div class="layer-body chat-body" aria-live="polite">${chatBody(k)}</div>`;
+}
+function refreshChat(){
+ const b=document.querySelector('.chat-body');
+ if(overlay?.type!=='chat'||!b){return;}
+ b.innerHTML=chatBody(overlay.thread);b.scrollTop=b.scrollHeight;
+ if(state.threads[overlay.thread])state.threads[overlay.thread].unread=0;
+ refreshHeader();
 }
 function openChat(k){
  if(!state.threads[k])return;
@@ -1786,16 +2047,23 @@ function openChat(k){
  overlay={type:'chat',thread:k};drawOverlay();refreshHeader();
  requestAnimationFrame(()=>{const b=document.querySelector('.chat-body');if(b)b.scrollTop=b.scrollHeight;});
 }
+function openContact(k){
+ if(!Week.THREADS[k])return;
+ if(k==='tio')dmStart('tio-1',{instant:true,silent:true});
+ dmBox(k);dmTouch(k);save();
+ openChat(k);
+}
+/* Respostas das conversas antigas (blocos do roteiro). */
 function chooseChat(k,day,choice){
- const th=state.threads[k];if(!th||th.picked[day])return;
- th.picked[day]=choice;
- if(choice==='repair'){
-  if(state.wallet>=35){state.wallet=Pressure.round(state.wallet-35);state.fixes.push({id:'repair',label:'Conserto do fone com o tio do Lucca',cost:35});pushEvent('repair','Consertou o fone por R$ 35');state.flags.foneFixed=true;toast('Fone resolvido por R$ 35 no Pix 🎧');}
- }else if(choice==='borrow'){state.fixes.push({id:'borrow',label:'Powerbank emprestado pelo Lucca',cost:0});toast('O Lucca vai te emprestar o powerbank 🔋');}
+ const th=state.threads[k],box=dmBox(k),b=Week.THREADS[k]?.blocks.find(x=>x.day===day),c=b?.choices?.find(x=>x.id===choice);
+ if(!th||!c||th.picked[day])return;
+ th.picked[day]=choice;box.ask=null;dmState().replies++;
+ box.log.push({d:day,f:'me',t:c.label});
+ if(c.reply)box.queue.push({d:day,f:k==='fest'?'bia':k==='turma'?'gabi':k,t:c.reply,at:Date.now()+1300*dmSpeed()});
+ if(choice==='borrow'){state.fixes.push({id:'borrow',label:'Powerbank emprestado pelo Lucca',cost:0});toast('O Lucca vai te emprestar o powerbank 🔋');}
  else if(choice==='fest-buy'){save();influenced(['fomo','prova_social'],'Decidiu comprar o ingresso logo depois do “só falta você” no grupo.');openProduct('ingresso','fest');return;}
  else if(choice==='fest-no'){vibe(-6,'fomo','Recusou o Pocket Fest e o grupo respondeu “vai perder”.');expose('fomo','Ao recusar o Pocket Fest: “vai ser o rolê do ano… tem certeza?”.');}
- save();drawOverlay();
- requestAnimationFrame(()=>{const b=document.querySelector('.chat-body');if(b)b.scrollTop=b.scrollHeight;});
+ save();refreshChat();
 }
 
 /* ---------- roleta ---------- */
@@ -1877,7 +2145,7 @@ function livePage(){
  <header class="live-top"><span class="avatar photo-avatar live-av">${mediaPhoto('avatar_livia','avatar-photo','Foto de perfil da Lívia')}</span><span class="live-who"><strong>livia.looks</strong><small><b class="live-badge">AO VIVO</b> <span class="js-live-viewers">1.284</span> assistindo</small></span><button class="icon-button live-close" data-action="leave-live" aria-label="Sair da live">${icon('close')}</button></header>
  <div class="live-speech js-live-speech">“${esc(Week.LIVE_SCRIPT.speech[0])}”</div>
  <div class="live-chat js-live-chat" aria-live="off"></div>
- <div class="live-product"><div class="live-thumb">${art('tenis',true)}</div><div class="live-info"><strong>Motion 88</strong><span><del>${money(p.price)}</del> <b>${money(disc)}</b> com LIVIA15</span><div class="live-stock"><span class="js-live-stock-bar" style="width:${stock/20*100}%"></span></div><small><span class="js-live-stock">Restam ${stock} pares</span> · cupom expira em <b class="js-live-timer">${left?Pressure.formatClock(left):'expirado'}</b></small></div></div>
+ <div class="live-product"><div class="live-thumb">${art('tenis',true)}</div><div class="live-info"><strong>Motion 88</strong><span><del>${money(p.price)}</del> <b>${money(disc)}</b> com LIVIA15</span><div class="live-stock"><span class="js-live-stock-bar" style="width:${stock/20*100}%"></span></div>${state.flags.liviaSize?`<em class="live-reserved">👟 Par ${esc(state.flags.liviaSize)} reservado no seu nome até o fim da live</em>`:''}<small><span class="js-live-stock">Restam ${stock} pares</span> · cupom expira em <b class="js-live-timer">${left?Pressure.formatClock(left):'expirado'}</b></small></div></div>
  <button class="live-buy" data-action="live-buy">Comprar com LIVIA15 →</button></div>`;
 }
 function startLive(){
@@ -1962,12 +2230,21 @@ function saleBanner(){
  const until=state.flags.saleEnd||Date.now()+172790000;
  return `<div class="sale-banner"><strong>🔥 MEGA LIQUIDA</strong><span>até 70% OFF · termina em <b class="js-countdown" data-until="${until}">--:--:--</b></span></div>`;
 }
+/* Kit viagem: barra de progresso que já começa com um item marcado. */
+function kitBar(){
+ if(state.day<3)return '';
+ const have=Week.KIT.filter(id=>bought(id)),n=1+have.length,total=1+Week.KIT.length;
+ expose('recompensa',`Barra “kit viagem ${n} de ${total}”: o primeiro item já vinha marcado para dar vontade de completar.`);
+ return `<div class="kit-bar"><div class="kit-head"><strong>🎒 Seu kit viagem</strong><span>${n} de ${total}</span></div><div class="kit-track"><span style="width:${Math.round(n/total*100)}%"></span></div>
+ <div class="kit-chips"><span class="kit-chip on">✓ Celular</span>${Week.KIT.map(id=>bought(id)?`<span class="kit-chip on">✓ ${esc(products[id].label)}</span>`:`<button class="kit-chip" data-action="product" data-product="${id}" data-source="kit">+ ${esc(products[id].label)}</button>`).join('')}</div>
+ <small>${n<total?`Faltam ${total-n} itens para fechar o kit antes de sábado.`:'Kit completo!'}</small></div>`;
+}
 function shopPage(){
  const ids=Recommender.topics;
  const wallet=state.card.active?`<div class="wallet-chip">💳 Disponível para compras: <b>${money(spendable())}</b></div>`:'';
  if(state.card.active)expose('preco','A loja mostrava “disponível para compras” somando saldo e limite do cartão.');
  return `<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar ao feed">${icon("arrow")}</button><strong>Pulso Shop</strong><button class="icon-button" data-action="cart" aria-label="Abrir carrinho" style="position:relative;margin-left:auto">${icon("cart")}${state.cart.length?`<span class="cart-dot">${state.cart.length}</span>`:""}</button></header>
-  <div class="layer-body">${saleBanner()}${wallet}<div class="shop-banner"><b>${state.day===4?'Os menores preços do ano':'Ofertas para você'}</b><p>${state.day===4?'Só durante a Mega Liquida. Depois, os preços voltam.':'Selecionadas a partir do que você curte.'}</p></div>
+  <div class="layer-body">${saleBanner()}${wallet}${kitBar()}<div class="shop-banner"><b>${state.day===4?'Os menores preços do ano':'Ofertas para você'}</b><p>${state.day===4?'Só durante a Mega Liquida. Depois, os preços voltam.':'Selecionadas a partir do que você curte.'}</p></div>
   <div class="shop-search-wrap"><input type="search" id="shop-search" class="shop-search-input" placeholder="Buscar produto ou loja..." aria-label="Pesquisar produtos" autocomplete="off"/><small id="shop-search-count" class="muted">${ids.length} lojas no Pulso Shop</small></div><div class="shop-collection">${ids.map(id=>{
    const p=products[id],pr=price(id),isBought=bought(id);
    return `<button class="shop-product" data-shop-name="${esc((pr.name+" "+p.name+" "+p.brand+" "+p.label).toLowerCase())}" data-action="product" data-product="${id}" data-source="shop" aria-label="Visitar loja ${esc(p.brand)}"><span class="shop-thumb">${art(p.kind,true,p.brand)}${pr.off?`<i class="off-mini">-${pr.off}%</i>`:''}</span><span><strong>${esc(pr.name)}</strong><small>${esc(p.brand)} · ${isBought?"Já comprado":Pressure.soldToday(id,state.day).toLocaleString('pt-BR')+' vendidos'}</small><b>${pr.old?`<del>${money(pr.old)}</del> `:''}${money(pr.price)}${id==="plano"?"/mês":""}</b><small>Ver na loja →</small></span></button>`;
@@ -2106,6 +2383,11 @@ function buy(ids){
   if(k==='emocao')return `Comprou ${label} com a vibe em ${Math.round(state.vibe.value)}, depois de ver fotos que te deixaram pra baixo.`;
   return `Comprou ${label} com ${Pressure.STRATEGIES[k].name.toLowerCase()} na tela.`;
  });
+ if(q.coupon?.code==='BIA20'){influenced(['prova_social'],`Usou o cupom de indicação em ${label} para a Bia também ganhar R$ 20.`);dmSay('bia',[['bia','AAAA caíram meus 20 aqui 💜 valeu!!']],{wait:5000});}
+ if(q.coupon?.code==='FONEJA')influenced(['personalizacao','urgencia'],'Comprou o fone com o cupom que chegou no direct logo depois de falar do conserto.');
+ if(ids.includes('tenis')&&state.flags.liviaSize&&source==='live')influenced(['influencia','escassez'],`Comprou o tênis que a Lívia “separou no seu nome” (${state.flags.liviaSize}).`);
+ const reaction=ids.map(id=>Week.REACTIONS[id]).find(Boolean);
+ if(reaction&&!trial){dmSay(reaction[0],reaction.slice(1).map(t=>[reaction[0],t]),{wait:6000});expose('validacao_social','Depois da compra, um amigo elogiou a novidade no direct.');}
  Pressure.vibeBuy(state.vibe,trial?10:16+6*(ids.length-1),'Comprou '+label);
  state.flags.boughtToday=true;
  state.lastOrder={orderId:'pedido-'+state.runId.slice(0,8)+'-'+state.purchases.length,items:ids,total:paid,method:trial?'trial':method,n:q.n,each:q.each,cashback,coupon:q.coupon?.code||'',trial,at:Date.now()};
@@ -2231,16 +2513,64 @@ function overnight(){
  if(d===2)list.push({icon:'🔴',text:'livia.looks vai entrar AO VIVO hoje às 20h com cupom exclusivo.'});
  if(d===3)list.push({icon:'🎵',text:'Semana de provas? Estude com foco: MODO+ 3 dias grátis pra você.',product:'plano'});
  if(d===4){list.push({icon:'🔥',text:'MEGA LIQUIDA começou! Até 70% OFF por 48 h.'});}
- if(d===5){list.push({icon:'🪙',text:`Suas moedas (${money(state.coins)}) expiram HOJE às 23:59.`});list.push({icon:'🎉',text:'Pocket Fest: lote final à venda. A turma já garantiu.',product:'ingresso'});expose('recompensa','“Suas moedas expiram hoje às 23:59.”');}
+ if(d===5){list.push({icon:'🪙',text:`Você vai perder ${money(state.coins)} em moedas HOJE às 23:59.`});list.push({icon:'🎉',text:'Pocket Fest: lote final à venda. A turma já garantiu.',product:'ingresso'});expose('recompensa','“Suas moedas expiram hoje às 23:59.”');}
  if(state.streak>0)list.push({icon:'🔥',text:`Sua sequência de ${state.streak} dia(s) está em risco! Entre hoje para não perder.`});
- for(const n of list)notify(n.icon,n.text,{product:n.product||''});
+ /* A necessidade do fone volta todo dia até ser resolvida. */
+ const repair=state.flags.repair;
+ if(bought('fone')||state.flags.foneFixed){list.unshift({icon:'🎧',text:'Hoje foram 50 minutos de ônibus com trilha sonora.'});Pressure.vibeChange(state.vibe,4,'need','Ônibus com música');}
+ else{list.unshift({icon:'🚌',text:repair?.status==='booked'||repair?.status==='ready'?'Seu fone está no conserto: mais 50 minutos de ônibus em silêncio.':'Mais 50 minutos de ônibus em silêncio. Seu fone continua quebrado.'});Pressure.vibeChange(state.vibe,-5,'need','Ônibus sem música');}
+ /* Conserto combinado com o tio: ele pega o fone e avisa quando fica pronto. */
+ const dm=dmState();
+ if(repair?.status==='booked'){
+  const pick=Math.max(3,repair.bookedDay+1),ready=repair.rush?Math.max(4,pick):5;
+  if(d>=pick)dmStart('tio-pegou',{instant:true,silent:true});
+  if(d>=ready&&d>repair.bookedDay){dm.vars.repairCost=repair.cost;repair.status='ready';dmStart('tio-pronto',{instant:true,silent:true});list.push({icon:'🔧',text:'Tio Jorge: “Tá pronto. Era o fio mesmo.”',action:'inbox'});}
+ }
+ /* Prazo real: cupons que venceram sem uso aparecem como perda. */
+ for(const c of state.coupons.filter(c=>!c.used&&!c.goneSeen&&c.amount>0&&(c.expiresDay||9)<d).slice(0,2)){
+  c.goneSeen=true;list.push({icon:'😢',text:`Você perdeu o cupom ${c.code} (${c.label}): ele expirou ontem sem uso.`});
+  expose('urgencia',`O prazo do cupom ${c.code} era real: ele expirou de verdade. Outros prazos da semana eram blefe.`);
+ }
+ /* O que você não viu ontem volta: live em replay, giro da roleta, posts dos amigos. */
+ for(const c of (state.flags.carry||[]).filter(c=>c.day===d)){
+  if(c.type==='live')list.push({icon:'🔴',text:'Você perdeu a live da Lívia. O replay com o cupom fica no ar só hoje.',action:'live'});
+  else if(c.type==='roleta'&&!state.flags.roleta)list.push({icon:'🎁',text:'Seu giro grátis da roleta ainda está esperando. Prêmio garantido.',action:'roleta'});
+ }
+ /* Atendente no direct para quem deixou produto para trás. */
+ const left=[cartItem,seen].find(id=>id&&products[id]&&id!=='plano'&&id!=='ingresso');
+ if(left&&!dm.done.includes('duda-1')){dm.vars.produto=productName(left);dm.vars.dudaItem=left;dmStart('duda-1',{instant:true,silent:true});}
+ else if(seen&&d>=3&&!dm.done.includes('friend-nudge')&&products[seen]){
+  dm.done.push('friend-nudge');
+  const f=['mia','nina','bia'][Pressure.hash(state.runId+':nudge')%3];
+  dmSay(f,[[f,`vi q vc tava olhando o ${productName(seen)} kkk`],[f,'o meu é mto bom, pega']],{instant:true,silent:true});
+  expose('personalizacao',`Um amigo “ficou sabendo” do ${productName(seen)} que você só tinha olhado e comentou no direct.`);
+  expose('prova_social','No direct: “o meu é muito bom, pega”.');
+ }
+ if(d===4&&state.flags.biaRef&&state.coupons.some(c=>c.code==='BIA20'&&!c.used))dmStart('bia-4',{instant:true,silent:true});
+ const unread=unreadCount();
+ if(unread)list.push({icon:'💬',text:`${unread} mensagen${unread>1?'s novas':' nova'} no direct.`,action:'inbox'});
+ for(const n of list)notify(n.icon,n.text,{product:n.product||'',action:n.action||''});
  return list;
+}
+/* Dormir cedo não apaga o roteiro: conversas chegam assim mesmo e o resto
+ * volta no dia seguinte, em notificações e no começo do feed. */
+function chaseMissed(){
+ const d=dayInfo(),carry=[];
+ for(const [i,ev] of d.events.entries()){
+  if(state.feedItems.some(x=>x.id===`ev-${d.n}-${ev.type}-${i}`))continue;
+  if(ev.type==='chat')deliverThread(ev.thread,d.n,{instant:true,silent:true});
+  else if(['roleta','card','compare','live','trial'].includes(ev.type)&&eventApplies(ev))carry.push({type:ev.type,post:ev.post||'',day:d.n+1});
+ }
+ state.flags.carry=carry;
+ if(carry.length)expose('gancho_saida','Você encerrou o dia antes de ver tudo, e o que faltou voltou no dia seguinte.');
 }
 function sleep(){
  if(state.day>=Week.DAYS.length){finishWeek();return;}
  if(state.flags['late'+state.day])Pressure.vibeChange(state.vibe,-10,'night','Dormiu tarde rolando o feed');
  else Pressure.vibeChange(state.vibe,9,'night','Uma noite de sono');
  if(state.flags.boughtToday){state.flags.boughtToday=false;Pressure.vibeChange(state.vibe,-10,'afterglow','A empolgação da compra passou');}
+ chaseMissed();
+ dmNight();
  state.day++;
  GameClock.resetDay(state);
  state.flags.cartHold=0;
@@ -2340,12 +2670,17 @@ function finishWeek(){stopStory();clearInterval(liveTimer);state.finished=true;s
 function eventCard(item){
  const t=item.type;
  if(t==='checkin'){const n=Math.min(5,state.streak);return `<section class="ev ev-checkin"><div class="ev-row"><span class="ev-emoji">🔥</span><div><strong>Check-in diário · ${item.bonus?'+'+money(item.bonus):'+R$ 5,00'} em moedas</strong><p>${item.day===5?`Último dia! Suas moedas (${money(state.coins)}) expiram hoje às 23:59.`:'Volte amanhã para não perder sua sequência.'}</p></div></div><div class="streak">${[1,2,3,4,5].map(i=>`<i class="${i<=item.day?'on':''}">${i===5?'🎁':i}</i>`).join('')}</div></section>`;}
- if(t==='roleta')return `<section class="ev ev-roleta"><span class="ev-emoji big">🎁</span><div><strong>${state.flags.roleta?'Seu cupom de R$ 50 OFF está ativo':'Seu giro grátis está esperando'}</strong><p>${state.flags.roleta?'Válido só hoje até 23:59 em compras acima de R$ 249.':'Prêmio garantido: até R$ 100 OFF no Pulso Shop.'}</p></div><button class="ev-btn" data-action="${state.flags.roleta?'shop':'roleta'}">${state.flags.roleta?'Usar cupom':'Girar agora'}</button></section>`;
+ if(t==='roleta')return `<section class="ev ev-roleta"><span class="ev-emoji big">🎁</span><div><strong>${state.flags.roleta?'Seu cupom de R$ 50 OFF está ativo':'Seu giro grátis está esperando'}</strong><p>${state.flags.roleta?'Não perca seus R$ 50: o cupom some hoje às 23:59. Vale em compras acima de R$ 249.':'Prêmio garantido: até R$ 100 OFF no Pulso Shop.'}</p></div><button class="ev-btn" data-action="${state.flags.roleta?'shop':'roleta'}">${state.flags.roleta?'Usar cupom':'Girar agora'}</button></section>`;
  if(t==='card')return state.card.active?'':`<section class="ev ev-card"><div class="mini-card">pulso<b>.</b> pay</div><div><strong>Você foi pré-aprovado! 💳</strong><p>${money(state.card.limit)} de limite. Compre agora, pague depois.</p></div><button class="ev-btn" data-action="pay">Ativar</button></section>`;
+ if(t==='theme'){
+  const use=Math.min(Week.THEME.coins,state.coins),pay=Pressure.round(Week.THEME.price-use);
+  return state.flags.theme?`<section class="ev ev-theme"><span class="ev-emoji big">✨</span><div><strong>Tema Neon ativo</strong><p>Seu perfil ficou com a sua cara.</p></div></section>`
+   :`<section class="ev ev-theme"><span class="ev-emoji big">✨</span><div><strong>Novo: Tema Neon no seu perfil</strong><p>Só ${money(Week.THEME.price)}.${use?` Suas moedas cobrem ${money(use)}: você paga <b>${money(pay)}</b>.`:''}</p></div><button class="ev-btn" data-action="buy-theme">Ativar</button></section>`;
+ }
  if(t==='compare'){const c=Week.COMPARE_POSTS[item.post];return c?comparePostCard(c):'';}
  if(t==='surprise')return surpriseCard(item);
  if(t==='tagged')return taggedCard(item);
- if(t==='live')return `<section class="ev ev-live" data-action="live" role="button" tabindex="0" aria-label="Entrar na live da Lívia"><div class="ev-live-photo" style="background-image:url('${mediaSrc('story_tenis_1')}')"><span class="live-badge">AO VIVO</span><span class="ev-live-viewers">👀 1,2 mil</span></div><div class="ev-live-text"><span class="avatar photo-avatar">${mediaPhoto('avatar_livia','avatar-photo','Foto de perfil da Lívia')}</span><div><strong>livia.looks está ao vivo</strong><p>“Cupom exclusivo só pra quem está aqui agora 🔥”</p></div></div><button class="ev-btn live" data-action="live">Entrar na live</button></section>`;
+ if(t==='live')return `<section class="ev ev-live" data-action="live" role="button" tabindex="0" aria-label="Entrar na live da Lívia"><div class="ev-live-photo" style="background-image:url('${mediaSrc('story_tenis_1')}')"><span class="live-badge">${item.carried?'REPLAY · SÓ HOJE':'AO VIVO'}</span><span class="ev-live-viewers">👀 1,2 mil</span></div><div class="ev-live-text"><span class="avatar photo-avatar">${mediaPhoto('avatar_livia','avatar-photo','Foto de perfil da Lívia')}</span><div><strong>livia.looks está ao vivo</strong><p>“Cupom exclusivo só pra quem está aqui agora 🔥”</p></div></div><button class="ev-btn live" data-action="live">Entrar na live</button></section>`;
  if(t==='trial')return bought('plano')?'':`<section class="ev ev-trial"><span class="ev-emoji big">🎧</span><div><strong>Estudar com foco? MODO+ 3 dias GRÁTIS</strong><p>Sem anúncios entre as músicas. Cancele quando quiser.</p></div><button class="ev-btn" data-action="product" data-product="plano" data-source="trial">Testar grátis</button></section>`;
  if(t==='mood'){
   const low=state.vibe.value<55,late=clockMinutes()>=22*60,ids=['luminaria','garrafa'].filter(id=>!bought(id));
@@ -2495,6 +2830,7 @@ function countTime(){
  if(state.attention.realMs%10000===0)save();
 }
 tickTimer=setInterval(()=>{countTime();tick();},1000);
+setInterval(()=>dmPump(),350);
 function openProduct(id,source){
  if(!products[id])return;
  clearTimeout(storeOpenTimer);storeOpenTimer=null;
@@ -2554,7 +2890,7 @@ function goalPanel(){
  <div class="layer-body critical-panel"><span class="eyebrow">LEMBRETE DE DOMINGO</span>
  <h2>Boleto da viagem: R$ 400 no sábado.</h2><p>Antes de abrir o pulso., você combinou consigo mesmo que guardaria esse dinheiro.</p>
  <div class="goal-numbers"><div><small>Saldo na conta</small><strong>${money(state.wallet)}</strong></div><div><small>Fatura Pulso Pay</small><strong>${money(s.dueNow+s.subscriptionDue)}</strong></div></div>
- <div class="goal-result ${s.tripPaid?'ok':'miss'}"><strong>${s.tripPaid?'A viagem ainda está garantida':'Do jeito que está, a viagem não fecha'}</strong><p>${s.tripPaid?'Sobram '+money(s.finalBalance-state.goal)+' além dos R$ 400, depois da fatura de sábado.':'Depois da fatura de sábado, faltariam '+money(s.missing)+' para os R$ 400.'}</p></div>
+ <p class="small muted">Suas anotações de domingo. A conta de sábado é com você.</p>
  ${s.future?`<p class="small muted">Além disso: ${money(s.future)} em parcelas nos próximos meses.</p>`:''}
  <button class="secondary full critical-action" data-action="close-overlay">Voltar ao feed</button></div>`;
 }
@@ -2584,7 +2920,7 @@ function stageFeed(){
  }).join('');
  const ended=items.some(x=>x.kind==='night');
  const extraToday=Math.max(0,dayStreamCount()-(d.minQuota||7));
- return `<div class="game">${asideLeft()}<main class="phone${state.vibe.value<40?' low-vibe':''}" aria-label="Simulador de rede social">
+ return `<div class="game">${asideLeft()}<main class="phone${state.vibe.value<40?' low-vibe':''}${state.flags.theme?' theme-neon':''}" aria-label="Simulador de rede social">
  <div class="status-bar"><span class="sb-time">${clockDayLabel()} · ${clockLabel()}${afterMidnight()?' <small class="overnight-day">virou o dia</small>':''}</span><span class="hud"><button class="hud-vibe" data-action="vibe-info" aria-label="Sua vibe: ${m.label}"><span class="hud-vibe-emoji">${m.emoji}</span><span class="hud-vibe-track"><span class="hud-vibe-fill" style="width:${state.vibe.value}%"></span></span></button><button class="hud-coins" data-action="coins-info" aria-label="Moedas Pulso">🪙 ${money(state.coins)}</button></span></div>
  <header class="phone-head"><span class="phone-logo">pulso<b>.</b></span><div class="phone-actions">
  <button class="shop-entry" data-action="shop" aria-label="Abrir lojas">${state.day===4?'🔥 Liquida':'Ofertas'}</button><button class="icon-button" data-action="notifications" aria-label="Notificações" style="position:relative">${icon('heart')}${state.notifs.length?'<span class="notif-dot"></span>':''}</button>
@@ -2660,7 +2996,7 @@ function drawOverlay(){
  }
  else if(t==="notifications"){
   wrap.innerHTML=`<header class="layer-head"><button class="icon-button" data-action="close-overlay" aria-label="Voltar">${icon("arrow")}</button><strong>Notificações</strong></header><div class="layer-body" style="padding:18px">
-   ${state.notifs.length?state.notifs.map(n=>`<button class="reviews-shortcut notif-row" ${n.product?`data-action="product" data-product="${esc(n.product)}" data-source="notification"`:'data-action="close-overlay"'}><span class="notif-icon">${n.icon||'🔔'}</span><span><strong>${esc(n.text)}</strong><small style="display:block;margin-top:4px;color:#8b7a8b">${Week.DAYS[(n.day||1)-1].label}</small></span>${icon("chevron")}</button>`).join(''):'<p class="muted">Nenhuma notificação por enquanto.</p>'}
+   ${state.notifs.length?state.notifs.map(n=>`<button class="reviews-shortcut notif-row" ${n.product?`data-action="product" data-product="${esc(n.product)}" data-source="notification"`:n.action?`data-action="${esc(n.action)}"`:'data-action="close-overlay"'}><span class="notif-icon">${n.icon||'🔔'}</span><span><strong>${esc(n.text)}</strong><small style="display:block;margin-top:4px;color:#8b7a8b">${Week.DAYS[(n.day||1)-1].label}</small></span>${icon("chevron")}</button>`).join(''):'<p class="muted">Nenhuma notificação por enquanto.</p>'}
    </div>`;
  }
  else return;
@@ -2716,6 +3052,12 @@ function drawModal(){
   content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer"><div class="exit-gift">💳</div><h3>Tem certeza?</h3><p>Quem ativa o Pulso Pay ganha <b>5% de volta</b> em moedas e parcela em até 10x. A oferta pré-aprovada pode não aparecer de novo.</p>
   <button class="primary full" data-action="activate-card">Ativar meu limite</button>
   <button class="tertiary full" data-action="card-no">Não quero facilidades</button></div>`;
+ }
+ else if(v.type==='protect-confirm'){
+  const vip=v.id==='vip';
+  content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer"><div class="exit-gift">${vip?'⭐':'🛡️'}</div><h3>Tem certeza?</h3><p>${vip?'Sem o VIP você perde o áudio em alta definição e o acesso antecipado. <b>8 em cada 10 assinantes</b> mantêm o VIP.':`<b>1 em cada 3 aparelhos</b> apresenta defeito no primeiro ano. Sem a Proteção Pulso+, o conserto do ${esc(productName(v.id))} sai do seu bolso.`}</p>
+  <button class="primary full" data-action="protect-keep">${vip?'Manter meu VIP':'Manter minha proteção'}</button>
+  <button class="tertiary full" data-action="protect-remove">${vip?'Não quero o melhor som':'Remover e correr o risco'}</button></div>`;
  }
  else if(v.type==='day-menu'){
   content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Opções</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header><div class="sheet-scroll">
@@ -2830,12 +3172,12 @@ async function switchPlayer(){
  identity=null;state=makeInitial();overlay=null;modal=null;syncMessage="";
  renderAccountGate();
 }
-function renderHome(){if(!identity){renderAccountGate();return;}exitHomeButton.hidden=true;root.innerHTML=`<main class="home"><div class="home-inner"><section><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA · EXPERIÊNCIA INTERATIVA</div><h1>Seu feed.<br><em>Suas escolhas.</em></h1><p>Uma semana. R$ 620 na conta. Uma viagem com a turma que custa R$ 400. E um app que vai fazer de tudo para você gastar.</p><button class="primary" data-action="start">Começar a semana &nbsp;→</button><p class="small muted" style="margin:13px 0 0">Sua conta: <strong>${esc(identity.username)}</strong> · <button class="account-switch" data-action="switch-player">Trocar jogador</button></p><div class="home-meta"><span>✦</span><span>5 dias · cerca de 10 minutos · compras e pessoas fictícias</span></div></section><div class="preview-art"><div class="blob one"></div><div class="blob two"></div><div class="preview-phone"><div class="preview-header">pulso. <span style="font-size:18px">♡ &nbsp;⌑</span></div><div class="preview-storybar"><div class="preview-avatar">${mediaPhoto("avatar_bia","avatar-photo","Foto de perfil da Bia")}</div><div class="preview-avatar">${mediaPhoto("avatar_lucca","avatar-photo","Foto de perfil do Lucca")}</div><div class="preview-avatar">${mediaPhoto("avatar_livia","avatar-photo","Foto de perfil da Lívia")}</div><div class="preview-avatar">${mediaPhoto("avatar_gabi","avatar-photo","Foto de perfil da Gabi")}</div></div><div class="preview-photo realistic-preview">${mediaPhoto("post_p1","art-photo","Amigos aproveitando um encontro no parque")}</div><div class="preview-caption"><b>bia.m</b> Quem já tá pronto pro sábado? 💜<br><span style="color:#aaa">Ver os 18 comentários...</span></div><div class="preview-ad">⚡ Oferta relâmpago <b>· termina em 09:59</b></div></div><div class="preview-badge">Só mais um scroll… 👀</div></div></div></main>`;}
+function renderHome(){if(!identity){renderAccountGate();return;}exitHomeButton.hidden=true;root.innerHTML=`<main class="home"><div class="home-inner"><section><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA · EXPERIÊNCIA INTERATIVA</div><h1>Seu feed.<br><em>Suas escolhas.</em></h1><p>Uma semana. R$ 620 na conta. Uma viagem com a turma no sábado. E o pulso., o app onde tudo acontece.</p><button class="primary" data-action="start">Começar a semana &nbsp;→</button><p class="small muted" style="margin:13px 0 0">Sua conta: <strong>${esc(identity.username)}</strong> · <button class="account-switch" data-action="switch-player">Trocar jogador</button></p><div class="home-meta"><span>✦</span><span>5 dias · cerca de 10 minutos · compras e pessoas fictícias</span></div></section><div class="preview-art"><div class="blob one"></div><div class="blob two"></div><div class="preview-phone"><div class="preview-header">pulso. <span style="font-size:18px">♡ &nbsp;⌑</span></div><div class="preview-storybar"><div class="preview-avatar">${mediaPhoto("avatar_bia","avatar-photo","Foto de perfil da Bia")}</div><div class="preview-avatar">${mediaPhoto("avatar_lucca","avatar-photo","Foto de perfil do Lucca")}</div><div class="preview-avatar">${mediaPhoto("avatar_livia","avatar-photo","Foto de perfil da Lívia")}</div><div class="preview-avatar">${mediaPhoto("avatar_gabi","avatar-photo","Foto de perfil da Gabi")}</div></div><div class="preview-photo realistic-preview">${mediaPhoto("post_p1","art-photo","Amigos aproveitando um encontro no parque")}</div><div class="preview-caption"><b>bia.m</b> Quem já tá pronto pro sábado? 💜<br><span style="color:#aaa">Ver os 18 comentários...</span></div><div class="preview-ad">⚡ Oferta relâmpago <b>· termina em 09:59</b></div></div><div class="preview-badge">Só mais um scroll… 👀</div></div></div></main>`;}
 function showIntro(){
  exitHomeButton.hidden=false;scene=0;clearTimeout(introTimer);
  root.innerHTML=`<main class="cinematic"><div class="scene-box">
  <div class="scene-icon">🚌</div><div class="eyebrow" style="color:#eec7ee">DOMINGO · 21:40</div>
- <h2>Sábado tem viagem da turma. Sua missão: <span style="color:#ffc5e2">guardar R$ 400.</span></h2>
+ <h2>Sábado tem viagem da turma. <span style="color:#ffc5e2">Falta só uma semana.</span></h2>
  <p>Você tem <b>R$ 620</b> na conta. O boleto de <b>R$ 400</b> da viagem vence no sábado de manhã — sem pagar, não embarca. Até lá, é uma semana normal: escola, amigos e o <b>pulso.</b>, seu app favorito.</p>
  <p class="scene-fine">Tudo aqui é simulado: pessoas, marcas, preços e compras são fictícios. Nenhum pagamento é real. No final, você poderá enviar ao MCP ou seguir para o quiz. Após o quiz, o envio é automático.</p>
  <button class="scene-next" data-action="intro-next">Começar a semana →</button>
@@ -2934,7 +3276,8 @@ function endStep0(s){
   <p>Antes de comprar, reserve o dinheiro das suas metas e avalie o custo total — incluindo parcelas, assinaturas, taxas e juros. Desconto e cashback não significam dinheiro livre na conta.</p>
  </div>
  </section>
- <div class="end-box"><h3>O que você comprou</h3>${purchases||'<p class="small muted">Nenhuma compra. O feed tentou bastante.</p>'}
+ <div class="end-box"><h3>O que você comprou</h3>${purchases||(state.extras.length?'':'<p class="small muted">Nenhuma compra. O feed tentou bastante.</p>')}
+ ${state.extras.map(x=>`<div class="event-row"><span>✨</span><div><strong>${esc(x.label)}</strong><p>Microcompra no app</p></div><strong>${money(x.cost)}</strong></div>`).join('')}
  ${state.fixes.length?`<p class="small muted" style="margin-top:10px">Alternativas que você usou: ${state.fixes.map(f=>esc(f.label)).join(' · ')}.</p>`:''}
  ${state.cart.length?`<p class="small muted">Ficaram na sacola: ${state.cart.map(id=>esc(productName(id))).join(', ')}.</p>`:''}</div>
  <button class="primary end-next" data-action="end-next">Ver o que estava por trás →</button>`;
@@ -2981,14 +3324,28 @@ function endStep2(){
   <p class="learn-caution">As contagens descrevem escolhas fictícias desta partida, não suas emoções, personalidade ou hábitos reais.</p></section>
  <div class="learn-pause"><strong>🧠 Três perguntas para fazer antes de comprar</strong>
   <ol><li>Eu já queria isso antes de abrir o aplicativo?</li><li>Essa compra compromete o dinheiro de alguma meta importante?</li><li>Se a oferta terminasse agora, eu ainda iria querer esse produto amanhã?</li></ol></div>
+ ${dmState().reveals.length?`<section class="end-box dm-reveal"><div class="eyebrow">SEU DIRECT, POR TRÁS</div><h2>As conversas também vendiam.</h2>
+  <p>Você respondeu ${dmState().replies} vez(es) no direct. Veja o que estava por trás de algumas dessas conversas.</p>
+  ${dmState().reveals.map(r=>`<div class="insight"><strong>${r.icon} ${esc(r.title)}</strong><p>${esc(r.text)}</p></div>`).join('')}
+  <p class="learn-caution">Na TIC Kids Online Brasil 2025, 19% dos adolescentes de 11 a 17 anos relataram contato com publicidade em mensagens instantâneas. As conversas daqui são fictícias.</p></section>`:''}
  <h2 class="strat-title">Aprenda a reconhecer as estratégias</h2>
  <p class="learn-section-intro">Abra os cartões para descobrir como cada técnica funciona, onde apareceu no seu feed e quais ações foram registradas. Uma exposição não comprova que a técnica causou uma compra.</p>
  <div class="strat-list">${cards}</div>
  <div class="learn-ready"><strong>Agora é sua vez de reconhecer!</strong><p>No quiz que já estava no jogo, você verá cinco situações parecidas com as do feed. Cada resposta vem acompanhada de uma explicação para consolidar o aprendizado.</p></div>
  <div class="learn-actions"><button class="secondary" data-action="end-back">← Rever análise</button><button class="primary end-next" data-action="end-next">Ir para o quiz →</button></div>`;
 }
+/* Quando a estratégia apareceu no direct, a pergunta do quiz usa essa cena. */
+function quizVariants(){
+ const seen=new Set(dmState().reveals.map(r=>r.id)),v={};
+ if(seen.has('pulso-fone'))v.personalizacao='Você contou no direct que o fone quebrou e, minutos depois, o Pulso Shop mandou: “Atmos One com ENTREGA AMANHÃ”.';
+ if(seen.has('livia'))v.influencia='A Lívia respondeu seu direct em segundos: “separei um par no seu nome, mas só seguro até o fim da live”.';
+ if(seen.has('duda'))v.dark_patterns='A atendente disse “deixa eu falar com meu gerente” e voltou com 15% OFF, válidos por 5 minutos.';
+ if(seen.has('bia'))v.prova_social='A Bia mandou um cupom de indicação: “se você usar, eu ganho R$ 20 também 🥺”.';
+ if(seen.has('nina'))v.escassez='A Nina tinha um ingresso sobrando: “preciso saber AGORA, o Davi também quer”.';
+ return v;
+}
 function endStep3(){
- const qs=Pressure.quiz(state.pressure,5);
+ const qs=Pressure.quiz(state.pressure,5,quizVariants());
  const answered=qs.filter(q=>state.quiz[q.id]).length;
  const items=qs.map((q,i)=>{
   const pick=state.quiz[q.id];
@@ -3006,7 +3363,7 @@ function endStep3(){
 /* Atualiza somente a resposta: recriar .end reiniciaria o scrollTop do quiz. */
 function answerQuizOption(button){
  const id=button.dataset.q,choice=button.dataset.key;
- const questions=Pressure.quiz(state.pressure,5);
+ const questions=Pressure.quiz(state.pressure,5,quizVariants());
  const current=questions.find(q=>q.id===id);
  const card=button.closest('.quiz-q');
  if(!current||!card||state.quiz[id]||!current.options.includes(choice))return;
@@ -3029,7 +3386,7 @@ function answerQuizOption(button){
  }
 }
 function endStep4(s){
- const qs=Pressure.quiz(state.pressure,5),right=qs.filter(q=>state.quiz[q.id]===q.answer).length;
+ const qs=Pressure.quiz(state.pressure,5,quizVariants()),right=qs.filter(q=>state.quiz[q.id]===q.answer).length;
  const prof=Pressure.profile(state.pressure),top=prof.filter(p=>p.influenced).slice(0,3);
  const tips=[['⏳','Espere 24 horas','Se você não queria o produto antes de abrir o app, deixe para amanhã. Ofertas “só hoje” costumam voltar.'],['🔄','Desconfie do cronômetro','Recarregue a página: se o tempo ou o “restam 3” reiniciar, era encenação.'],['🧾','Some o preço inteiro','Frete, taxa, proteção, juros e parcelas. A parcela pequena esconde o total.'],['☑️','Desmarque o que veio marcado','Proteções, VIPs e assinaturas pré-selecionadas são escolhas da loja, não suas.'],['🤳','Publi é anúncio','Mesmo vindo de quem você admira. Procure #publi, cupom e link na bio.'],['💭','Como você está se sentindo?','Cansaço, tédio e tristeza deixam a compra por impulso mais provável. Compra não resolve sentimento.']];
  return `<div class="eyebrow" style="margin-top:23px">SEU RAIO-X</div>
@@ -3452,6 +3809,21 @@ root.addEventListener('click',e=>{
  else if(a==='inbox'){if(story)stopStory();closeModal();overlay={type:'inbox'};drawOverlay();}
  else if(a==='chat'){el.closest('.push-banner')?.remove();openChat(el.dataset.thread);}
  else if(a==='chat-choice'){chooseChat(el.dataset.thread,Number(el.dataset.day),el.dataset.choice);}
+ else if(a==='dm-choice'){dmChoose(el.dataset.thread,el.dataset.choice);}
+ else if(a==='open-contact'){openContact(el.dataset.thread);}
+ else if(a==='buy-theme'){
+  if(state.flags.theme)return;
+  const use=Math.min(Week.THEME.coins,state.coins),pay=Pressure.round(Week.THEME.price-use);
+  if(state.wallet<pay){toast('Saldo insuficiente.');return;}
+  state.wallet=Pressure.round(state.wallet-pay);state.coins=Pressure.round(state.coins-use);state.flags.theme=Week.THEME.id;
+  state.extras.push({id:'tema',label:Week.THEME.name+' do perfil',cost:pay});
+  pushEvent('buy',`Ativou o ${Week.THEME.name} por ${money(pay)}`);
+  influenced(['recompensa','preco'],`Fez uma microcompra de ${money(pay)} com moedas do app: a primeira compra, pequena, facilita as próximas.`);
+  Pressure.vibeBuy(state.vibe,5,'Ativou o Tema Neon');
+  save();renderGame(true);toast('Tema Neon ativado ✨');
+ }
+ else if(a==='protect-keep'){const v=modal;closeModal();influenced(['dark_patterns'],v?.id==='vip'?'Ia tirar o VIP, mas manteve depois do “Tem certeza?”.':'Ia remover a Proteção Pulso+, mas manteve depois do “Tem certeza?”.');}
+ else if(a==='protect-remove'){const v=modal;closeModal();if(v?.id==='vip')state.extraChecked=false;else if(v?.id)state.protection[v.id]=false;save();if(overlay)drawOverlay();}
  else if(a==='roleta'){if(story)stopStory();closeModal();overlay={type:'roleta'};drawOverlay();}
  else if(a==='spin'){spin();}
  else if(a==='pay'){if(story)stopStory();closeModal();overlay={type:'pay'};drawOverlay();}
@@ -3475,7 +3847,7 @@ root.addEventListener('click',e=>{
  else if(a==='sub-discount'){const sub=state.subscriptions.find(x=>x.active);if(sub){sub.monthly=Pressure.round(sub.monthly/2);sub.name+=' (50% OFF)';}state.flags.cancelStep=0;influenced(['dark_patterns'],'Aceitou a oferta de retenção em vez de cancelar a assinatura.');save();drawOverlay();}
  else if(a==='sub-help'){toast('Opção indisponível no momento.');}
  else if(a==='vibe-info'){const m=Pressure.vibeMood(state.vibe.value);toast(`Vibe: ${m.label} ${m.emoji} · Um mimo sempre levanta o astral ✨`);expose('emocao','O app sugeria que “um mimo sempre levanta o astral”.');}
- else if(a==='coins-info'){toast(`Você tem ${money(state.coins)} em moedas. Use em compras acima de R$ 50 · expiram sexta 23:59.`);}
+ else if(a==='coins-info'){toast(`Você tem ${money(state.coins)} em moedas. Use em compras acima de R$ 50 ou perca tudo · expiram sexta 23:59.`);}
  else if(a==='story'){startStory(Number(el.dataset.index));}
  else if(a==='story-next'){advanceStory(1);}
  else if(a==='story-prev'){advanceStory(-1);}
@@ -3568,7 +3940,15 @@ root.addEventListener('dblclick',e=>{
 root.addEventListener('pointerdown',handleFeedTouchStart);
 root.addEventListener('pointerup',handleFeedTouchEnd);
 root.addEventListener('pointercancel',handleFeedTouchCancel);
-root.addEventListener('change',e=>{const tg=e.target;if(tg?.dataset?.protect){state.protection[tg.dataset.protect]=tg.checked;save();drawOverlay();return;}if(tg?.id==='coins-toggle'){state.coinsOn=tg.checked;save();drawOverlay();return;}if(tg?.name==='pay'){state.payMethod=tg.value;save();drawOverlay();return;}if(e.target?.id==='vip-extra'){state.extraChecked=e.target.checked;save();if(overlay?.type==='checkout'||overlay?.type==='product')drawOverlay();}if(e.target?.id==='privacy-switch'){state.personalized=e.target.checked;save();renderGame(true);toast(state.personalized?'Recomendações personalizadas ativadas.':'Ordem cronológica e coleta de sinais desativadas.');}});
+root.addEventListener('change',e=>{const tg=e.target;
+ const asked=Array.isArray(state.flags.protectAsked)?state.flags.protectAsked:(state.flags.protectAsked=[]);
+ const confirmId=tg?.dataset?.protect||(tg?.id==='vip-extra'?'vip':'');
+ if(confirmId&&!tg.checked&&!asked.includes(confirmId)){
+  tg.checked=true;asked.push(confirmId);save();
+  expose('dark_patterns',confirmId==='vip'?'Ao desmarcar o VIP: “Tem certeza? 8 em cada 10 assinantes mantêm”.':'Ao desmarcar a Proteção Pulso+: “Tem certeza? 1 em cada 3 aparelhos apresenta defeito”.');
+  modal={type:'protect-confirm',id:confirmId};drawModal();return;
+ }
+ if(tg?.dataset?.protect){state.protection[tg.dataset.protect]=tg.checked;save();drawOverlay();return;}if(tg?.id==='coins-toggle'){state.coinsOn=tg.checked;save();drawOverlay();return;}if(tg?.name==='pay'){state.payMethod=tg.value;save();drawOverlay();return;}if(e.target?.id==='vip-extra'){state.extraChecked=e.target.checked;save();if(overlay?.type==='checkout'||overlay?.type==='product')drawOverlay();}if(e.target?.id==='privacy-switch'){state.personalized=e.target.checked;save();renderGame(true);toast(state.personalized?'Recomendações personalizadas ativadas.':'Ordem cronológica e coleta de sinais desativadas.');}});
 window.addEventListener('keydown',e=>{
  if(!exitConfirm.hidden){
   if(e.key==='Escape'){e.preventDefault();closeExitConfirm();}

@@ -3,6 +3,7 @@ import "../public/recommendation.js";
 import "../public/stream.js";
 import "../public/pressure.js";
 import "../public/week.js";
+import "../public/direct.js";
 
 const P=globalThis.PorTrasPressure,W=globalThis.PorTrasWeek,S=globalThis.NoFeedStream;
 
@@ -79,7 +80,7 @@ describe("roteiro da semana",()=>{
    for(const t of d.focus)expect(d.allow).toContain(t);
    for(const e of d.events){
     if(e.type==="compare")expect(W.COMPARE_POSTS[e.post]).toBeTruthy();
-    if(e.type==="chat")expect(W.THREADS[e.thread].blocks.some(b=>b.day===d.n)).toBe(true);
+    if(e.type==="chat")expect(W.THREADS[e.thread].blocks.some(b=>b.day===d.n)||!!globalThis.PorTrasDirect.BY_EVENT[e.thread+":"+d.n]).toBe(true);
    }
   }
  });
