@@ -10,6 +10,10 @@ Jogo educativo do Ciclo 4, Colégio Rio Branco. A **experiência principal** é 
 O novo protótipo está em `index.html`; o modo clássico segue em `src/` e `classico.html`. O Vite gera as duas entradas no mesmo build. O backend/MCP é mantido no projeto separado [Por-tras-da-oferta-MCP](https://github.com/benimezz1/Por-tras-da-oferta-MCP).
 
 
+## Direct com dilemas
+
+O direct do **pulso.** agora tem conversas com respostas à escolha do jogador, indicador de “digitando…”, cobrança de quem não responde e cartões de contato, produto e cupom. O conserto do fone passa pela conversa com o tio do Lucca, enquanto o Pulso Shop interrompe com “entrega amanhã”. Dormir cedo não pula mais o roteiro. Os roteiros ficam em `public/direct.js`; a descrição completa está em [docs/SEMANA-ATE-A-VIAGEM.md](docs/SEMANA-ATE-A-VIAGEM.md#direct-como-jogo-de-dilemas-e-brechas-fechadas).
+
 ## Aprendizado antes do quiz
 
 O encerramento da experiência principal segue **Sábado → Por trás → Aprenda → Quiz → Raio-X**. A etapa **Por trás** mantém o gráfico e a tabela que explicam a pontuação fictícia da vibe. A etapa **Entenda seu clique** apresenta um retrato educativo das ações registradas, três perguntas para reflexão e cartões expansíveis das estratégias, com exemplos do feed e evidências da pesquisa. O quiz de cinco perguntas é preservado e permite retornar ao aprendizado sem perder as respostas.

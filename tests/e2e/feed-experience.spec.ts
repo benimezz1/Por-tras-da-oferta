@@ -22,7 +22,7 @@ async function enter(page, keepTaggedOverlay = false) {
   await page.locator('#c4-account-form button[value="signup"]').click();
   await expect(page.locator(".home h1")).toContainText("Seu feed.");
   await page.locator('[data-action="start"]').click();
-  await expect(page.locator(".cinematic")).toContainText("guardar R$ 400");
+  await expect(page.locator(".cinematic")).toContainText("Falta só uma semana");
   await page.locator('[data-action="intro-next"]').click();
   await page.locator('[data-action="open-day"]').click();
   await expect(page.locator(".phone")).toBeVisible();

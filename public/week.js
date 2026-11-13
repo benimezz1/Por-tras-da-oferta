@@ -8,23 +8,23 @@
   {n:1,label:"Segunda-feira",short:"SEG",start:19*60,title:"O fone quebrou",
    context:"Seu fone parou de funcionar no intervalo. Amanhã são 50 minutos de ônibus até a escola sem música.",
    focus:["fone"],allow:["fone","tenis","plano","mochila"],minQuota:7,
-   events:[{at:0,type:"checkin"},{at:[1,2],type:"chat",thread:"pulso"},{at:[2,4],type:"chat",thread:"lucca"},{at:[2,6],type:"roleta"},{at:[4,7],type:"compare",post:"c1"}]},
+   events:[{at:0,type:"checkin"},{at:[1,2],type:"chat",thread:"pulso"},{at:[2,4],type:"chat",thread:"lucca"},{at:[2,6],type:"roleta"},{at:[3,5],type:"theme"},{at:[4,7],type:"compare",post:"c1"},{at:[5,7],type:"chat",thread:"gabi"}]},
   {n:2,label:"Terça-feira",short:"TER",start:19*60,title:"A live da Lívia",
    context:"Na escola, metade da turma estava falando do mesmo tênis. A Lívia, que você segue, avisou que vai entrar ao vivo.",
    focus:["tenis"],allow:["fone","tenis","plano","mochila","powerbank"],minQuota:7,
-   events:[{at:0,type:"checkin"},{at:[1,2],type:"chat",thread:"livia"},{at:[2,4],type:"card"},{at:[2,5],type:"compare",post:"c2"},{at:[4,6],type:"live"},{at:[5,7],type:"chat",thread:"turma"}]},
+   events:[{at:0,type:"checkin"},{at:[1,2],type:"chat",thread:"livia"},{at:[2,4],type:"card"},{at:[2,5],type:"compare",post:"c2"},{at:[3,5],type:"chat",thread:"gabi"},{at:[4,6],type:"live"},{at:[5,7],type:"chat",thread:"turma"}]},
   {n:3,label:"Quarta-feira",short:"QUA",start:19*60,title:"Semana de provas",
    context:"Prova de matemática amanhã. Você abre o celular “só para colocar uma música” enquanto estuda.",
    focus:["plano","luminaria"],allow:["fone","tenis","plano","mochila","powerbank","garrafa","luminaria"],minQuota:7,
-   events:[{at:0,type:"checkin"},{at:[1,3],type:"trial"},{at:[3,5],type:"compare",post:"c3"},{at:[6,7],type:"mood"}]},
+   events:[{at:0,type:"checkin"},{at:[1,3],type:"trial"},{at:[2,4],type:"chat",thread:"gabi"},{at:[3,5],type:"compare",post:"c3"},{at:[4,6],type:"chat",thread:"bia"},{at:[6,7],type:"mood"}]},
   {n:4,label:"Quinta-feira",short:"QUI",start:19*60,title:"Mega Liquida 48h",
    context:"A viagem é depois de amanhã. O Pulso Shop anuncia a maior liquidação do semestre.",
    focus:["mochila","powerbank","garrafa"],allow:["fone","tenis","plano","mochila","powerbank","garrafa","luminaria","ingresso"],minQuota:7,
-   events:[{at:0,type:"checkin"},{at:[1,2],type:"flash"},{at:[2,4],type:"chat",thread:"lucca"},{at:[3,5],type:"compare",post:"c4"},{at:[4,6],type:"cartnudge"},{at:[5,7],type:"chat",thread:"turma"}]},
+   events:[{at:0,type:"checkin"},{at:[1,2],type:"flash"},{at:[2,4],type:"chat",thread:"lucca"},{at:[3,5],type:"compare",post:"c4"},{at:[3,6],type:"chat",thread:"mia"},{at:[4,6],type:"cartnudge"},{at:[5,7],type:"chat",thread:"turma"}]},
   {n:5,label:"Sexta-feira",short:"SEX",start:19*60,title:"Véspera da viagem",
    context:"Amanhã às 6h30 o ônibus da viagem sai do portão da escola. Hoje à noite tem Pocket Fest, e todo mundo está comentando.",
    focus:["ingresso","tenis"],allow:["fone","tenis","plano","mochila","powerbank","garrafa","luminaria","ingresso"],minQuota:7,
-   events:[{at:0,type:"checkin"},{at:[1,3],type:"chat",thread:"fest"},{at:[2,4],type:"compare",post:"c5"},{at:[4,6],type:"lastcall"}]}
+   events:[{at:0,type:"checkin"},{at:[1,2],type:"chat",thread:"gabi"},{at:[1,3],type:"chat",thread:"fest"},{at:[2,4],type:"chat",thread:"lucca"},{at:[2,4],type:"compare",post:"c5"},{at:[3,5],type:"chat",thread:"nina"},{at:[4,6],type:"lastcall"}]}
  ];
 
  /* Publicações de amigos que mostram compras (unboxing) e mexem com a comparação social. */
@@ -58,28 +58,29 @@
    {day:4,messages:[["pulso","🔥 MEGA LIQUIDA começou: até 70% OFF por 48h."],["pulso","Itens que você viu estão com desconto. Corre!"]]}
   ]},
   lucca:{name:"lucca.r",avatar:"avatar_lucca",kind:"friend",blocks:[
-   {day:1,messages:[["lucca","mano teu fone quebrou?? vi no grupo 😭"],["lucca","meu tio conserta fone, cobrou 35 conto no meu e ficou novo"]],
-    choices:[{id:"repair",label:"Bora! Me passa o contato 🙏",reply:"fechou! ele pega amanhã na escola e devolve quinta 🎧"},
-             {id:"no-repair",label:"Nah, vou pegar um novo",reply:"tranquilo kkk o Atmos tá em promo no pulso"}]},
    {day:4,messages:[["lucca","vc vai levar powerbank na viagem?"],["lucca","tenho dois aqui, se quiser te empresto um"]],
     choices:[{id:"borrow",label:"Opa, quero sim! Valeu 🙌",reply:"suave, levo amanhã"},
              {id:"no-borrow",label:"De boa, vou comprar o meu",reply:"blz, o Volt tá barato na liquida"}]}
   ]},
   livia:{name:"livia.looks",avatar:"avatar_livia",kind:"creator",blocks:[
-   {day:2,messages:[["livia","oii amor!! 💖"],["livia","hoje às 20h tem LIVE com cupom exclusivo SÓ pros meus seguidores"],["livia","ativa o lembrete pra não perder, vai acabar rapidinho 🔥"]]}
   ]},
   turma:{name:"1B ✈️ viagem",avatar:"group",kind:"group",blocks:[
    {day:2,messages:[["gabi","GENTE FALTAM 4 DIAS 😭😭"],["gabi","lembrando: o boleto de R$ 400 vence sábado de manhã, sem pagar não embarca"],["bia","eu vou de tênis novo kkkk"],["lucca","a mochila da escola serve né?"],["gabi","serve sim, o prof falou q é só roupa pra 1 dia"]],
     ifMissing:{product:"tenis",messages:[["bia","bora todo mundo de Motion 88 na foto da viagem? 👟📸"],["mia","SIMMM combinado"],["nina","quem não tiver fica na ponta da foto kkkk"]]},
     choices:[{id:"trip-yes",label:"Tô dentro! 🙌",reply:""}]},
-   {day:4,ifMissing:{product:"tenis",messages:[["bia","foto da viagem: só quem tiver o Motion 88 no meio 😂👟"],["lucca","já criei o grupo “time Motion” pra combinar"]]},messages:[["bia","gente comprei a Trail Mini na mega liquida 😍"],["nina","eu comprei a garrafa da vida.fit"],["gabi","eu não comprei nada e tô de boa kkk"],["gabi","amanhã 6h30 no portão!! 🚌"]]}
+   {day:4,ifMissing:{product:"tenis",messages:[["bia","foto da viagem: só quem tiver o Motion 88 no meio 😂👟"],["lucca","já criei o grupo “time Motion” pra combinar"]]},messages:[["bia","gente comprei a Trail Mini na mega liquida 😍"],["nina","eu comprei a garrafa da vida.fit"],["gabi","eu não comprei nada e tô de boa kkk"],["bia","kkkk a gabi sempre do contra"],["mia","depois não vem pedir emprestado 😂"],["gabi","amanhã 6h30 no portão!! 🚌"]]}
   ]},
   motion:{name:"time Motion 👟",avatar:"group",kind:"group",blocks:[
-   {day:2,messages:[["lucca","criei o time Motion! 👟 você também pegou o Motion 88?"],["bia","a gente pode combinar um look pra foto da viagem"],["gabi","só não esquece do dinheiro do boleto, hein 😂"]]},
+   {day:2,messages:[["lucca","criei o time Motion! 👟 você também pegou o Motion 88?"],["bia","a gente pode combinar um look pra foto da viagem"],["gabi","já quero ver essa foto 😂"]]},
    {day:3,messages:[["mia","quem já testou o tênis novo?"],["lucca","a foto da galera vai ficar massa"]]},
    {day:4,messages:[["lucca","bem-vindo ao time Motion! 👟"],["bia","que bom que você conseguiu o seu!"],["gabi","roupa confortável pra viagem e já era"]]},
-   {day:5,messages:[["lucca","amanhã cedo no portão, hein 👟🚌"],["bia","foto da turma antes de embarcar!"],["gabi","lembrem dos R$ 400 do boleto, gente"]]}
+   {day:5,messages:[["lucca","amanhã cedo no portão, hein 👟🚌"],["bia","foto da turma antes de embarcar!"],["gabi","6h30 no portão, sem atraso!"]]}
   ]},
+  tio:{name:"Tio Jorge 🔧",avatar:"",letter:"J",kind:"friend",blocks:[]},
+  gabi:{name:"gabi.n",avatar:"avatar_gabi",kind:"friend",blocks:[]},
+  bia:{name:"bia.m",avatar:"avatar_bia",kind:"friend",blocks:[]},
+  mia:{name:"mia",avatar:"avatar_mia",kind:"friend",blocks:[]},
+  nina:{name:"nina.mov",avatar:"",letter:"N",kind:"friend",blocks:[]},
   fest:{name:"Pocket Fest 🎉",avatar:"group",kind:"group",blocks:[
    {day:5,messages:[["bia","LOTE FINAL ACABANDO 😱"],["mia","comprei!!"],["lucca","comprei tbm 🎟️"],["nina","só falta você 👀👀"],["bia","é hoje às 20h, termina cedo, dá pra ir pra viagem amanhã"]],
     choices:[{id:"fest-buy",label:"Vou comprar agora!",reply:"AEEEE 🎉🎉"},
@@ -135,6 +136,20 @@
   luminaria:{desc:"Luz regulável em três tons para estudar sem cansar a vista. Seu setup com cara de feed.",specs:["Brilho regulável","Alimentação USB","3 tons de luz","Braço articulado"]},
   ingresso:{desc:"Pocket Fest: DJs, food trucks e a turma toda. Uma noite só, ingressos limitados.",specs:["Sexta, 20h às 23h30","Entrada até 21h","Ingresso digital no app","Lote final"]}
  };
+ /* Kit viagem: o primeiro item já vem marcado para dar vontade de completar. */
+ const KIT=["fone","mochila","powerbank","garrafa","tenis"];
+ /* Microcompra: valor baixo, paga em parte com moedas do app. */
+ const THEME={id:"neon",name:"Tema Neon",price:4.9,coins:3};
+ /* Amigo que comenta no direct depois de cada compra. */
+ const REACTIONS={
+  fone:["mia","VI QUE CHEGOU FONE NOVO?? 😍","me empresta no ônibus sábado"],
+  tenis:["bia","AAAA vc pegou o Motion 88 👟","já te coloquei na foto da turma"],
+  mochila:["lucca","a mochila nova combinou com a minha kkk","a gente vai parecer dupla"],
+  powerbank:["lucca","boa, agora ninguém fica sem bateria na viagem 🔋"],
+  garrafa:["mia","a garrafa!! 🥹","a gente vai combinando"],
+  luminaria:["bia","seu cantinho ficou lindo ✨","posta mais"],
+  ingresso:["bia","AEEE te vejo no Pocket Fest 🎉"]
+ };
  const PHYSICAL=["fone","tenis","mochila","powerbank","garrafa","luminaria"];
  const PROTECTABLE=["fone","tenis","powerbank","luminaria"];
 
@@ -154,5 +169,5 @@
   chat:[["nina.mov","comprei!!! 😍"],["davi","lívia vc é tudo"],["mia","o meu chegou ontem, perfeito"],["joao.p","tem 38?"],["bia.m","ACABANDO GENTE"],["lara","comprando agora"],["theo","vale a pena?"],["ana.lu","melhor tênis da vida"],["rafa","garanti o meu 🔥"],["isa","alguém já usou?"],["pedro","cupom funcionou aqui"],["duda.m","corre que tá acabando"]]
  };
 
- root.PorTrasWeek=Object.freeze({DAYS,COMPARE_POSTS,THREADS,VARIANTS,SALE,PITCH,COPY,PHYSICAL,PROTECTABLE,ROULETTE,LIVE_SCRIPT,priceFor});
+ root.PorTrasWeek=Object.freeze({DAYS,COMPARE_POSTS,THREADS,VARIANTS,SALE,PITCH,COPY,KIT,THEME,REACTIONS,PHYSICAL,PROTECTABLE,ROULETTE,LIVE_SCRIPT,priceFor});
 })(typeof window!=="undefined"?window:globalThis);
