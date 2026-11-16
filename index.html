@@ -666,6 +666,8 @@
 .verdict-card small{display:block;font-size:10px;font-weight:800;letter-spacing:.14em;color:#e7c9ee}
 .verdict-card h2{margin:6px 0 8px;font-size:24px;line-height:1.15;color:#fff}
 .verdict-card p{margin:0;font-size:14px;line-height:1.5;color:#efe6f3}
+.bottom-sheet .sheet-scroll>.secondary.full,.bottom-sheet .sheet-scroll>.tertiary.full{display:block;width:100%}
+@media(max-width:810px){body:not(.in-game) #exit-home-trigger{top:max(12px,env(safe-area-inset-top));right:12px;left:auto;bottom:auto;padding:8px 12px;opacity:.9}}
 @media(max-width:810px){body.in-game #exit-home-trigger{padding:8px 11px;font-size:0;gap:0;opacity:.82}body.in-game #exit-home-trigger span{font-size:14px}}
 @media(max-width:720px){.day-sleep-control{bottom:70px;padding:7px 11px;font-size:12px}.day-sleep-control small{display:none}.day-sleep-control:not(.locked) small{display:inline}}
 </style>
@@ -3500,10 +3502,10 @@ function needCard(){
 /* O que o jogador decidiu, lado a lado com o que estava por trás. */
 function decisionRecap(){
  const moments=momentRecap(),held=Array.isArray(state.resisted)?state.resisted:[];
- const prof=Pressure.profile(state.pressure),fell=prof.reduce((n,p)=>n+p.actions.length,0);
+ const prof=Pressure.profile(state.pressure),fell=prof.filter(p=>p.actions.length).length;
  const rows=moments.map(m=>`<article class="decision-row ${m.fell?'fell':'held'}"><span class="decision-day" aria-hidden="true">${m.icon}</span><div><small>${esc(Week.DAYS[m.day-1]?.label||'')}</small><strong>${esc(m.title)}</strong><p>${esc(m.did)}</p><p class="behind"><b>Por trás:</b> ${esc(m.behind)}</p><div class="decision-tags">${m.keys.map(k=>`<span>${Pressure.STRATEGIES[k].icon} ${esc(Pressure.STRATEGIES[k].name)}</span>`).join('')}</div></div></article>`).join('');
  return `<section class="end-box decision-box" aria-labelledby="decision-title"><div class="eyebrow">SUAS DECISÕES</div><h2 id="decision-title">O que você fez quando o app insistiu?</h2>
- <div class="recap-score"><div class="held"><strong>${held.length}</strong><span>vezes em que você disse não</span></div><div class="fell"><strong>${fell}</strong><span>ações que o app conseguiu</span></div></div>
+ <div class="recap-score"><div class="held"><strong>${held.length}</strong><span>vezes em que você disse não</span></div><div class="fell"><strong>${fell}</strong><span>técnicas que funcionaram com você</span></div></div>
  ${rows?`<div class="decision-recap">${rows}</div>`:''}
  ${held.length?`<h3 style="margin-top:16px">Onde você resistiu</h3><ul class="resist-list">${held.slice(-6).map(x=>`<li>✋ ${esc(x.t)}</li>`).join('')}</ul>`:''}
  <p class="learn-caution">Dizer não uma vez não significa ser imune, e aceitar uma oferta não é sinal de fraqueza: as técnicas foram desenhadas para funcionar.</p></section>`;
@@ -3768,7 +3770,7 @@ function tripRevealPage(){
  const confetti=Array.from({length:36},(_,i)=>'<i style="--cx:'+(3+(i*41)%94)+'%;--cd:'+(i%9*.065)+'s;--cc:'+['#ec538a','#ffc65c','#8d6be3','#65c6ac'][i%4]+'"></i>').join('');
  const title=went?'Você conseguiu embarcar! 🚌':'O ônibus partiu sem você.';
  const explanation=went
-  ?'Sobrou dinheiro para pagar os R$ 400 da viagem. '+verdict(outcome).text
+  ?'Sobrou dinheiro para pagar os R$ 400 da viagem. '+(['consciente','resolvido'].includes(verdict(outcome).id)?'E você ainda resolveu o que precisava.':'Mas embarcar não conta a história toda: veja quanto a semana custou.')
   :'Faltaram '+money(outcome.missing)+' para pagar os R$ 400 da viagem. Algumas decisões de compra e cobranças futuras alteraram o dinheiro disponível na hora de embarcar.';
  const status=sent?'✓ Percurso recebido pelo MCP.':'';
  return `<main class="end end-impact trip-impact ${went?'success':'missed'}"><div class="end-impact-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
@@ -3784,11 +3786,11 @@ function tripRevealPage(){
   </div>
   <div class="end-impact-actions">
    <button class="primary" data-action="trip-details">Ver detalhes e entender minhas escolhas →</button>
-   <button class="secondary" data-action="trip-mcp" ${syncInFlight||sent?'disabled':''}>${sent?'✓ Enviado ao MCP':'Apenas carregar para o MCP'}</button>
+   <button class="secondary" data-action="trip-mcp" ${syncInFlight||sent?'disabled':''}>${sent?'✓ Enviado ao MCP':'Só salvar meu resultado (sem quiz)'}</button>
    <button class="subtle-quit" data-action="trip-exit">${sent?'Sair e limpar dados locais':'Sair sem salvar'}</button>
   </div>
   <p id="trip-mcp-status" class="trip-mcp-status" role="status">${esc(syncMessage||status)}</p>
-  <p class="small muted">O envio ao MCP exige conexão e confirmação do servidor. ${sent?'O MCP já recebeu esta partida; sair agora apaga somente a cópia deste dispositivo.':'Sair sem salvar descarta os dados locais desta partida sem solicitar um envio.'}</p>
+  <p class="small muted">Salvar envia o resultado para a sua conta do projeto (MCP) e precisa de internet. ${sent?'Sua conta já recebeu esta partida; sair agora apaga somente a cópia deste dispositivo.':'Sair sem salvar apaga esta partida deste dispositivo.'}</p>
  </section></div></main>`;
 }
 
