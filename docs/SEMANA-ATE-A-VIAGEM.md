@@ -94,7 +94,7 @@ A semana agora também reproduz o que uma rede faz **antes** de vender: prender 
 
 **Limite real:** depois de 30 minutos reais de jogo, a partida vai direto para o sábado ("Plataformas reais não fazem isso. Nós fazemos.").
 
-**Revelação:** antes do resultado, o jogador estima quanto tempo jogou. O raio-x ganhou o bloco **Raio-X da atenção** (tempo estimado × real, itens extras, noites após 23h, ganchos, surpresas, trocas de anúncio, curtidas). O quiz e o perfil agora cobrem 15 estratégias: as 10 do relatório + rolagem infinita, recompensa variável, gancho de saída, validação social e controle de fachada.
+**Revelação:** antes do resultado, o jogador estima quanto tempo jogou. O raio-x ganhou o bloco **Raio-X da atenção** (tempo estimado × real, itens extras, noites após 23h, ganchos, surpresas, trocas de anúncio, curtidas). O perfil cobre 15 estratégias (o quiz voltou a usar só as dez do relatório, ver *Reestruturação final*): as 10 do relatório + rolagem infinita, recompensa variável, gancho de saída, validação social e controle de fachada.
 
 ## Direct como jogo de dilemas e brechas fechadas
 
@@ -186,3 +186,10 @@ O contrato `c4-semana` versão 1 não mudou. `threads` mantém o formato anterio
 ### Dados e MCP
 
 O contrato `c4-semana` versão 1 não mudou e o servidor não foi alterado. `flags.moments` e `flags.earlySleep` seguem dentro de `flags`, que já era exportado. O payload gerado pelo jogo foi validado contra `src/c4-import.mjs` do repositório do MCP (commit `8597ac2`): aceito, com as mesmas cinco respostas corretas no cliente e no servidor.
+
+### Segunda e terceira revisões
+
+- **Encerrar pelo perfil.** “Encerrar a semana agora” continua existindo para a bancada, mas antes de sexta marca `flags.endedEarly` e o retrato vira **Semana incompleta**, em vez de parabenizar pela viagem.
+- **Recusou e depois entrou.** Quem recusa o aviso e mais tarde toca no card do mesmo momento passa a constar como quem aceitou; a recusa sai de `state.resisted`.
+- **Esperar o conserto pesa menos.** Com o conserto combinado, a manhã sem fone tira 2 de vibe em vez de 5: escolher o caminho barato não deve terminar a semana “pra baixo” como quem não fez nada.
+- **Caminhos conferidos jogando:** conserto pelo direct até o Pix da sexta (retrato Consumo consciente), recarregar a página no meio da semana e na tela da viagem, e aceitar cada um dos cinco momentos.

@@ -347,6 +347,9 @@ test("sem compras o jogador embarca e passa pelo final em quatro etapas", async 
   for (let d = 0; d < 5; d++) await nextDay(page);
   await expect(page.locator(".end")).toContainText("Você embarcou");
   await expect(page.locator(".budget-outcome.success")).toContainText("A meta de R$ 400 foi alcançada");
+  // Não gastar nada garante a viagem, mas não é tratado como a resposta certa.
+  await expect(page.locator(".verdict-card")).toContainText("COFRE FECHADO");
+  await expect(page.locator(".need-box")).toContainText("a semana inteira em silêncio");
   await page.locator('[data-action="end-next"]').click();
   await expect(page.locator(".end")).toContainText("O que o feed fez nos bastidores?");
   await expect(page.locator(".vibe-chart svg")).toBeVisible();
@@ -408,9 +411,38 @@ test("comprar no Pix além da folga faz perder a viagem", async ({ page }) => {
   await passGuess(page);
   await expect(page.locator(".end")).toContainText("O ônibus saiu sem você");
   await expect(page.locator(".budget-outcome.missed")).toContainText("Faltou dinheiro para a viagem");
+  await expect(page.locator(".verdict-card")).toContainText("O FEED LEVOU A MELHOR");
+  await expect(page.locator(".need-box")).toContainText("comprou o Atmos One");
   await page.locator('[data-action="end-next"]').click();
   await page.locator('[data-action="end-next"]').click();
   await expect(page.locator(".strat.is-fell").first()).toBeVisible();
+  await expect(page.locator(".decision-box .recap-score .fell strong")).not.toHaveText("0");
+});
+
+test("encerrar a semana pelo perfil antes de sexta não vira vitória", async ({ page }) => {
+  await enter(page);
+  await page.locator('.phone-footer [data-action="profile"]').click();
+  await expect(page.locator('.layer [data-action="finish"]')).toContainText("pula os dias que faltam");
+  await page.locator('.layer [data-action="finish"]').click();
+  await page.locator('[data-action="guess-time"]').click();
+  await page.locator('[data-action="time-reveal-next"]').click();
+  await expect(page.locator(".trip-impact")).toContainText("encerrada antes do fim");
+  await page.locator('[data-action="trip-details"]').click();
+  await expect(page.locator(".verdict-card")).toContainText("SEMANA INCOMPLETA");
+  expect((await saved(page)).flags.endedEarly).toBe(1);
+});
+
+test("recusar o aviso e depois entrar pelo card troca a recusa por aceite", async ({ page }) => {
+  await enter(page);
+  await readyToSleep(page);
+  await page.locator(".day-sleep-control").click();
+  await page.locator('[data-action="moment-no"]').click();
+  expect((await saved(page)).flags.moments.roleta).toBe("no");
+  await page.locator('.ev-roleta [data-action="roleta"]').click();
+  await expect(page.locator(".roleta-body")).toBeVisible();
+  const s = await saved(page);
+  expect(s.flags.moments.roleta).toBe("yes");
+  expect(s.resisted.some((r: { t: string }) => r.t.includes("giro grátis"))).toBe(false);
 });
 
 

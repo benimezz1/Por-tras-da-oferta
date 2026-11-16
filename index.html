@@ -2628,7 +2628,7 @@ function overnight(){
  /* A necessidade do fone volta todo dia até ser resolvida. */
  const repair=state.flags.repair;
  if(bought('fone')||state.flags.foneFixed){list.unshift({icon:'🎧',text:'Hoje foram 50 minutos de ônibus com trilha sonora.'});Pressure.vibeChange(state.vibe,4,'need','Ônibus com música');}
- else{list.unshift({icon:'🚌',text:repair?.status==='booked'||repair?.status==='ready'?'Seu fone está no conserto: mais 50 minutos de ônibus em silêncio.':'Mais 50 minutos de ônibus em silêncio. Seu fone continua quebrado.'});Pressure.vibeChange(state.vibe,-5,'need','Ônibus sem música');}
+ else{list.unshift({icon:'🚌',text:repair?.status==='booked'||repair?.status==='ready'?'Seu fone está no conserto: mais 50 minutos de ônibus em silêncio.':'Mais 50 minutos de ônibus em silêncio. Seu fone continua quebrado.'});Pressure.vibeChange(state.vibe,repair?.status==='booked'||repair?.status==='ready'?-2:-5,'need','Ônibus sem música');}
  /* Conserto combinado com o tio: ele pega o fone e avisa quando fica pronto. */
  const dm=dmState();
  if(repair?.status==='booked'){
@@ -2839,8 +2839,16 @@ function pendingMoment(){
  return item?item.type:'';
 }
 function markMoment(kind,choice){
- if(!MOMENTS[kind]||momentLog()[kind]||!state.feedItems.some(x=>x.kind==='event'&&x.type===kind))return false;
- momentLog()[kind]=choice;save();return true;
+ if(!MOMENTS[kind]||!state.feedItems.some(x=>x.kind==='event'&&x.type===kind))return false;
+ const log=momentLog();
+ if(log[kind]==='no'&&choice==='yes'){
+  // Recusou o aviso e depois entrou pelo card: a recusa sai do resumo.
+  log[kind]='yes';
+  if(Array.isArray(state.resisted))state.resisted=state.resisted.filter(x=>x.t!==`Recusou ${MOMENTS[kind].name} quando o aviso tomou a tela.`);
+  save();return true;
+ }
+ if(log[kind])return false;
+ log[kind]=choice;save();return true;
 }
 const screenBusy=()=>!!(overlay||modal||story||state.wake||state.finished||!exitConfirm.hidden||document.visibilityState!=='visible'||
  document.querySelector('.reward-celebration,.tag-vibe-overlay,.sleep-reminder,.feed-refresh-loading'));
@@ -3215,7 +3223,7 @@ function drawOverlay(){
    <button class="reviews-shortcut" data-action="switch-player"><strong>Trocar de jogador / sair da conta</strong>${icon("chevron")}</button>
    <p class="small muted export-c4-status" role="status"></p>
    <label class="option-row"><input id="privacy-switch" type="checkbox" ${state.personalized?"checked":""}/><span><strong>Recomendações personalizadas</strong><br><small class="muted">Se desligar, o feed deixa de usar seus sinais e para de repetir anúncios.</small></span></label>
-   <button class="tertiary full" data-action="finish" style="margin-top:14px">Encerrar a semana agora</button>
+   <button class="tertiary full" data-action="finish" style="margin-top:14px">Encerrar a semana agora${state.day<Week.DAYS.length?' (pula os dias que faltam)':''}</button>
    </div>`;
  }
  else if(t==="notifications"){
@@ -3481,6 +3489,10 @@ function verdict(s){
  const need=foneOutcome(),extras=state.purchases.filter(p=>p.id!=='fone').length+state.extras.length;
  const plural=extras>1?'s':'';
  if(!s.tripPaid)return {id:'perdeu',tag:'O FEED LEVOU A MELHOR',title:'A viagem ficou pelo caminho.',text:`Faltaram ${money(s.missing)}. `+(state.purchases.length+state.extras.length>1?'Nenhuma compra parecia grande sozinha; a soma, com taxas e fatura, foi.':'O preço da vitrine cabia na folga; com frete, taxa e o que veio pré-marcado, não coube.')};
+ if(state.flags.endedEarly){
+  const dia=Week.DAYS[state.flags.endedEarly-1]?.label.toLowerCase()||'o começo';
+  return {id:'incompleta',tag:'SEMANA INCOMPLETA',title:'Você encerrou antes de sexta.',text:`O resultado vale só até ${dia}. O dinheiro sobrou porque os dias que faltavam não aconteceram: a live, a liquidação e o lote final ficaram sem resposta. Jogue a semana inteira para ver o que elas fazem.`};
+ }
  if(s.future>0||s.monthly>0){
   const parts=[s.future>0?money(s.future)+' em parcelas':'',s.monthly>0?money(s.monthly)+' por mês de assinatura':''].filter(Boolean).join(' e ');
   return {id:'divida',tag:'EMBARCOU, MAS…',title:'A viagem saiu. A conta continua.',text:`Você embarcou, e leva ${parts} para depois do sábado. O “pague depois” só mudou a data da cobrança.`};
@@ -3770,7 +3782,7 @@ function tripRevealPage(){
  const confetti=Array.from({length:36},(_,i)=>'<i style="--cx:'+(3+(i*41)%94)+'%;--cd:'+(i%9*.065)+'s;--cc:'+['#ec538a','#ffc65c','#8d6be3','#65c6ac'][i%4]+'"></i>').join('');
  const title=went?'Você conseguiu embarcar! 🚌':'O ônibus partiu sem você.';
  const explanation=went
-  ?'Sobrou dinheiro para pagar os R$ 400 da viagem. '+(['consciente','resolvido'].includes(verdict(outcome).id)?'E você ainda resolveu o que precisava.':'Mas embarcar não conta a história toda: veja quanto a semana custou.')
+  ?'Sobrou dinheiro para pagar os R$ 400 da viagem. '+(['consciente','resolvido'].includes(verdict(outcome).id)?'E você ainda resolveu o que precisava.':verdict(outcome).id==='incompleta'?'Só que a semana foi encerrada antes do fim.':'Mas embarcar não conta a história toda: veja quanto a semana custou.')
   :'Faltaram '+money(outcome.missing)+' para pagar os R$ 400 da viagem. Algumas decisões de compra e cobranças futuras alteraram o dinheiro disponível na hora de embarcar.';
  const status=sent?'✓ Percurso recebido pelo MCP.':'';
  return `<main class="end end-impact trip-impact ${went?'success':'missed'}"><div class="end-impact-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
@@ -3786,7 +3798,7 @@ function tripRevealPage(){
   </div>
   <div class="end-impact-actions">
    <button class="primary" data-action="trip-details">Ver detalhes e entender minhas escolhas →</button>
-   <button class="secondary" data-action="trip-mcp" ${syncInFlight||sent?'disabled':''}>${sent?'✓ Enviado ao MCP':'Só salvar meu resultado (sem quiz)'}</button>
+   ${state.day<Week.DAYS.length&&!sent?'':`<button class="secondary" data-action="trip-mcp" ${syncInFlight||sent?'disabled':''}>${sent?'✓ Enviado ao MCP':'Só salvar meu resultado (sem quiz)'}</button>`}
    <button class="subtle-quit" data-action="trip-exit">${sent?'Sair e limpar dados locais':'Sair sem salvar'}</button>
   </div>
   <p id="trip-mcp-status" class="trip-mcp-status" role="status">${esc(syncMessage||status)}</p>
@@ -4089,7 +4101,7 @@ root.addEventListener('click',e=>{
   syncMessage='';overlay=null;modal=null;state=makeInitial();renderHome();
  }
  else if(a==='load-more'){if(appendNext())renderGame(true);}
- else if(a==='finish'){finishWeek();}
+ else if(a==='finish'){if(state.day<Week.DAYS.length||!dayReady())state.flags.endedEarly=state.day;finishWeek();}
  else if(a==='export-c4'){
   const info=document.querySelector('.export-c4-status');
   try{
