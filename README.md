@@ -10,6 +10,17 @@ Jogo educativo do Ciclo 4, Colégio Rio Branco. A **experiência principal** é 
 O novo protótipo está em `index.html`; o modo clássico segue em `src/` e `classico.html`. O Vite gera as duas entradas no mesmo build. O backend/MCP é mantido no projeto separado [Por-tras-da-oferta-MCP](https://github.com/benimezz1/Por-tras-da-oferta-MCP).
 
 
+## Reestruturação final: ritmo do dia, momentos e revelação das decisões
+
+- **Não dá mais para pular a semana.** Antes, tocar em **Dormir** cinco vezes levava ao sábado em segundos, com “Você conseguiu embarcar!”. Agora o botão fica travado (“ainda é cedo”) até os posts e os acontecimentos do dia entrarem no feed. Na tela de acordar ele não aparece.
+- **Momento do dia.** Cada noite tem um aviso de tela cheia que não dá para rolar por cima: giro grátis (seg), live da Lívia (ter), teste grátis do MODO+ (qua), Mega Liquida (qui) e lote final do Pocket Fest (sex). Aceitar ou recusar leva um toque; o botão de recusa usa frases como “Não quero estudar melhor”. Quem tenta dormir sem responder recebe o aviso antes.
+- **Resistir também conta.** O jogo registra onde o jogador disse não (avisos, oferta de saída, proteção pré-marcada, Pulso Pay, live, cupom da Bia, ingresso da Nina, cancelamento em quatro telas). A etapa **Aprenda** abre com **Suas decisões**: o que você fez em cada momento, lado a lado com o que estava por trás.
+- **Consumo não é consumismo.** O final ganhou um retrato da partida (Consumo consciente, Necessidade resolvida, Cofre fechado, No limite, Embarcou mas…, O feed levou a melhor) e o bloco **E a necessidade de verdade?**, que mostra como o fone quebrado foi resolvido. Não comprar nada deixa de ser a resposta “certa” automática.
+- **Quiz sem ambiguidade e compatível com o MCP.** As perguntas usam só as dez estratégias do relatório C3, na mesma ordem em que o servidor recalcula as respostas, e estratégias que aparecem juntas na mesma cena não entram como alternativa errada uma da outra. Os cinco mecanismos de retenção continuam na revelação e no Raio-X da atenção.
+- **Feed com menos cara de gerado.** Bordões repetidos nas legendas e os dois comentários idênticos em centenas de posts foram substituídos no carregamento por comentários variados; horários e curtidas de amigos ficaram plausíveis.
+
+Detalhes: [docs/SEMANA-ATE-A-VIAGEM.md](docs/SEMANA-ATE-A-VIAGEM.md#reestruturação-final).
+
 ## Direct com dilemas
 
 O direct do **pulso.** agora tem conversas com respostas à escolha do jogador, indicador de “digitando…”, cobrança de quem não responde e cartões de contato, produto e cupom. O conserto do fone passa pela conversa com o tio do Lucca, enquanto o Pulso Shop interrompe com “entrega amanhã”. Dormir cedo não pula mais o roteiro. Os roteiros ficam em `public/direct.js`; a descrição completa está em [docs/SEMANA-ATE-A-VIAGEM.md](docs/SEMANA-ATE-A-VIAGEM.md#direct-como-jogo-de-dilemas-e-brechas-fechadas).

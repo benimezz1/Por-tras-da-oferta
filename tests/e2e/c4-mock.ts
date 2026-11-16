@@ -33,6 +33,10 @@ export async function mockC4Service(page: Page) {
     }
     if (path.endsWith("/complete")) {
       const doc = input;
+      // O servidor real só aceita respostas entre as dez estratégias do relatório.
+      const serverKeys=["urgencia","escassez","prova_social","influencia","personalizacao","fomo","preco","dark_patterns","recompensa","emocao"];
+      if(Object.values(doc.estado?.quiz||{}).some(v=>!serverKeys.includes(String(v))))
+        return route.fulfill({ status: 422, headers: cors, body: '{"erro":"Respostas do quiz inválidas."}' });
       const complete=doc.estado?.finished===true&&doc.estado?.endStep===3&&Object.keys(doc.estado.quiz||{}).length===5;
       const tripOnly=doc.modoEnvio==="viagem-sem-quiz"&&doc.estado?.finished===true&&doc.estado?.day===5&&
         doc.estado?.endStep===0&&Object.keys(doc.estado.quiz||{}).length===0;

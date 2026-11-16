@@ -620,6 +620,55 @@
 .purchase-modal .purchase-share-grid{margin-top:0}
 .purchase-modal>small{color:#786d7d;line-height:1.4;font-size:11px}
 </style>
+<style>
+/* Reestruturação final: momento do dia, dormir travado e revelação das decisões */
+.day-sleep-control.locked{background:#8a8296;border-color:#c9c2d2;box-shadow:none;opacity:.78}
+.day-sleep-control.locked small{color:#eee9f3}
+.game:has(.layer) .day-sleep-control,.game:has(.layer-backdrop) .day-sleep-control,.game:has(.story-layer) .day-sleep-control{display:none}
+.day-sleep-control:not(.locked){animation:sleepReady .9s ease-out 1}
+@keyframes sleepReady{0%{transform:scale(.94)}55%{transform:scale(1.06)}100%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.day-sleep-control:not(.locked){animation:none}}
+.layer-backdrop.is-moment{align-items:center;justify-content:center;padding:20px;background:rgba(23,17,30,.62)}
+.bottom-sheet.moment-sheet{height:auto;max-height:86%;border-radius:26px;animation:momentPop .26s cubic-bezier(.2,.9,.3,1.25)}
+@keyframes momentPop{from{transform:scale(.86);opacity:0}to{transform:scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){.bottom-sheet.moment-sheet{animation:none}}
+.moment-offer{text-align:center;padding:24px 22px 18px}
+.moment-offer .exit-gift{font-size:54px;line-height:1.1}
+.moment-offer h3{font-size:22px;margin:8px 0 6px}
+.moment-offer p{margin:0 0 16px;color:#5c5565;line-height:1.45}
+.moment-offer .primary,.moment-offer .tertiary{display:block;width:100%}
+.moment-offer .primary{padding:15px;font-size:16px;background:#ec477e;border-color:#ec477e;color:#fff}
+.moment-offer .moment-no{margin-top:10px;padding:8px;background:none;border:0}
+.moment-kicker{display:inline-block;margin-bottom:10px;padding:5px 11px;border-radius:999px;background:#ec477e;color:#fff;font-size:10px;font-weight:900;letter-spacing:.12em}
+.moment-live .moment-kicker{background:#e02d4f;animation:throb 1.6s ease-in-out infinite}
+.moment-offer .moment-no{font-size:12px;color:#9a93a3;text-decoration:underline;text-underline-offset:3px}
+.decision-recap{display:grid;gap:10px;margin-top:12px}
+.decision-row{display:grid;grid-template-columns:44px 1fr;gap:12px;padding:13px 14px;border:1px solid #ece6ee;border-radius:16px;background:#fff}
+.decision-row.fell{border-color:#f3c4d3;background:#fff7fa}
+.decision-row.held{border-color:#cfe9dc;background:#f6fcf8}
+.decision-day{display:grid;place-items:center;align-self:start;width:44px;height:44px;border-radius:13px;background:#f3eef7;font-size:20px}
+.decision-row small{display:block;font-size:10px;font-weight:800;letter-spacing:.1em;color:#8d8496;text-transform:uppercase}
+.decision-row strong{display:block;margin:2px 0 4px;font-size:15px}
+.decision-row p{margin:0;font-size:13.5px;line-height:1.45;color:#4d4757}
+.decision-row .behind{margin-top:7px;padding-top:7px;border-top:1px dashed #e6dfe9;color:#6b6475;font-size:12.5px}
+.decision-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.decision-tags span{padding:3px 8px;border-radius:999px;background:#f1ecf6;font-size:11px;font-weight:700;color:#5d5270}
+.recap-score{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 4px}
+.recap-score div{padding:14px;border-radius:16px;text-align:center}
+.recap-score .held{background:#eaf8f0;color:#1f6b47}.recap-score .fell{background:#fdecf1;color:#a52c55}
+.recap-score strong{display:block;font-size:28px;line-height:1}.recap-score span{font-size:12px;font-weight:700}
+.resist-list{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:7px}
+.resist-list li{padding:9px 12px;border-radius:12px;background:#f6fcf8;border:1px solid #d6ecdf;font-size:13px;line-height:1.4}
+.need-card{display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:start}
+.need-card .need-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:#f3eef7;font-size:24px}
+.need-card p{margin:4px 0 0}
+.verdict-card{margin:16px 0;padding:18px;border-radius:20px;background:linear-gradient(135deg,#2a2233,#4a2f5c);color:#fff}
+.verdict-card small{display:block;font-size:10px;font-weight:800;letter-spacing:.14em;color:#e7c9ee}
+.verdict-card h2{margin:6px 0 8px;font-size:24px;line-height:1.15;color:#fff}
+.verdict-card p{margin:0;font-size:14px;line-height:1.5;color:#efe6f3}
+@media(max-width:810px){body.in-game #exit-home-trigger{padding:8px 11px;font-size:0;gap:0;opacity:.82}body.in-game #exit-home-trigger span{font-size:14px}}
+@media(max-width:720px){.day-sleep-control{bottom:70px;padding:7px 11px;font-size:12px}.day-sleep-control small{display:none}.day-sleep-control:not(.locked) small{display:inline}}
+</style>
 </head>
 <body>
 <div id="app"></div>
@@ -733,7 +782,7 @@ function newRunId(){
  return "c4-"+Array.from(bytes,b=>b.toString(16).padStart(2,"0")).join("");
 }
 const makeInitial=()=>({version:4,runId:newRunId(),startedAt:null,finishedAt:null,started:false,finished:false,phase:0,day:1,feedItems:[],wallet:620,goal:400,cart:[],purchases:[],viewed:[],liked:[],likedAds:[],bookmarks:[],hiddenPosts:[],lastOrder:null,stories:[],reviews:[],signals:Object.fromEntries(Recommender.topics.map(topic=>[topic,0])),personalized:true,extraChecked:true,events:[],algorithm:Recommender.emptyProfile(),
- pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,endFlowVersion:2,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),rewardSeen:[],taggedVibeSeen:[],myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[],clockProgress:0,dm:emptyDm(),extras:[]});
+ pressure:Pressure.emptyLedger(),vibe:Pressure.emptyVibe(),coins:0,coupons:[],card:{offered:false,active:false,limit:500},invoice:[],subscriptions:[],timers:{},stock:{},threads:{},notifs:[],variant:{fone:'one'},protection:{},streak:0,exitOffers:[],context:{},fixes:[],anchors:{},endStep:0,endFlowVersion:2,quiz:{},flags:{},wake:false,wakeList:[],coinsOn:true,payMethod:null,attention:emptyAttention(),rewardSeen:[],taggedVibeSeen:[],myPosts:[],myStories:[],purchaseShares:[],mineLikes:[],postComments:{},clockViewed:0,clockSeen:[],clockProgress:0,dm:emptyDm(),extras:[],resisted:[]});
 let state=makeInitial();
 function restoreForPlayer(player) {
  state=makeInitial();let migrateLegacyDm=false;
@@ -765,6 +814,7 @@ function restoreForPlayer(player) {
     if(!Array.isArray(state.rewardSeen))state.rewardSeen=[];
     if(!Array.isArray(state.taggedVibeSeen))state.taggedVibeSeen=[];
    if(!Array.isArray(state.hiddenPosts))state.hiddenPosts=[];
+   if(!Array.isArray(state.resisted))state.resisted=[];
    state.signals={...makeInitial().signals,...state.signals};
   }
  }catch(e){}
@@ -836,7 +886,32 @@ for(const ph of phases){
 const postMediaMap={"p1":"post_p1","p2":"post_p2","p3":"post_p3","p4":"post_p4","p5":"post_p5","p6":"post_p6","p7":"post_p7","p8":"post_p8","p9":"post_p9","p10":"post_p10","p11":"post_p11","p12":"post_p12"};
 const storyMediaMap={"fone":["story_fone_0","story_fone_1","story_fone_2"],"tenis":["story_tenis_0","story_tenis_1","story_tenis_2"],"plano":["story_plano_0","story_plano_1","story_plano_2"],"mochila":["story_mochila_0","story_mochila_1","story_mochila_2"]};
 let nextStoryIndex=0;
+/* Acabamento do conteúdo gerado em lote: tira bordões repetidos das legendas,
+ * varia os comentários (antes iguais em centenas de posts) e deixa horários e
+ * curtidas com cara de feed de amigos. Os arquivos de biblioteca não mudam. */
+const CLOSE_FRIENDS=new Set(['bia.m','bia','gabi.n','gabi','mia','lucca.r','lucca','nina.mov','nina','duda.m','duda','davi']);
+const COMMENT_POOL=['kkkkk eu real','amei 💜','saudade disso','me chama na próxima','que foto 😍','eu tava lá e confirmo','muito você isso','aaaa que tudo','nossa, igual aqui em casa','tô rindo sozinha','manda no grupo','partiu repetir sábado','rindo até 2030','tá linda demais','quero também','isso aí é a minha cara','sem condições kkkk','que dia bom','a legenda 😂','contando os dias pra viagem ✈️','preciso disso na minha vida','tudo pra mim','eu não tava preparado','posta mais','que vibe boa ✨','apaixonada','literalmente eu','socorro kkkk','conta tudo depois','melhor turma'];
+const COMMENTERS=['bia.m','gabi.n','mia','lucca.r','nina.mov','duda.m','davi','lara','theo','isa','rafa','ana.lu'];
+const hashText=t=>{let h=2166136261;for(const c of String(t))h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;return h;};
+function polishPost(post){
+ const who=String(post.who||'').replace(/^@/,''),h=hashText(post.id);
+ let caption=String(post.caption||'')
+  .replace(/\s+·\s+(segunda|terça|quarta|quinta|sexta)\s+no pulso\.?$/i,'')
+  .replace(/\s+—\s+(a vida real não é igual ao feed|ainda pensando se faz sentido|quem também passou por isso\?|e a galera nos comentários está dividida 😂)$/i,'');
+ const generic=(post.comments||[]).some(c=>/^(isso aparece no meu feed o tempo todo|faz pensar, né\?|essa foto ficou boa ✨|amei o registro 💜|amei esse registro ✨)$/.test(String(c[1])));
+ let comments=post.comments||[];
+ if(generic){
+  const names=COMMENTERS.filter(n=>n!==who),n=2+(h%2);
+  comments=Array.from({length:n},(_,i)=>[names[(h+i*5)%names.length],COMMENT_POOL[(h+i*11)%COMMENT_POOL.length]]);
+ }
+ const min=/^há (\d+) min$/.exec(String(post.when||''));
+ const when=min&&Number(min[1])>=60?`há ${Math.floor(Number(min[1])/60)} h`:post.when;
+ const friend=CLOSE_FRIENDS.has(who);
+ const likes=friend&&post.likes>480?38+(post.likes%340):post.likes;
+ return {...post,caption,comments,when,likes};
+}
 phases.forEach(ph=>{
+ ph.posts=ph.posts.map(polishPost);
  ph.stories=ph.stories.map((s,i)=>({user:s[0],emoji:s[1],text:s[2],art:s[3],product:s[4],day:s[6]||dayForTopic[ph.id]||1,source:storySourceType(s[0]),idx:nextStoryIndex++,photo:s[5]||storyMediaMap[ph.id]?.[i]||s[3]}));
  ph.posts=ph.posts.map(p=>({...p,source:postSourceType(p),photo:postMediaMap[p.id]||p.photo||p.art}));
 });
@@ -1006,7 +1081,7 @@ function postCard(post,instanceId=null){
  const link=relatedPostLinks[post.id];
  const button=link?`<button class="post-shop-link" data-action="product" data-product="${link.topic}" data-source="post">${esc(link.label)} · ${money(price(link.topic).price)} <span aria-hidden="true">→</span></button>`:"";
  const photoAction=link?` data-action="open-photo" data-product="${link.topic}" data-source="post"`:"";
- return `<article class="post" id="${esc(instanceId||post.id)}" data-rec-id="${post.id}" data-clock-id="${esc(instanceId||post.id)}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":"amigo"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(post.who)}</strong> ${esc(post.caption)}</p>${commentTeaser(post.id,post.comments||[])}${button}</article>`;
+ return `<article class="post" id="${esc(instanceId||post.id)}" data-rec-id="${post.id}" data-clock-id="${esc(instanceId||post.id)}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":CLOSE_FRIENDS.has(String(post.who).replace(/^@/,''))?"amigo":"sugerido"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(post.who)}</strong> ${esc(post.caption)}</p>${commentTeaser(post.id,post.comments||[])}${button}</article>`;
 }
 function setupFeedAssist(){
  const scroller=document.querySelector('#feed-scroll'),cue=document.querySelector('.scroll-cue');
@@ -1043,7 +1118,7 @@ function setupFeedAssist(){
 }
 function renderGame(keepScroll=false){
  if(state.finished){renderEnd();return;}
- exitHomeButton.hidden=false;
+ exitHomeButton.hidden=false;document.body.classList.add('in-game');
  if(state.wake&&!overlay)overlay={type:'wake'};
  if(!state.wake&&!dayItems().length)appendNext();
  if(!state.wake)ensureMotionGroup();
@@ -1127,7 +1202,7 @@ function setupRewardCelebrations(){
    if(showRewardCelebration(item)){state.rewardSeen.push(id);save();break;}
   }
  };
- scroll.addEventListener('scroll',check,{passive:true});
+ scroll.addEventListener('scroll',()=>{check();checkMoments();},{passive:true});
  requestAnimationFrame(check);
 }
 function claimSurprise(item){
@@ -1503,11 +1578,15 @@ function openComments(post){
  modal={type:"comments",post};
  drawModal();
 }
+/* Quem estava no fim do feed quando um aviso abriu não recebe novo evento
+ * de rolagem ao fechá-lo: avisar o feed para continuar carregando. */
+function nudgeFeed(){setTimeout(()=>document.querySelector('#feed-scroll')?.dispatchEvent(new Event('scroll')),30);}
 function closeModal(){
  const was=modal?.type;
  modal=null;
  document.querySelector(".layer-backdrop")?.remove();
  if(was==='comments')renderGame(true);
+ else nudgeFeed();
 }
 
 function scheduleShopFromPhoto(element){
@@ -1544,8 +1623,35 @@ function advanceClockForVisible(id){
  save();
  if(!result.tick)return;
  const label=document.querySelector('.sb-time');if(label)label.innerHTML=`${clockDayLabel()} · ${clockLabel()}${afterMidnight()?' <small class="overnight-day">virou o dia</small>':''}`;
- const sleep=document.querySelector('.day-sleep-control');if(sleep){sleep.title=afterMidnight()?'Dormir até hoje, às 19h':'Dormir até amanhã, às 19h';const caption=sleep.querySelector('small');if(caption)caption.textContent=afterMidnight()?'hoje · 19h':'amanhã · 19h';}
+ refreshSleepControl();
  maybeSleepReminder();
+}
+/* O dia só pode acabar depois que a noite aconteceu: os posts do dia e todos
+ * os acontecimentos do roteiro já entraram no feed. De madrugada sempre pode. */
+function dayReady(){
+ const d=dayInfo();if(!d||state.finished)return true;
+ if(clockMinutes()>=24*60)return true;
+ return dayStreamCount()>=(d.minQuota||7)&&d.events.every((ev,i)=>state.feedItems.some(x=>x.id===`ev-${d.n}-${ev.type}-${i}`));
+}
+function refreshSleepControl(){
+ const sleep=document.querySelector('.day-sleep-control');if(!sleep)return;
+ const ready=dayReady(),late=afterMidnight();
+ sleep.classList.toggle('locked',!ready);
+ sleep.title=!ready?'Ainda é cedo para dormir':late?'Dormir até hoje, às 19h':'Dormir até amanhã, às 19h';
+ const caption=sleep.querySelector('small');if(caption)caption.textContent=!ready?'ainda é cedo':late?'hoje · 19h':'amanhã · 19h';
+}
+/* Tentativa de encerrar o dia: cedo demais não vai; se o momento do dia ainda
+ * não foi respondido, ele aparece antes de dormir. */
+function trySleep(viaMenu=false){
+ if(state.finished||state.wake)return;
+ if(!dayReady()){
+  state.flags.earlySleep=(state.flags.earlySleep||0)+1;save();
+  toast('Ainda são '+clockLabel()+'. Cedo demais para dormir: a noite está só começando.');return;
+ }
+ const pending=pendingMoment();
+ if(pending){openMoment(pending);return;}
+ if(viaMenu&&tryExitHook('end'))return;
+ sleep();
 }
 function expose(key,moment){if(Pressure.expose(state.pressure,key,moment))save();}
 function influenced(keys,action){for(const k of [...new Set(keys)])Pressure.influence(state.pressure,k,typeof action==='function'?action(k):action);save();}
@@ -1720,6 +1826,7 @@ function appendNext(){
   checkLate(d);
  }
  dmNagCheck();
+ setTimeout(refreshSleepControl,0);
  if(!added){insertEvents(true);state.feedItems.push({kind:'night',id:'night-'+d.n,day:d.n});added++;}
  save();
  return added>0;
@@ -1817,6 +1924,7 @@ function dmFx(name,k){
   const rush=name==='repair-book-rush',cost=rush?45:35;
   state.flags.repair={cost,rush,bookedDay:state.day,status:'booked'};v.repairCost=cost;
   pushEvent('repair',`Combinou o conserto do fone por R$ ${cost}`);
+  resisted(['urgencia','personalizacao'],`Escolheu esperar o conserto de R$ ${cost} em vez do fone novo com “entrega amanhã”.`);
   toast(rush?'Conserto combinado: quinta à noite, R$ 45 🔧':'Conserto combinado: sexta, R$ 35 🔧');
  }
  else if(name==='repair-pay'){
@@ -1857,7 +1965,7 @@ function dmFx(name,k){
   dmReveal('bia','🤝','O cupom que custava uma amizade','No programa de indicação, recusar a compra passa a parecer recusar um favor à amiga. A loja usa a reciprocidade entre vocês para vender.');
  }
  else if(name==='bia-accept'){state.flags.biaRef=true;addCoupon({code:'BIA20',label:'R$ 20 OFF acima de R$ 80',kind:'value',amount:20,min:80,expiresDay:Math.max(4,state.day),source:'dm'});}
- else if(name==='bia-decline'){vibe(-4,'fomo','Recusou o cupom e a Bia ficou chateada');expose('fomo','Ao recusar o cupom de indicação: “poxa, era pra eu completar o meu também”.');}
+ else if(name==='bia-decline'){resisted(['prova_social','fomo'],'Recusou o cupom de indicação da Bia, mesmo com “eu ganho R$ 20 também 🥺”.');vibe(-4,'fomo','Recusou o cupom e a Bia ficou chateada');expose('fomo','Ao recusar o cupom de indicação: “poxa, era pra eu completar o meu também”.');}
  else if(name==='mia-link'){
   expose('prova_social','A Mia pediu sua opinião sobre a cor e, em seguida, mandou “tem a sua também”.');
   dmReveal('mia','💬','Opinar já era o primeiro passo','Quem ajuda a escolher a cor se envolve com o produto. Só depois veio o link, com “a gente ia combinando”.');
@@ -1875,7 +1983,7 @@ function dmFx(name,k){
   influenced(['fomo','escassez'],'Ficou com o ingresso da Nina quando ela disse que precisava saber AGORA.');
   Pressure.vibeBuy(state.vibe,12,'Comprou o ingresso da Nina');state.flags.boughtToday=true;refreshHeader();
  }
- else if(name==='nina-no')vibe(-4,'fomo','Recusou o ingresso da Nina');
+ else if(name==='nina-no'){resisted(['fomo','escassez'],'Recusou o ingresso da Nina, mesmo com “preciso saber AGORA”.');vibe(-4,'fomo','Recusou o ingresso da Nina');}
  else if(name==='pb-drop')state.fixes=state.fixes.filter(f=>f.id!=='borrow');
  return null;
 }
@@ -2497,7 +2605,7 @@ function subsPage(){
 function cancelSubStep(){
  const step=(state.flags.cancelStep||0)+1;
  if(step===1)expose('dark_patterns','Cancelar a assinatura: link pequeno, “tem certeza?”, oferta de retenção e questionário.');
- if(step>=4){const sub=state.subscriptions.find(s=>s.active);if(sub)sub.active=false;state.flags.cancelStep=0;pushEvent('cancel','Cancelou a assinatura MODO+ depois de 4 telas');toast('Assinatura cancelada.');}
+ if(step>=4){const sub=state.subscriptions.find(s=>s.active);if(sub)sub.active=false;state.flags.cancelStep=0;pushEvent('cancel','Cancelou a assinatura MODO+ depois de 4 telas');resisted(['dark_patterns'],'Cancelou o MODO+ atravessando as quatro telas de “tem certeza?”.');toast('Assinatura cancelada.');}
  else state.flags.cancelStep=step;
  save();drawOverlay();
 }
@@ -2513,7 +2621,7 @@ function overnight(){
  if(d===2)list.push({icon:'🔴',text:'livia.looks vai entrar AO VIVO hoje às 20h com cupom exclusivo.'});
  if(d===3)list.push({icon:'🎵',text:'Semana de provas? Estude com foco: MODO+ 3 dias grátis pra você.',product:'plano'});
  if(d===4){list.push({icon:'🔥',text:'MEGA LIQUIDA começou! Até 70% OFF por 48 h.'});}
- if(d===5){list.push({icon:'🪙',text:`Você vai perder ${money(state.coins)} em moedas HOJE às 23:59.`});list.push({icon:'🎉',text:'Pocket Fest: lote final à venda. A turma já garantiu.',product:'ingresso'});expose('recompensa','“Suas moedas expiram hoje às 23:59.”');}
+ if(d===5){if(state.coins>0)list.push({icon:'🪙',text:`Você vai perder ${money(state.coins)} em moedas HOJE às 23:59.`});list.push({icon:'🎉',text:'Pocket Fest: lote final à venda. A turma já garantiu.',product:'ingresso'});expose('recompensa','“Suas moedas expiram hoje às 23:59.”');}
  if(state.streak>0)list.push({icon:'🔥',text:`Sua sequência de ${state.streak} dia(s) está em risco! Entre hoje para não perder.`});
  /* A necessidade do fone volta todo dia até ser resolvida. */
  const repair=state.flags.repair;
@@ -2670,7 +2778,7 @@ function finishWeek(){stopStory();clearInterval(liveTimer);state.finished=true;s
 function eventCard(item){
  const t=item.type;
  if(t==='checkin'){const n=Math.min(5,state.streak);return `<section class="ev ev-checkin"><div class="ev-row"><span class="ev-emoji">🔥</span><div><strong>Check-in diário · ${item.bonus?'+'+money(item.bonus):'+R$ 5,00'} em moedas</strong><p>${item.day===5?`Último dia! Suas moedas (${money(state.coins)}) expiram hoje às 23:59.`:'Volte amanhã para não perder sua sequência.'}</p></div></div><div class="streak">${[1,2,3,4,5].map(i=>`<i class="${i<=item.day?'on':''}">${i===5?'🎁':i}</i>`).join('')}</div></section>`;}
- if(t==='roleta')return `<section class="ev ev-roleta"><span class="ev-emoji big">🎁</span><div><strong>${state.flags.roleta?'Seu cupom de R$ 50 OFF está ativo':'Seu giro grátis está esperando'}</strong><p>${state.flags.roleta?'Não perca seus R$ 50: o cupom some hoje às 23:59. Vale em compras acima de R$ 249.':'Prêmio garantido: até R$ 100 OFF no Pulso Shop.'}</p></div><button class="ev-btn" data-action="${state.flags.roleta?'shop':'roleta'}">${state.flags.roleta?'Usar cupom':'Girar agora'}</button></section>`;
+ if(t==='roleta')return `<section class="ev ev-roleta" data-moment="roleta"><span class="ev-emoji big">🎁</span><div><strong>${state.flags.roleta?'Seu cupom de R$ 50 OFF está ativo':'Seu giro grátis está esperando'}</strong><p>${state.flags.roleta?'Não perca seus R$ 50: o cupom some hoje às 23:59. Vale em compras acima de R$ 249.':'Prêmio garantido: até R$ 100 OFF no Pulso Shop.'}</p></div><button class="ev-btn" data-action="${state.flags.roleta?'shop':'roleta'}">${state.flags.roleta?'Usar cupom':'Girar agora'}</button></section>`;
  if(t==='card')return state.card.active?'':`<section class="ev ev-card"><div class="mini-card">pulso<b>.</b> pay</div><div><strong>Você foi pré-aprovado! 💳</strong><p>${money(state.card.limit)} de limite. Compre agora, pague depois.</p></div><button class="ev-btn" data-action="pay">Ativar</button></section>`;
  if(t==='theme'){
   const use=Math.min(Week.THEME.coins,state.coins),pay=Pressure.round(Week.THEME.price-use);
@@ -2680,21 +2788,135 @@ function eventCard(item){
  if(t==='compare'){const c=Week.COMPARE_POSTS[item.post];return c?comparePostCard(c):'';}
  if(t==='surprise')return surpriseCard(item);
  if(t==='tagged')return taggedCard(item);
- if(t==='live')return `<section class="ev ev-live" data-action="live" role="button" tabindex="0" aria-label="Entrar na live da Lívia"><div class="ev-live-photo" style="background-image:url('${mediaSrc('story_tenis_1')}')"><span class="live-badge">${item.carried?'REPLAY · SÓ HOJE':'AO VIVO'}</span><span class="ev-live-viewers">👀 1,2 mil</span></div><div class="ev-live-text"><span class="avatar photo-avatar">${mediaPhoto('avatar_livia','avatar-photo','Foto de perfil da Lívia')}</span><div><strong>livia.looks está ao vivo</strong><p>“Cupom exclusivo só pra quem está aqui agora 🔥”</p></div></div><button class="ev-btn live" data-action="live">Entrar na live</button></section>`;
- if(t==='trial')return bought('plano')?'':`<section class="ev ev-trial"><span class="ev-emoji big">🎧</span><div><strong>Estudar com foco? MODO+ 3 dias GRÁTIS</strong><p>Sem anúncios entre as músicas. Cancele quando quiser.</p></div><button class="ev-btn" data-action="product" data-product="plano" data-source="trial">Testar grátis</button></section>`;
+ if(t==='live')return `<section class="ev ev-live" data-moment="live" data-action="live" role="button" tabindex="0" aria-label="Entrar na live da Lívia"><div class="ev-live-photo" style="background-image:url('${mediaSrc('story_tenis_1')}')"><span class="live-badge">${item.carried?'REPLAY · SÓ HOJE':'AO VIVO'}</span><span class="ev-live-viewers">👀 1,2 mil</span></div><div class="ev-live-text"><span class="avatar photo-avatar">${mediaPhoto('avatar_livia','avatar-photo','Foto de perfil da Lívia')}</span><div><strong>livia.looks está ao vivo</strong><p>“Cupom exclusivo só pra quem está aqui agora 🔥”</p></div></div><button class="ev-btn live" data-action="live">Entrar na live</button></section>`;
+ if(t==='trial')return bought('plano')?'':`<section class="ev ev-trial" data-moment="trial"><span class="ev-emoji big">🎧</span><div><strong>Estudar com foco? MODO+ 3 dias GRÁTIS</strong><p>Sem anúncios entre as músicas. Cancele quando quiser.</p></div><button class="ev-btn" data-action="product" data-product="plano" data-source="trial">Testar grátis</button></section>`;
  if(t==='mood'){
   const low=state.vibe.value<55,late=clockMinutes()>=22*60,ids=['luminaria','garrafa'].filter(id=>!bought(id));
   return `<section class="ev ev-mood"><small class="sponsored-label">Patrocinado · ${clockLabel()}</small><strong>${low?'Dia puxado? 💜':late?'Antes de dormir… 💜':'Um presente para você 💜'}</strong><p>${low?'Você merece um mimo. Frete grátis hoje, só pra você.':late?'Um presentinho pra fechar o dia. Frete grátis hoje.':'Frete grátis hoje em produtos escolhidos para você.'}</p><div class="mood-grid">${ids.map(id=>`<button class="shop-mini-card" data-action="product" data-product="${id}" data-source="mood">${art(products[id].kind,true)}<strong>${esc(productName(id))}</strong><b>${money(price(id).price)}</b></button>`).join('')}</div></section>`;
  }
- if(t==='flash')return `<section class="ev ev-flash" data-action="sale" role="button" tabindex="0"><strong>🔥 MEGA LIQUIDA 48H</strong><p>Até <b>70% OFF</b> no que você viu esta semana</p><div class="flash-clock">termina em <b class="js-countdown" data-until="${state.flags.saleEnd}">47:59:59</b></div><button class="ev-btn" data-action="sale">Ver ofertas</button></section>`;
+ if(t==='flash')return `<section class="ev ev-flash" data-moment="flash" data-action="sale" role="button" tabindex="0"><strong>🔥 MEGA LIQUIDA 48H</strong><p>Até <b>70% OFF</b> no que você viu esta semana</p><div class="flash-clock">termina em <b class="js-countdown" data-until="${state.flags.saleEnd}">47:59:59</b></div><button class="ev-btn" data-action="sale">Ver ofertas</button></section>`;
  if(t==='cartnudge'){
   const id=state.cart.find(x=>!bought(x))||state.viewed.find(x=>!bought(x));
   if(!id)return '';
   const pr=price(id),inCart=state.cart.includes(id);
   return `<section class="ev ev-nudge"><span class="ev-thumb">${art(products[id].kind,true)}</span><div><strong>${inCart?'Seus itens estão quase esgotando ⏳':`Ainda pensando no ${esc(pr.name)}? 👀`}</strong><p>${inCart?`${esc(pr.name)} está na sua sacola.`:`Agora por ${money(pr.price)}${pr.off?` (−${pr.off}%)`:''}.`}</p></div><button class="ev-btn" data-action="${inCart?'cart':'product'}" data-product="${id}" data-source="nudge">${inCart?'Finalizar':'Ver de novo'}</button></section>`;
  }
- if(t==='lastcall'){if(bought('ingresso'))return '';return `<section class="ev ev-fest"><strong>🎉 POCKET FEST · HOJE 20H</strong><p>Lote final · a turma já garantiu</p><div class="scarcity-bar"><span style="width:92%"></span></div><small>92% vendido · encerra em <b class="js-countdown" data-until="${state.flags.festEnd}">01:42:00</b></small><button class="ev-btn" data-action="product" data-product="ingresso" data-source="lastcall">Garantir ingresso · ${money(price('ingresso').price)}</button></section>`;}
+ if(t==='lastcall'){if(bought('ingresso'))return '';return `<section class="ev ev-fest" data-moment="lastcall"><strong>🎉 POCKET FEST · HOJE 20H</strong><p>Lote final · a turma já garantiu</p><div class="scarcity-bar"><span style="width:92%"></span></div><small>92% vendido · encerra em <b class="js-countdown" data-until="${state.flags.festEnd}">01:42:00</b></small><button class="ev-btn" data-action="product" data-product="ingresso" data-source="lastcall">Garantir ingresso · ${money(price('ingresso').price)}</button></section>`;}
  return '';
+}
+/* ---------- momento do dia: uma decisão que não dá para rolar por cima ----------
+ * Cada noite tem um acontecimento que interrompe o feed, como os avisos de
+ * tela cheia dos aplicativos. Aceitar ou recusar leva um toque, e os dois
+ * ficam registrados para a revelação de sábado. */
+const MOMENTS={
+ roleta:{icon:'🎁',kicker:'PRESENTE DE BOAS-VINDAS',title:'Você ganhou 1 giro grátis!',text:'Prêmio garantido: até R$ 100 OFF no Pulso Shop. O giro some à meia-noite.',yes:'Girar agora',no:'Agora não',keys:['recompensa','urgencia'],name:'o giro grátis da roleta',
+  behind:'A roleta para sempre no mesmo lugar, colada no prêmio maior, e o cupom só vale para quem gasta R$ 249.'},
+ live:{icon:'🔴',kicker:'AO VIVO AGORA',title:'livia.looks começou uma live',text:'“Cupom exclusivo só pra quem está aqui comigo agora 🔥” · 1,2 mil assistindo',yes:'Entrar na live',no:'Perder a live',keys:['influencia','urgencia'],name:'a live da Lívia',
+  behind:'O cupom “exclusivo” expira e é prorrogado na hora; o estoque cai, mas nunca chega a zero.'},
+ trial:{icon:'🎧',kicker:'SEMANA DE PROVAS',title:'3 dias de MODO+ por R$ 0,00',text:'Música sem anúncios para estudar com foco. Cancele quando quiser*.',yes:'Começar grátis',no:'Não quero estudar melhor',keys:['dark_patterns','preco'],name:'o teste grátis do MODO+',
+  behind:'“R$ 0,00 hoje” pede um cartão, vem com o VIP já marcado e vira cobrança mensal; cancelar leva quatro telas.'},
+ flash:{icon:'🔥',kicker:'COMEÇOU AGORA',title:'MEGA LIQUIDA 48H',text:'Até 70% OFF no que você viu esta semana. Depois, os preços voltam.',yes:'Ver ofertas',no:'Prefiro pagar mais caro',keys:['preco','urgencia'],name:'a Mega Liquida',
+  behind:'Na quinta o preço “de” subiu para o desconto parecer maior: a mochila era “de R$ 279,90” e virou “de R$ 399,90”.'},
+ lastcall:{icon:'🎉',kicker:'LOTE FINAL · 92% VENDIDO',title:'O Pocket Fest é hoje',text:'Bia, Mia, Lucca e Nina já garantiram. Só falta você.',yes:'Garantir meu ingresso',no:'Vou ficar de fora',keys:['fomo','escassez'],name:'o lote final do Pocket Fest',
+  behind:'“92% vendido” e “só falta você” aparecem para todo mundo; o ingresso ainda cobra 15% de taxa no checkout.'}
+};
+function momentLog(){
+ if(!state.flags.moments||typeof state.flags.moments!=='object'||Array.isArray(state.flags.moments))state.flags.moments={};
+ return state.flags.moments;
+}
+function momentAnswered(kind){
+ if(momentLog()[kind])return true;
+ if(kind==='roleta')return !!state.flags.roleta;
+ if(kind==='live')return !!state.flags.liveSeen;
+ if(kind==='trial')return bought('plano');
+ if(kind==='lastcall')return bought('ingresso');
+ return false;
+}
+function pendingMoment(){
+ const item=dayItems().find(x=>x.kind==='event'&&MOMENTS[x.type]&&!momentAnswered(x.type));
+ return item?item.type:'';
+}
+function markMoment(kind,choice){
+ if(!MOMENTS[kind]||momentLog()[kind]||!state.feedItems.some(x=>x.kind==='event'&&x.type===kind))return false;
+ momentLog()[kind]=choice;save();return true;
+}
+const screenBusy=()=>!!(overlay||modal||story||state.wake||state.finished||!exitConfirm.hidden||document.visibilityState!=='visible'||
+ document.querySelector('.reward-celebration,.tag-vibe-overlay,.sleep-reminder,.feed-refresh-loading'));
+function openMoment(kind){
+ if(!MOMENTS[kind]||momentAnswered(kind)||screenBusy())return false;
+ modal={type:'moment',kind};drawModal();
+ document.querySelector('.moment-yes')?.focus({preventScroll:true});
+ return true;
+}
+/* O aviso aparece quando o card do momento entra na tela. */
+function checkMoments(){
+ if(screenBusy())return;
+ const scroll=document.querySelector('#feed-scroll');if(!scroll)return;
+ const bounds=scroll.getBoundingClientRect(),cutoff=bounds.top+scroll.clientHeight*.8;
+ for(const el of scroll.querySelectorAll('.ev[data-moment]')){
+  const r=el.getBoundingClientRect();
+  if(r.top>cutoff||r.bottom<bounds.top)continue;
+  if(openMoment(el.dataset.moment))break;
+ }
+}
+function resisted(keys,text){
+ if(!Array.isArray(state.resisted))state.resisted=[];
+ if(state.resisted.some(x=>x.t===text))return;
+ state.resisted.push({k:keys.filter(k=>Pressure.STRATEGIES[k]),t:String(text).slice(0,180),day:state.day});
+ if(state.resisted.length>40)state.resisted.shift();
+ save();
+}
+function answerMoment(choice){
+ const kind=modal?.type==='moment'?modal.kind:'';
+ const m=MOMENTS[kind];if(!m)return;
+ modal=null;document.querySelector('.layer-backdrop')?.remove();
+ markMoment(kind,choice==='yes'?'yes':'no');
+ pushEvent('moment',(choice==='yes'?'Aceitou ':'Recusou ')+m.name);
+ if(choice!=='yes'){
+  if(kind!=='roleta')expose('dark_patterns',`Para recusar ${m.name}, o botão dizia “${m.no}”.`);
+  resisted(m.keys,`Recusou ${m.name} quando o aviso tomou a tela.`);
+  nudgeFeed();
+  return;
+ }
+ if(kind==='roleta'){overlay={type:'roleta'};drawOverlay();}
+ else if(kind==='live')openLive();
+ else if(kind==='trial')openProduct('plano','trial');
+ else if(kind==='flash'){overlay={type:'shop'};drawOverlay();}
+ else if(kind==='lastcall')openProduct('ingresso','lastcall');
+}
+/* Resumo de cada momento para a revelação de sábado. */
+function momentRecap(){
+ const log=momentLog(),rows=[];
+ const dayOf=k=>state.feedItems.find(x=>x.kind==='event'&&x.type===k)?.day||0;
+ for(const kind of Object.keys(MOMENTS)){
+  const day=dayOf(kind);if(!day)continue;
+  const m=MOMENTS[kind],said=log[kind]||(momentAnswered(kind)?'yes':'');
+  let did='',fell=false;
+  if(kind==='roleta'){
+   const c=state.coupons.find(x=>x.code==='ROLETA50');
+   if(!state.flags.roleta)did='Você não girou.';
+   else if(c?.used){did='Você girou e usou o cupom: precisou gastar mais de R$ 249 para “ganhar” R$ 50.';fell=true;}
+   else did='Você girou, ganhou o cupom e não gastou para usá-lo.';
+  }else if(kind==='live'){
+   const b=state.purchases.find(x=>x.id==='tenis'&&x.source==='live');
+   if(b){did=`Você entrou e comprou o Motion 88 por ${money(b.cost)}.`;fell=true;}
+   else did=state.flags.liveSeen?'Você entrou, viu o cupom “acabar” e saiu sem comprar.':'Você não entrou na live.';
+  }else if(kind==='trial'){
+   const sub=state.subscriptions.find(x=>x.id==='plano');
+   if(sub){did=sub.active?`Você começou o teste: ${money(sub.monthly)} por mês a partir de sábado.`:'Você começou o teste e conseguiu cancelar antes de sábado.';fell=!!sub.active;}
+   else did=said==='yes'?'Você abriu a oferta e não assinou.':'Você recusou o teste grátis.';
+  }else if(kind==='flash'){
+   const n=state.purchases.filter(x=>x.day===4&&x.method!=='trial').length;
+   if(n){did=`Você fez ${n} compra${n>1?'s':''} durante a liquidação.`;fell=true;}
+   else did=said==='yes'?'Você olhou as ofertas e não comprou.':'Você nem abriu a liquidação.';
+  }else if(kind==='lastcall'){
+   const b=state.purchases.find(x=>x.id==='ingresso');
+   if(b){did=`Você comprou o ingresso por ${money(b.cost)} na véspera da viagem.`;fell=true;}
+   else did=said==='yes'?'Você abriu a página do ingresso e não comprou.':'Você ficou de fora do Pocket Fest.';
+  }
+  rows.push({kind,day,icon:m.icon,title:m.title,did,fell,behind:m.behind,keys:m.keys});
+ }
+ return rows.sort((a,b)=>a.day-b.day);
 }
 const POST_CHOICES=[
  {id:'look',photo:'story_tenis_0',topic:'tenis',caption:'look de hoje 👟'},
@@ -2829,7 +3051,7 @@ function countTime(){
  if(state.attention.realMs>=TIME_LIMIT_MS){state.flags.timeLimit=true;finishWeek();return;}
  if(state.attention.realMs%10000===0)save();
 }
-tickTimer=setInterval(()=>{countTime();tick();},1000);
+tickTimer=setInterval(()=>{countTime();tick();checkMoments();},1000);
 setInterval(()=>dmPump(),350);
 function openProduct(id,source){
  if(!products[id])return;
@@ -2939,7 +3161,7 @@ function stageFeed(){
  <button class="icon-button" data-action="goal" aria-label="Minha meta">${icon('bookmark')}</button>
  <button class="icon-button" data-action="cart" aria-label="Carrinho">${icon('cart')}</button>
  <button class="icon-button" data-action="profile" aria-label="Meu perfil">${icon('user')}</button>
- </footer></main><button class="day-sleep-control" data-action="sleep" title="${afterMidnight()?'Dormir até hoje, às 19h':'Dormir até amanhã, às 19h'}" aria-label="Dormir e avançar até as 19h">☾ Dormir <small>${afterMidnight()?'hoje · 19h':'amanhã · 19h'}</small></button>${asideRight()}</div>`;
+ </footer></main>${state.wake?'':`<button class="day-sleep-control${dayReady()?'':' locked'}" data-action="sleep" title="${!dayReady()?'Ainda é cedo para dormir':afterMidnight()?'Dormir até hoje, às 19h':'Dormir até amanhã, às 19h'}" aria-label="Dormir e avançar até as 19h">☾ Dormir <small>${!dayReady()?'ainda é cedo':afterMidnight()?'hoje · 19h':'amanhã · 19h'}</small></button>`}${asideRight()}</div>`;
 }
 function adCard(id,retarget=false,item={}){
  const p=products[id];if(!p)return "";
@@ -3059,10 +3281,17 @@ function drawModal(){
   <button class="primary full" data-action="protect-keep">${vip?'Manter meu VIP':'Manter minha proteção'}</button>
   <button class="tertiary full" data-action="protect-remove">${vip?'Não quero o melhor som':'Remover e correr o risco'}</button></div>`;
  }
+ else if(v.type==='moment'){
+  const m=MOMENTS[v.kind];
+  content=`<div class="sheet-scroll exit-offer moment-offer moment-${v.kind}"><div class="moment-kicker">${esc(m.kicker)}</div><div class="exit-gift">${m.icon}</div><h3>${esc(m.title)}</h3><p>${esc(m.text)}</p>
+  <button class="primary full moment-yes" data-action="moment-yes">${esc(m.yes)}</button>
+  <button class="tertiary full moment-no" data-action="moment-no">${esc(m.no)}</button></div>`;
+ }
  else if(v.type==='day-menu'){
   content=`<div class="sheet-bar"></div><header class="sheet-head"><strong>Opções</strong><button class="icon-button" data-action="close-modal" aria-label="Fechar">${icon('close')}</button></header><div class="sheet-scroll">
-  <button class="secondary full" data-action="end-day">${state.day>=Week.DAYS.length?'Dormir e acordar no sábado 🚌':'Encerrar o dia 💤'}</button>
-  <button class="tertiary full" style="margin-top:10px" data-action="close-modal">Continuar no feed</button></div>`;
+  <button class="secondary full" data-action="end-day">${!dayReady()?'Encerrar o dia 💤 · ainda é cedo':state.day>=Week.DAYS.length?'Dormir e acordar no sábado 🚌':'Encerrar o dia 💤'}</button>
+  <button class="tertiary full" style="margin-top:10px" data-action="close-modal">Continuar no feed</button>
+  <button class="tertiary full menu-exit" style="margin-top:4px" data-action="exit-game">← Sair da partida</button></div>`;
  }else if(v.type==='exit-hook'){
   const hook=EXIT_HOOK_DAYS[state.day]||EXIT_HOOK_DAYS[1];
   content=`<div class="sheet-bar"></div><div class="sheet-scroll exit-offer">
@@ -3111,11 +3340,11 @@ function drawModal(){
   ${editing?`<button class="tertiary full" data-action="remove-my-post" data-post="${v.postId}">Excluir publicação</button>`:''}
   </div>`;
  }
- const box=document.createElement('div');box.className='layer-backdrop'+(v.type==='purchase-share'?' is-purchase-share':'');box.innerHTML=`<section class="bottom-sheet ${v.type==='gallery'?'gallery-sheet':v.type==='purchase-share'?'purchase-share-sheet':''}" role="dialog" aria-modal="true" aria-label="${v.type==='gallery'?'Galeria de fotos':v.type==='purchase-share'?'Compartilhar compra':'Opções da publicação'}">${content}</section>`;phone.appendChild(box);
+ const box=document.createElement('div');box.className='layer-backdrop'+(v.type==='purchase-share'?' is-purchase-share':v.type==='moment'?' is-moment':'');box.innerHTML=`<section class="bottom-sheet ${v.type==='gallery'?'gallery-sheet':v.type==='purchase-share'?'purchase-share-sheet':v.type==='moment'?'moment-sheet':''}" role="dialog" aria-modal="true" aria-label="${v.type==='gallery'?'Galeria de fotos':v.type==='purchase-share'?'Compartilhar compra':v.type==='moment'?'Aviso do pulso.':'Opções da publicação'}">${content}</section>`;phone.appendChild(box);
  tick();
 }
 function renderAccountGate(message=""){
- exitHomeButton.hidden=true;
+ exitHomeButton.hidden=true;document.body.classList.remove('in-game');
  root.innerHTML=`<main class="account-screen">
  <header class="account-header">
   <div class="brandline account-brand"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
@@ -3142,7 +3371,7 @@ function renderAccountGate(message=""){
    <h2 id="account-card-title">Primeiro, como vamos chamar você?</h2>
    <p class="account-intro">Use um <strong>apelido inventado</strong> para identificar sua partida. Não precisa ser seu nome real.</p>
    <form id="c4-account-form" autocomplete="on">
-    <label>Nome de usuário <input name="username" autocomplete="username" placeholder="Ex.: jogador42" minlength="3" maxlength="24" pattern="[A-Za-z0-9_.\-]+" required /></label>
+    <label>Nome de usuário <input name="username" autocomplete="username" placeholder="Ex.: jogador42" minlength="3" maxlength="24" pattern="[A-Za-z0-9_.\\-]+" required /></label>
     <label>Senha <input name="password" type="password" autocomplete="current-password" placeholder="Pelo menos 10 caracteres" minlength="10" maxlength="128" required /></label>
     <div class="account-actions">
      <button type="submit" class="primary" value="signup" name="modo">Criar conta e continuar →</button>
@@ -3172,14 +3401,14 @@ async function switchPlayer(){
  identity=null;state=makeInitial();overlay=null;modal=null;syncMessage="";
  renderAccountGate();
 }
-function renderHome(){if(!identity){renderAccountGate();return;}exitHomeButton.hidden=true;root.innerHTML=`<main class="home"><div class="home-inner"><section><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA · EXPERIÊNCIA INTERATIVA</div><h1>Seu feed.<br><em>Suas escolhas.</em></h1><p>Uma semana. R$ 620 na conta. Uma viagem com a turma no sábado. E o pulso., o app onde tudo acontece.</p><button class="primary" data-action="start">Começar a semana &nbsp;→</button><p class="small muted" style="margin:13px 0 0">Sua conta: <strong>${esc(identity.username)}</strong> · <button class="account-switch" data-action="switch-player">Trocar jogador</button></p><div class="home-meta"><span>✦</span><span>5 dias · cerca de 10 minutos · compras e pessoas fictícias</span></div></section><div class="preview-art"><div class="blob one"></div><div class="blob two"></div><div class="preview-phone"><div class="preview-header">pulso. <span style="font-size:18px">♡ &nbsp;⌑</span></div><div class="preview-storybar"><div class="preview-avatar">${mediaPhoto("avatar_bia","avatar-photo","Foto de perfil da Bia")}</div><div class="preview-avatar">${mediaPhoto("avatar_lucca","avatar-photo","Foto de perfil do Lucca")}</div><div class="preview-avatar">${mediaPhoto("avatar_livia","avatar-photo","Foto de perfil da Lívia")}</div><div class="preview-avatar">${mediaPhoto("avatar_gabi","avatar-photo","Foto de perfil da Gabi")}</div></div><div class="preview-photo realistic-preview">${mediaPhoto("post_p1","art-photo","Amigos aproveitando um encontro no parque")}</div><div class="preview-caption"><b>bia.m</b> Quem já tá pronto pro sábado? 💜<br><span style="color:#aaa">Ver os 18 comentários...</span></div><div class="preview-ad">⚡ Oferta relâmpago <b>· termina em 09:59</b></div></div><div class="preview-badge">Só mais um scroll… 👀</div></div></div></main>`;}
+function renderHome(){if(!identity){renderAccountGate();return;}exitHomeButton.hidden=true;document.body.classList.remove('in-game');root.innerHTML=`<main class="home"><div class="home-inner"><section><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA · EXPERIÊNCIA INTERATIVA</div><h1>Seu feed.<br><em>Suas escolhas.</em></h1><p>Uma semana. R$ 620 na conta. Uma viagem com a turma no sábado. E o pulso., o app onde tudo acontece.</p><button class="primary" data-action="start">Começar a semana &nbsp;→</button><p class="small muted" style="margin:13px 0 0">Sua conta: <strong>${esc(identity.username)}</strong> · <button class="account-switch" data-action="switch-player">Trocar jogador</button></p><div class="home-meta"><span>✦</span><span>5 dias · cerca de 10 minutos · compras e pessoas fictícias</span></div></section><div class="preview-art"><div class="blob one"></div><div class="blob two"></div><div class="preview-phone"><div class="preview-header">pulso. <span style="font-size:18px">♡ &nbsp;⌑</span></div><div class="preview-storybar"><div class="preview-avatar">${mediaPhoto("avatar_bia","avatar-photo","Foto de perfil da Bia")}</div><div class="preview-avatar">${mediaPhoto("avatar_lucca","avatar-photo","Foto de perfil do Lucca")}</div><div class="preview-avatar">${mediaPhoto("avatar_livia","avatar-photo","Foto de perfil da Lívia")}</div><div class="preview-avatar">${mediaPhoto("avatar_gabi","avatar-photo","Foto de perfil da Gabi")}</div></div><div class="preview-photo realistic-preview">${mediaPhoto("post_p1","art-photo","Amigos aproveitando um encontro no parque")}</div><div class="preview-caption"><b>bia.m</b> Quem já tá pronto pro sábado? 💜<br><span style="color:#aaa">Ver os 18 comentários...</span></div><div class="preview-ad">⚡ Oferta relâmpago <b>· termina em 09:59</b></div></div><div class="preview-badge">Só mais um scroll… 👀</div></div></div></main>`;}
 function showIntro(){
  exitHomeButton.hidden=false;scene=0;clearTimeout(introTimer);
  root.innerHTML=`<main class="cinematic"><div class="scene-box">
  <div class="scene-icon">🚌</div><div class="eyebrow" style="color:#eec7ee">DOMINGO · 21:40</div>
  <h2>Sábado tem viagem da turma. <span style="color:#ffc5e2">Falta só uma semana.</span></h2>
  <p>Você tem <b>R$ 620</b> na conta. O boleto de <b>R$ 400</b> da viagem vence no sábado de manhã — sem pagar, não embarca. Até lá, é uma semana normal: escola, amigos e o <b>pulso.</b>, seu app favorito.</p>
- <p class="scene-fine">Tudo aqui é simulado: pessoas, marcas, preços e compras são fictícios. Nenhum pagamento é real. No final, você poderá enviar ao MCP ou seguir para o quiz. Após o quiz, o envio é automático.</p>
+ <p class="scene-fine">Tudo aqui é simulado: pessoas, marcas, preços e compras são fictícios. Nenhum pagamento é real. No sábado você descobre o que aconteceu por trás de cada tela, e seu resumo fica salvo na sua conta do projeto.</p>
  <button class="scene-next" data-action="intro-next">Começar a semana →</button>
  </div></main>`;
 }
@@ -3232,6 +3461,53 @@ function vibeChart(){
   <div class="vibe-lesson"><strong>📚 Aprenda a reconhecer o ciclo</strong><p><b>1.</b> Um post ou oferta provoca uma reação. <b>2.</b> O jogo altera a vibe. <b>3.</b> O algoritmo pode apresentar novas ofertas de acordo com essa pontuação. <strong>É uma simulação educativa, não uma avaliação psicológica.</strong></p></div>
  </div>`;
 }
+/* A necessidade real da semana: o fone. Comprar não é o problema; a pergunta
+ * é como o problema foi resolvido (Bauman: consumo x consumismo). */
+function foneOutcome(){
+ const fix=state.fixes.find(f=>f.id==='repair'),b=state.purchases.find(p=>p.id==='fone'),r=state.flags.repair;
+ if(fix&&b)return {solved:true,cost:fix.cost+b.cost,icon:'🎧',title:'O fone: consertou e ainda comprou outro',text:`O conserto custou ${money(fix.cost)} e o ${b.name}, ${money(b.cost)}. Um dos dois já resolvia.`};
+ if(fix)return {solved:true,cost:fix.cost,icon:'🔧',title:`O fone: consertado por ${money(fix.cost)}`,text:'Você aceitou esperar alguns dias sem música. Era a saída mais barata e nunca apareceu em anúncio: veio de um amigo, no direct.'};
+ if(b){
+  const lite=/Lite/.test(b.name||'');
+  return {solved:true,cost:b.cost,icon:'🎧',title:`O fone: comprou o ${b.name||'fone novo'}`,text:lite?'O modelo básico resolvia o problema. Na loja ele ficava sem selo e sem destaque, ao lado do “MAIS VENDIDO”.':`Resolveu o problema por ${money(b.cost)}, fora frete e taxas. O Atmos Lite de R$ 89,90 e o conserto de R$ 35 resolviam também.`};
+ }
+ if(r&&r.status!=='paid')return {solved:false,cost:0,icon:'🔧',title:'O fone: ficou no conserto',text:'Você combinou o conserto com o tio do Lucca, mas não respondeu quando ele avisou que estava pronto.'};
+ return {solved:false,cost:0,icon:'🚌',title:'O fone: a semana inteira em silêncio',text:'Foram cinco viagens de ônibus sem música. Essa necessidade era de verdade, e havia um conserto de R$ 35 esperando no direct do Lucca.'};
+}
+/* Retrato desta partida (não é diagnóstico): viagem, dívida, necessidade e extras. */
+function verdict(s){
+ const need=foneOutcome(),extras=state.purchases.filter(p=>p.id!=='fone').length+state.extras.length;
+ const plural=extras>1?'s':'';
+ if(!s.tripPaid)return {id:'perdeu',tag:'O FEED LEVOU A MELHOR',title:'A viagem ficou pelo caminho.',text:`Faltaram ${money(s.missing)}. `+(state.purchases.length+state.extras.length>1?'Nenhuma compra parecia grande sozinha; a soma, com taxas e fatura, foi.':'O preço da vitrine cabia na folga; com frete, taxa e o que veio pré-marcado, não coube.')};
+ if(s.future>0||s.monthly>0){
+  const parts=[s.future>0?money(s.future)+' em parcelas':'',s.monthly>0?money(s.monthly)+' por mês de assinatura':''].filter(Boolean).join(' e ');
+  return {id:'divida',tag:'EMBARCOU, MAS…',title:'A viagem saiu. A conta continua.',text:`Você embarcou, e leva ${parts} para depois do sábado. O “pague depois” só mudou a data da cobrança.`};
+ }
+ if(!extras&&need.solved&&need.cost<=130)return {id:'consciente',tag:'CONSUMO CONSCIENTE',title:'Você comprou o que precisava. Só isso.',text:'Resolveu a necessidade real pelo caminho mais barato e deixou o resto passar. Isso é consumir sem cair no consumismo.'};
+ if(!extras&&!need.solved)return {id:'cofre',tag:'COFRE FECHADO',title:'Você não gastou quase nada.',text:'A viagem está garantida. Só que o fone continuou quebrado, e havia uma saída de R$ 35. Não comprar também é uma decisão, e ela teve um custo.'};
+ if(!extras)return {id:'resolvido',tag:'NECESSIDADE RESOLVIDA',title:'Uma compra só, e ela tinha motivo.',text:'Você resolveu o fone e embarcou. Sobrou menos do que poderia: o mesmo problema tinha saídas de R$ 35 e de R$ 89,90.'};
+ return {id:'limite',tag:'NO LIMITE',title:'Embarcou com o saldo contado.',text:`Você fez ${extras} compra${plural} além do fone e ainda pagou a viagem, com ${money(Math.max(0,s.finalBalance-state.goal))} de folga. Dessa vez deu.`};
+}
+function verdictCard(s){
+ const v=verdict(s);
+ return `<section class="verdict-card verdict-${v.id}" aria-label="Retrato desta partida"><small>${esc(v.tag)}</small><h2>${esc(v.title)}</h2><p>${esc(v.text)}</p></section>`;
+}
+function needCard(){
+ const n=foneOutcome();
+ return `<div class="end-box need-box"><h3>E a necessidade de verdade?</h3><div class="need-card"><span class="need-icon" aria-hidden="true">${n.icon}</span><div><strong>${esc(n.title)}</strong><p class="small muted">${esc(n.text)}</p></div></div>
+ <p class="small muted" style="margin-top:10px">O fone quebrado era a única necessidade real da semana. Tênis, luminária, garrafa, mochila e ingresso viraram “necessidade” dentro do feed.</p></div>`;
+}
+/* O que o jogador decidiu, lado a lado com o que estava por trás. */
+function decisionRecap(){
+ const moments=momentRecap(),held=Array.isArray(state.resisted)?state.resisted:[];
+ const prof=Pressure.profile(state.pressure),fell=prof.reduce((n,p)=>n+p.actions.length,0);
+ const rows=moments.map(m=>`<article class="decision-row ${m.fell?'fell':'held'}"><span class="decision-day" aria-hidden="true">${m.icon}</span><div><small>${esc(Week.DAYS[m.day-1]?.label||'')}</small><strong>${esc(m.title)}</strong><p>${esc(m.did)}</p><p class="behind"><b>Por trás:</b> ${esc(m.behind)}</p><div class="decision-tags">${m.keys.map(k=>`<span>${Pressure.STRATEGIES[k].icon} ${esc(Pressure.STRATEGIES[k].name)}</span>`).join('')}</div></div></article>`).join('');
+ return `<section class="end-box decision-box" aria-labelledby="decision-title"><div class="eyebrow">SUAS DECISÕES</div><h2 id="decision-title">O que você fez quando o app insistiu?</h2>
+ <div class="recap-score"><div class="held"><strong>${held.length}</strong><span>vezes em que você disse não</span></div><div class="fell"><strong>${fell}</strong><span>ações que o app conseguiu</span></div></div>
+ ${rows?`<div class="decision-recap">${rows}</div>`:''}
+ ${held.length?`<h3 style="margin-top:16px">Onde você resistiu</h3><ul class="resist-list">${held.slice(-6).map(x=>`<li>✋ ${esc(x.t)}</li>`).join('')}</ul>`:''}
+ <p class="learn-caution">Dizer não uma vez não significa ser imune, e aceitar uma oferta não é sinal de fraqueza: as técnicas foram desenhadas para funcionar.</p></section>`;
+}
 function endStep0(s){
  const fixes=state.fixes.reduce((a,f)=>a+f.cost,0);
  // Valor realmente debitado no Pix, incluindo cupons, taxas e descontos.
@@ -3242,7 +3518,9 @@ function endStep0(s){
  return `<div class="eyebrow" style="margin-top:23px">SÁBADO · 06:10</div>
  <h1>${s.tripPaid?'Você embarcou. 🚌':'O ônibus saiu sem você.'}</h1>
  <div class="trip-photo ${s.tripPaid?'':'missed'}">${photo}<span>${s.tripPaid?'Viagem da turma · você está na foto':'Story da gabi.n · “saudades de quem ficou 💔”'}</span></div>
- <p class="end-lead">${s.tripPaid?`O boleto de R$ 400 foi pago às 6h02. Ninguém na viagem perguntou de que marca era seu fone ou seu tênis.${s.future?` Mas atenção: ${money(s.future)} em parcelas continuam chegando nos próximos meses.`:''}`:`Depois da fatura do Pulso Pay${s.subscriptionDue?' e da assinatura':''}, faltaram <b>${money(s.missing)}</b> para pagar os R$ 400. Às 6h30 o ônibus saiu do portão. Você acompanhou a viagem pelos stories.`}</p>
+ <p class="end-lead">${s.tripPaid?`O boleto de R$ 400 foi pago às 6h02. Ninguém na viagem perguntou de que marca era seu fone ou seu tênis.${s.future?` Mas atenção: ${money(s.future)} em parcelas continuam chegando nos próximos meses.`:''}`:`${s.dueNow||s.subscriptionDue?`Depois da ${[s.dueNow?'fatura do Pulso Pay':'',s.subscriptionDue?'assinatura':''].filter(Boolean).join(' e da ')}`:'Depois das compras da semana'}, faltaram <b>${money(s.missing)}</b> para pagar os R$ 400. Às 6h30 o ônibus saiu do portão. Você acompanhou a viagem pelos stories.`}</p>
+ ${verdictCard(s)}
+ ${needCard()}
  <section class="end-box budget-timeline" aria-labelledby="budget-title">
  <h3 id="budget-title">Para onde foi seu dinheiro?</h3>
  <p class="budget-intro">Você começou com <strong>R$ 620,00</strong> e precisava de <strong>R$ 400,00</strong> para a viagem. Veja como suas decisões alteraram o saldo até sábado.</p>
@@ -3319,6 +3597,7 @@ function endStep2(){
   <div class="learn-stat"><strong>${seen.length}</strong><span>técnicas exibidas</span></div>
   <div class="learn-stat"><strong>${acted.length}</strong><span>com ações associadas</span></div>
  </div>
+ ${decisionRecap()}
  <section class="end-box learn-reflection"><div class="eyebrow">SOBRE VOCÊ, NESTE JOGO</div><h2>O que suas escolhas mostram?</h2>
   <p>${esc(mirror)}</p><p class="learn-focus">${esc(focus)}</p>
   <p class="learn-caution">As contagens descrevem escolhas fictícias desta partida, não suas emoções, personalidade ou hábitos reais.</p></section>
@@ -3340,7 +3619,13 @@ function quizVariants(){
  if(seen.has('pulso-fone'))v.personalizacao='Você contou no direct que o fone quebrou e, minutos depois, o Pulso Shop mandou: “Atmos One com ENTREGA AMANHÃ”.';
  if(seen.has('livia'))v.influencia='A Lívia respondeu seu direct em segundos: “separei um par no seu nome, mas só seguro até o fim da live”.';
  if(seen.has('duda'))v.dark_patterns='A atendente disse “deixa eu falar com meu gerente” e voltou com 15% OFF, válidos por 5 minutos.';
- if(seen.has('bia'))v.prova_social='A Bia mandou um cupom de indicação: “se você usar, eu ganho R$ 20 também 🥺”.';
+ const log=momentLog(),shown=k=>state.feedItems.some(x=>x.kind==='event'&&x.type===k);
+ const sawCheckout=state.purchases.length>0||state.pressure.moments.dark_patterns.some(m=>/checkout/i.test(m));
+ if(!sawCheckout&&log.trial==='no')v.dark_patterns='Para recusar o teste grátis do MODO+, o único botão disponível dizia “Não quero estudar melhor”.';
+ else if(!sawCheckout&&log.flash==='no')v.dark_patterns='Para fechar o aviso da Mega Liquida, o único botão disponível dizia “Prefiro pagar mais caro”.';
+ if(shown('roleta')&&!state.flags.roleta)v.recompensa='Um aviso tomou a tela: “Você ganhou 1 giro grátis! Prêmio garantido: até R$ 100 OFF”.';
+ if(shown('live')&&!state.flags.liveSeen&&!v.influencia)v.influencia='A Lívia, que você segue, entrou ao vivo mostrando o tênis da semana: “eu não tiro do pé”.';
+ if(shown('lastcall')&&!v.fomo)v.fomo='Um aviso tomou a tela: “Bia, Mia, Lucca e Nina já garantiram o ingresso. Só falta você.”';
  if(seen.has('nina'))v.escassez='A Nina tinha um ingresso sobrando: “preciso saber AGORA, o Davi também quer”.';
  return v;
 }
@@ -3355,7 +3640,7 @@ function endStep3(){
  }).join('');
  return `<div class="eyebrow" style="margin-top:23px">AGORA É COM VOCÊ</div>
  <h1>Reconheça a estratégia.</h1>
- <p class="end-lead">Estes momentos aconteceram no seu feed. Reconhecer a técnica ajuda você a refletir antes de escolher.</p>
+ <p class="end-lead">${qs.every(q=>q.seen)?'Estes momentos aconteceram na sua semana.':'Cenas da sua semana e de aplicativos como o pulso.'} Qual estratégia estava por trás de cada um?</p>
  <button class="secondary learn-review" data-action="end-back">← Rever o que aprendi</button>
  <div class="quiz">${items}</div>
  <button class="primary end-next" data-action="end-next" ${answered<qs.length?'disabled':''}>${answered<qs.length?`Responda as ${qs.length} perguntas`:'Ver meu raio-x →'}</button>`;
@@ -3397,8 +3682,10 @@ function endStep4(s){
  <div class="end-stat"><label>Gasto total</label><strong>${money(s.spent)}</strong><span class="small muted">incluindo parcelas e assinatura</span></div>
  <div class="end-stat"><label>Estratégias que te pegaram</label><strong>${prof.filter(p=>p.influenced).length}/${Pressure.KEYS.length}</strong><span class="small muted">${prof.reduce((a,p)=>a+p.exposed,0)} estímulos recebidos</span></div>
  </div>
+ ${verdictCard(s)}
  ${attentionBox()}
- ${top.length?`<div class="end-box"><h3>Onde você ficou mais vulnerável</h3>${top.map(p=>`<div class="insight"><strong>${p.icon} ${esc(p.name)}</strong><p>${esc(p.actions.at(-1)||p.short)}</p></div>`).join('')}</div>`:`<div class="end-box"><h3>Você não comprou nada</h3><p class="small muted">Ótimo para a viagem. Mas repare: as estratégias continuaram aparecendo e se adaptando a cada clique. Na vida real, elas trabalham todos os dias.</p></div>`}
+ ${top.length?`<div class="end-box"><h3>Onde você ficou mais vulnerável</h3>${top.map(p=>`<div class="insight"><strong>${p.icon} ${esc(p.name)}</strong><p>${esc(p.actions.at(-1)||p.short)}</p></div>`).join('')}</div>`:`<div class="end-box"><h3>Nenhuma ação sua ficou ligada às estratégias</h3><p class="small muted">Mesmo assim elas continuaram aparecendo e se adaptando a cada toque. Na vida real, trabalham todos os dias, e não só numa semana.</p></div>`}
+ ${Array.isArray(state.resisted)&&state.resisted.length?`<div class="end-box"><h3>Onde você resistiu</h3><ul class="resist-list">${state.resisted.slice(-4).map(x=>`<li>✋ ${esc(x.t)}</li>`).join('')}</ul></div>`:''}
  <div class="end-box"><h3>Para usar fora do jogo</h3><div class="tips">${tips.map(([i,t,d])=>`<div class="tip"><span>${i}</span><div><strong>${t}</strong><p>${d}</p></div></div>`).join('')}</div></div>
  <div class="end-box"><h3>Por que isso importa</h3><p class="small muted">Na TIC Kids Online Brasil 2025, 55% dos adolescentes de 11 a 17 anos tiveram contato com publicidade em redes sociais, 84% viram conteúdos que divulgavam produtos sem identificação clara, e 51% das crianças e adolescentes pediram algo depois de ver um anúncio online. Reconhecer as estratégias é um passo para o consumo responsável do ODS 12.</p></div>
  <button class="secondary algorithm-final-reveal" data-action="algorithm-final" aria-expanded="false" aria-controls="algorithm-final-panel">ⓘ Entender como o algoritmo montou meu feed</button>
@@ -3481,7 +3768,7 @@ function tripRevealPage(){
  const confetti=Array.from({length:36},(_,i)=>'<i style="--cx:'+(3+(i*41)%94)+'%;--cd:'+(i%9*.065)+'s;--cc:'+['#ec538a','#ffc65c','#8d6be3','#65c6ac'][i%4]+'"></i>').join('');
  const title=went?'Você conseguiu embarcar! 🚌':'O ônibus partiu sem você.';
  const explanation=went
-  ?'Você manteve dinheiro suficiente para pagar os R$ 400 da viagem. Isso mostra o valor de proteger uma meta antes de fazer compras por impulso.'
+  ?'Sobrou dinheiro para pagar os R$ 400 da viagem. '+verdict(outcome).text
   :'Faltaram '+money(outcome.missing)+' para pagar os R$ 400 da viagem. Algumas decisões de compra e cobranças futuras alteraram o dinheiro disponível na hora de embarcar.';
  const status=sent?'✓ Percurso recebido pelo MCP.':'';
  return `<main class="end end-impact trip-impact ${went?'success':'missed'}"><div class="end-impact-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
@@ -3527,7 +3814,7 @@ function attentionBox(){
  </div>`;
 }
 function renderEnd(){
- exitHomeButton.hidden=false;
+ exitHomeButton.hidden=false;document.body.classList.remove('in-game');
  if(state.attention.guess==null||state.endPrelude==='guess'){root.innerHTML=guessPage();window.scrollTo(0,0);return;}
  if(state.endPrelude==='time'){root.innerHTML=timeRevealPage();window.scrollTo(0,0);animateRecordedTime();return;}
  if(state.endPrelude==='trip'||state.endPrelude==='mcp'){root.innerHTML=tripRevealPage();window.scrollTo(0,0);return;}
@@ -3712,10 +3999,18 @@ root.addEventListener('submit',async e=>{
 root.addEventListener('click',e=>{
  const el=e.target.closest('[data-action]');
  if(!el){
-  if(e.target.classList.contains('layer-backdrop')){if(modal?.type==='purchase-share')sharePurchase('nenhum');else closeModal();}
+  if(e.target.classList.contains('layer-backdrop')){if(modal?.type==='purchase-share')sharePurchase('nenhum');else if(modal?.type==='moment')answerMoment('no');else closeModal();}
   return;
  }
  const a=el.dataset.action,id=el.dataset.product,post=el.dataset.post;
+ if(a==='moment-yes'){answerMoment('yes');return;}
+ if(a==='moment-no'){answerMoment('no');return;}
+ // Quem toca direto no card do momento já respondeu ao aviso.
+ if(a==='roleta')markMoment('roleta','yes');
+ else if(a==='live')markMoment('live','yes');
+ else if(a==='sale')markMoment('flash','yes');
+ else if(a==='product'&&id==='plano')markMoment('trial','yes');
+ else if(a==='product'&&id==='ingresso')markMoment('lastcall','yes');
  if(a==='tag-vibe-continue'){closeTaggedVibeCelebration(false);return;}
  if(a==='tag-vibe-view'){closeTaggedVibeCelebration(true);return;}
  if(a==='sleep-reminder-continue'){closeSleepReminder();return;}
@@ -3730,9 +4025,10 @@ root.addEventListener('click',e=>{
  if(a==='start'){if(!identity){renderAccountGate('Entre na sua conta para iniciar.');return;}state.started=true;state.startedAt ||= new Date().toISOString();save();showIntro();}
  else if(a==='skip-intro'||a==='intro-next'||a==='open-next'){clearTimeout(introTimer);state.wake=true;state.wakeList=[{icon:'🎧',text:'Seu fone parou de funcionar hoje no intervalo.'},{icon:'🛍️',text:'Pulso Shop: um presente de boas-vindas espera por você.'}];save();overlay={type:'wake'};renderGame();}
  else if(a==='open-day'){state.wake=false;save();overlay=null;appendNext();renderGame();}
- else if(a==='sleep'){sleep();}
+ else if(a==='sleep'){trySleep(false);}
  else if(a==='day-menu'){modal={type:'day-menu'};drawModal();}
- else if(a==='end-day'){modal=null;document.querySelector('.layer-backdrop')?.remove();if(!tryExitHook('end'))sleep();}
+ else if(a==='exit-game'){closeModal();openExitConfirm();}
+ else if(a==='end-day'){modal=null;document.querySelector('.layer-backdrop')?.remove();trySleep(true);}
  else if(a==='hook-accept'){
   const hook=EXIT_HOOK_DAYS[state.day];state.attention.exitHooks++;
   influenced(['gancho_saida'],`Ia sair, mas abriu a atividade de ${hook.who}.`);
@@ -3742,7 +4038,7 @@ root.addEventListener('click',e=>{
   if(hook.kind==='message'){overlay={type:'inbox'};renderGame(true);}
   else{renderGame();document.querySelector('#feed-scroll')?.scrollTo(0,0);}
  }
- else if(a==='hook-decline'){const src=modal?.src;modal=null;if(src==='end')sleep();else renderGame(true);}
+ else if(a==='hook-decline'){const src=modal?.src;resisted(['gancho_saida'],'Viu o aviso “imperdível” na hora de sair e saiu assim mesmo.');modal=null;if(src==='end')sleep();else renderGame(true);}
  else if(a==='refresh-feed'){refreshFeed();}
  else if(a==='new-post'){modal={type:'new-post',choice:null,caption:''};drawModal();}
  else if(a==='new-story'){if(story)stopStory();modal={type:'new-story',choice:null,caption:''};drawModal();}
@@ -3823,24 +4119,24 @@ root.addEventListener('click',e=>{
   save();renderGame(true);toast('Tema Neon ativado ✨');
  }
  else if(a==='protect-keep'){const v=modal;closeModal();influenced(['dark_patterns'],v?.id==='vip'?'Ia tirar o VIP, mas manteve depois do “Tem certeza?”.':'Ia remover a Proteção Pulso+, mas manteve depois do “Tem certeza?”.');}
- else if(a==='protect-remove'){const v=modal;closeModal();if(v?.id==='vip')state.extraChecked=false;else if(v?.id)state.protection[v.id]=false;save();if(overlay)drawOverlay();}
+ else if(a==='protect-remove'){const v=modal;resisted(['dark_patterns'],v?.id==='vip'?'Tirou o VIP que vinha marcado, mesmo depois do “Tem certeza?”.':'Tirou a Proteção Pulso+ que vinha marcada, mesmo depois do “Tem certeza?”.');closeModal();if(v?.id==='vip')state.extraChecked=false;else if(v?.id)state.protection[v.id]=false;save();if(overlay)drawOverlay();}
  else if(a==='roleta'){if(story)stopStory();closeModal();overlay={type:'roleta'};drawOverlay();}
  else if(a==='spin'){spin();}
  else if(a==='pay'){if(story)stopStory();closeModal();overlay={type:'pay'};drawOverlay();}
  else if(a==='activate-card'){closeModal();activateCard(overlay?.type==='checkout'?'checkout':'pay');}
  else if(a==='activate-card-checkout'){activateCard('checkout');}
  else if(a==='decline-card'){modal={type:'decline-card'};drawModal();expose('dark_patterns','Para recusar o Pulso Pay: “Não, prefiro pagar tudo à vista” e depois “Não quero facilidades”.');}
- else if(a==='card-no'){closeModal();closeOverlay();toast('Tudo bem. A oferta fica no seu perfil.');}
+ else if(a==='card-no'){resisted(['preco','dark_patterns'],'Recusou o Pulso Pay duas vezes: “Não, prefiro pagar tudo à vista” e “Não quero facilidades”.');closeModal();closeOverlay();toast('Tudo bem. A oferta fica no seu perfil.');}
  else if(a==='live'){openLive();}
  else if(a==='live-buy'){state.context.tenis='live';save();openCheckout(['tenis'],'live');}
  else if(a==='leave-live'){const c=activeCoupons().find(c=>c.code==='LIVIA15');if(c&&!bought('tenis')){modal={type:'leave-live'};drawModal();expose('dark_patterns','Ao sair da live: “Sair e perder meu desconto”.');}else{clearInterval(liveTimer);closeOverlay();}}
- else if(a==='live-exit'){closeModal();clearInterval(liveTimer);closeOverlay();}
+ else if(a==='live-exit'){resisted(['influencia','urgencia','escassez'],'Saiu da live sem comprar, mesmo com “Sair e perder meu desconto”.');closeModal();clearInterval(liveTimer);closeOverlay();}
  else if(a==='sale'){if(story)stopStory();closeModal();overlay={type:'shop'};drawOverlay();}
  else if(a==='trial'){state.context.plano=state.context.plano||'trial';openCheckout(['plano'],overlay?.from||'feed',true);}
  else if(a==='variant'){state.variant.fone=el.dataset.variant;save();drawOverlay();}
  else if(a==='add-to-order'){if(overlay?.type==='checkout'&&products[id]&&!overlay.items.includes(id)){overlay.items.push(id);state.context[id]=state.context[id]||'shop';influenced(['preco','dark_patterns'],`Adicionou ${productName(id)} ao pedido para “liberar” frete grátis ou cupom.`);drawOverlay();}}
  else if(a==='exit-accept'){const v=modal;closeModal();if(v?.id){addCoupon({code:'VOLTA10-'+v.id.toUpperCase(),label:'10% OFF extra',kind:'pct',amount:10,min:0,only:[v.id],expiresDay:state.day,until:v.until,source:'exit'});state.context[v.id]='exit';influenced(['dark_patterns'],`Ia sair do ${productName(v.id)}, mas aceitou o “10% OFF só agora”.`);drawOverlay();toast('Cupom de 10% aplicado 🎁');}}
- else if(a==='exit-decline'){closeModal();closeOverlay();toast('Você voltou ao feed.');}
+ else if(a==='exit-decline'){resisted(['dark_patterns','urgencia'],'Saiu da loja recusando os “10% OFF extra, só agora”.');closeModal();closeOverlay();toast('Você voltou ao feed.');}
  else if(a==='subs'){overlay={type:'subs'};drawOverlay();}
  else if(a==='cancel-sub'){cancelSubStep();}
  else if(a==='keep-sub'){if(state.flags.cancelStep)influenced(['dark_patterns'],'Desistiu de cancelar a assinatura depois do “Tem certeza?”.');state.flags.cancelStep=0;save();drawOverlay();}
@@ -3981,7 +4277,7 @@ window.addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft'){e.preventDefault();advanceStory(-1);return;}
   if(e.key===' '&&e.target.tagName!=='BUTTON'){e.preventDefault();toggleStoryPause();return;}
  }
- if(e.key==='Escape'){if(modal)closeModal();else if(overlay)closeOverlay();}
+ if(e.key==='Escape'){if(modal?.type==='moment')answerMoment('no');else if(modal)closeModal();else if(overlay)closeOverlay();}
 });
 root.addEventListener('pointerdown',storyPointerDown);
 root.addEventListener('pointerup',storyPointerUp);

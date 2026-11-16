@@ -96,4 +96,26 @@ describe("roteiro da semana",()=>{
   const pick=S.choosePost(posts,{shown:[],personalized:true,profile:globalThis.NoFeedRecommender.emptyProfile(),phase:0,allowed:["fone","tenis"],focus:["tenis"]});
   expect(pick.id).toBe("c");
  });
+ it("o quiz usa só as dez estratégias que o servidor MCP conhece, sem alternativas ambíguas",()=>{
+  const server=["urgencia","escassez","prova_social","influencia","personalizacao","fomo","preco","dark_patterns","recompensa","emocao"];
+  expect(P.REPORT_KEYS).toEqual(server);
+  const l=P.emptyLedger();
+  // Mecanismos de retenção muito expostos não podem virar pergunta nem alternativa.
+  for(let i=0;i<30;i++){P.expose(l,"rolagem_infinita","feed sem fim "+i);P.expose(l,"gancho_saida","gancho "+i);}
+  P.expose(l,"fomo","grupo da turma");P.expose(l,"preco","10x no checkout");P.influence(l,"preco","parcelou em 10x");
+  const q=P.quiz(l,5);
+  expect(q).toHaveLength(5);
+  for(const item of q){
+   expect(server).toContain(item.answer);
+   expect(item.options).toHaveLength(3);
+   for(const o of item.options){
+    expect(server).toContain(o);
+    if(o!==item.answer)expect(P.CONFUSABLE[item.answer]).not.toContain(o);
+   }
+  }
+  // Mesma ordem que o servidor recalcula: mais ações, depois mais exposições, depois a ordem das chaves.
+  expect(q[0].answer).toBe("preco");
+  expect(q[1].answer).toBe("fomo");
+  expect(q.slice(2).map(x=>x.answer)).toEqual(["urgencia","escassez","prova_social"]);
+ });
 });

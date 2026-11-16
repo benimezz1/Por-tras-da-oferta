@@ -145,3 +145,44 @@ A etapa **Aprenda** ganhou o bloco **Seu direct, por trás**, que explica cada c
 ### Dados e MCP
 
 O contrato `c4-semana` versão 1 não mudou. `threads` mantém o formato anterior (dias, não lidas e a última resposta de cada dia). O histórico das falas fica em `state.dm`, e as microcompras em `state.extras`; nenhum dos dois é exportado. O servidor MCP não foi alterado nem testado com estas mudanças.
+
+## Reestruturação final
+
+### Problemas encontrados jogando
+
+| Problema | Efeito |
+| --- | --- |
+| O botão **Dormir** funcionava a qualquer hora, inclusive na tela de acordar | Cinco toques (4 segundos) terminavam a semana com “Você conseguiu embarcar!” e tempo de jogo 0min 00s |
+| Todos os acontecimentos eram cards passivos no feed | Quem só rolava não tomava nenhuma decisão, e a revelação não tinha o que mostrar |
+| Só as compras eram registradas | Quem resistia terminava com “0 ações”, sem retorno sobre onde resistiu |
+| Não comprar nada era sempre a melhor jogada | Contradiz o relatório, que separa consumo de consumismo (Bauman, 2008) |
+| O quiz sorteava alternativas entre 15 estratégias | Perguntas com duas respostas defensáveis (recompensa imediata x variável, urgência x escassez) e respostas que o servidor MCP rejeita |
+| 480 posts com os mesmos dois comentários e quatro bordões | O feed denunciava que era gerado |
+
+### O que mudou
+
+**Ritmo do dia.** `dayReady()` libera o fim do dia quando o mínimo de posts (`minQuota`) e todos os eventos do roteiro já entraram no feed, ou depois da meia-noite. Antes disso o botão mostra “ainda é cedo” e responde com um aviso. Como todo evento entra antes de dormir, `chaseMissed` deixa de ter o que carregar para o dia seguinte.
+
+**Momento do dia.** `MOMENTS` define um aviso de tela cheia por noite. Ele abre quando o card correspondente entra na tela (`checkMoments`) ou, se o jogador tentar dormir antes, na hora de dormir (`trySleep`). A resposta fica em `state.flags.moments` (`yes` ou `no`). Tocar direto no card conta como aceitar.
+
+| Dia | Momento | Recusa | Estratégias |
+| --- | --- | --- | --- |
+| Seg | Você ganhou 1 giro grátis! | Agora não | Recompensa, urgência |
+| Ter | livia.looks começou uma live | Perder a live | Influenciadores, urgência |
+| Qua | 3 dias de MODO+ por R$ 0,00 | Não quero estudar melhor | Padrões obscuros, preço |
+| Qui | MEGA LIQUIDA 48H | Prefiro pagar mais caro | Preço, urgência |
+| Sex | O Pocket Fest é hoje | Vou ficar de fora | FOMO, escassez |
+
+**Registro de resistências.** `resisted(chaves, texto)` guarda em `state.resisted` cada vez que o jogador recusou algo sob pressão. Esse campo fica só no navegador e não vai para o MCP.
+
+**Revelação.** `momentRecap()` monta, para cada momento, o que o jogador fez e o que estava por trás. `foneOutcome()` descreve como a necessidade real foi resolvida (conserto, Atmos Lite, modelo caro, ou nada). `verdict()` resume a partida em seis retratos, sem diagnóstico.
+
+**Quiz.** `Pressure.quiz` usa `REPORT_KEYS` (as dez estratégias do relatório) e `CONFUSABLE` (pares que não podem ser alternativa um do outro). Quando o jogador não viu a cena padrão da pergunta, o enunciado usa uma cena que ele viu (`quizVariants`).
+
+**Feed.** `polishPost()` limpa legendas, varia comentários e ajusta horários e curtidas no carregamento; os arquivos de biblioteca não mudaram. Contas que não são amigos próximos nem páginas aparecem como “sugerido”.
+
+**Interface.** O botão Dormir some sobre lojas, avisos e stories; no celular, o botão Início vira só a seta e o menu ⋯ ganhou “Sair da partida”.
+
+### Dados e MCP
+
+O contrato `c4-semana` versão 1 não mudou e o servidor não foi alterado. `flags.moments` e `flags.earlySleep` seguem dentro de `flags`, que já era exportado. O payload gerado pelo jogo foi validado contra `src/c4-import.mjs` do repositório do MCP (commit `8597ac2`): aceito, com as mesmas cinco respostas corretas no cliente e no servidor.

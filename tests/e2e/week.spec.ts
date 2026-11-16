@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { mockC4Service } from "./c4-mock";
+import { dismissMoment, readyToSleep, sleepDay } from "./day";
 
 const KEY = "nofeed-simulator-v4:user:player-e2e";
 test.use({ reducedMotion: "reduce" });
@@ -47,13 +48,14 @@ async function passGuess(page: Page) {
 }
 // O feed não acaba: o dia termina pelo menu ⋯, e na primeira tentativa do dia aparece o gancho de saída.
 async function endOfDay(page: Page) {
-  for (let i = 0; i < 2; i++) await page.locator(".load-more").evaluate((b: HTMLElement) => b.click());
+  await readyToSleep(page);
   await page.locator('[data-action="day-menu"]').click();
   await expect(page.locator('[data-action="end-day"]')).toBeVisible();
+  await page.locator('[data-action="close-modal"]').first().click();
 }
 async function nextDay(page: Page) {
   await endOfDay(page);
-  await page.locator('[data-action="end-day"]').click();
+  await sleepDay(page, "menu");
   const decline = page.locator('[data-action="hook-decline"]');
   if (await decline.count()) await decline.click();
   await passGuess(page);
@@ -65,6 +67,14 @@ async function nextDay(page: Page) {
     await card.waitFor({state:"visible",timeout:1200}).catch(()=>{});
     if(await card.isVisible())await card.locator('[data-action="tag-vibe-continue"]').click();
   }
+}
+// O card do momento, ao entrar na tela, dispara o aviso de tela cheia: aceitar por ele.
+async function openViaMoment(page: Page, card: string) {
+  await page.locator(card).scrollIntoViewIfNeeded();
+  const yes = page.locator('[data-action="moment-yes"]');
+  await yes.waitFor({ state: "visible", timeout: 3000 }).catch(() => {});
+  if (await yes.count()) await yes.click();
+  else await page.locator(card + " .ev-btn").click();
 }
 async function firstAdProduct(page: Page) {
   for (let i = 0; i < 4 && !(await page.locator(".ad-post").count()); i++)
@@ -257,26 +267,46 @@ test("o conserto barato passa pela conversa com o tio, e a loja interrompe no me
   expect(s.threads.lucca.picked[1]).toBe("repair");
 });
 
-test("dormir cedo não apaga o roteiro: mensagens chegam e o que faltou volta no dia seguinte", async ({ page }) => {
+test("dormir cedo demais é recusado e o momento do dia aparece antes de dormir", async ({ page }) => {
   await enter(page);
+  // A noite mal começou: o botão fica travado e não muda o dia.
+  await expect(page.locator(".day-sleep-control")).toHaveClass(/locked/);
+  await page.locator(".day-sleep-control").click();
+  await expect(page.locator(".toast")).toContainText("Cedo demais para dormir");
+  expect((await saved(page)).day).toBe(1);
+  await expect(page.locator(".wake")).toHaveCount(0);
+  // Depois dos posts e dos acontecimentos do dia, dormir destrava.
+  await readyToSleep(page);
+  const before = await saved(page);
+  expect(before.feedItems.some((x: { type?: string }) => x.type === "roleta")).toBe(true);
+  expect(before.flags.moments?.roleta).toBeUndefined();
+  // O giro grátis ainda não foi respondido: o aviso toma a tela antes de dormir.
+  await page.locator(".day-sleep-control").click();
+  const moment = page.locator(".moment-offer");
+  await expect(moment).toContainText("Você ganhou 1 giro grátis!");
+  await moment.locator('[data-action="moment-no"]').click();
+  await expect(moment).toHaveCount(0);
   await page.locator(".day-sleep-control").click();
   await expect(page.locator(".wake")).toContainText("ônibus em silêncio");
   await expect(page.locator(".wake")).toContainText("no direct");
-  await page.locator('[data-action="open-day"]').click();
+  // Na tela de acordar não existe botão de dormir.
+  await expect(page.locator(".day-sleep-control")).toHaveCount(0);
   const s = await saved(page);
-  // As conversas do dia chegam mesmo sem rolar o feed até elas.
+  expect(s.day).toBe(2);
+  expect(s.flags.moments.roleta).toBe("no");
+  expect(s.resisted.some((r: { t: string }) => r.t.includes("giro grátis"))).toBe(true);
   for (const k of ["lucca", "gabi", "pulso"]) expect(s.threads[k].days).toContain(1);
-  expect(s.threads.lucca.unread + s.threads.gabi.unread).toBeGreaterThan(0);
-  // Cada evento da segunda ou já apareceu, ou foi guardado para voltar na terça.
-  const seen = (type: string) => s.feedItems.some((x: { id: string }) => x.id.startsWith(`ev-1-${type}-`));
-  const carried = s.flags.carry.map((c: { type: string }) => c.type);
-  for (const type of ["roleta", "compare"]) expect(seen(type) || carried.includes(type)).toBe(true);
-  expect(s.flags.carry.every((c: { day: number }) => c.day === 2)).toBe(true);
-  if (carried.length) {
-    for (let i = 0; i < 3; i++) await page.locator(".load-more").evaluate((b: HTMLElement) => b.click());
-    const items = (await saved(page)).feedItems;
-    expect(items.some((x: { id: string; carried?: boolean }) => x.carried && x.id.startsWith("ev-2-carry-"))).toBe(true);
-  }
+});
+
+test("aceitar o momento do dia abre a oferta e fica registrado para a revelação", async ({ page }) => {
+  await enter(page);
+  await readyToSleep(page);
+  await page.locator(".day-sleep-control").click();
+  await page.locator('[data-action="moment-yes"]').click();
+  await expect(page.locator(".roleta-body")).toBeVisible();
+  const s = await saved(page);
+  expect(s.flags.moments.roleta).toBe("yes");
+  expect(s.day).toBe(1);
 });
 
 test("desmarcar a proteção pede confirmação antes de aceitar", async ({ page }) => {
@@ -298,7 +328,7 @@ test("a semana tem cinco dias, live na terça e Mega Liquida com preço “de”
   await expect(page.locator(".status-bar")).toContainText("TER");
   for (let i = 0; i < 4 && !(await page.locator(".ev-live").count()); i++)
     await page.locator(".load-more").evaluate((b: HTMLElement) => b.click());
-  await page.locator(".ev-live .ev-btn").click();
+  await openViaMoment(page, ".ev-live");
   await expect(page.locator("div.live")).toContainText("AO VIVO");
   await expect(page.locator(".live-info")).toContainText("LIVIA15");
   await page.locator('[data-action="leave-live"]').click();
@@ -307,7 +337,7 @@ test("a semana tem cinco dias, live na terça e Mega Liquida com preço “de”
   await nextDay(page);
   await nextDay(page);
   await expect(page.locator(".status-bar")).toContainText("QUI");
-  await page.locator(".ev-flash .ev-btn").click();
+  await openViaMoment(page, ".ev-flash");
   await expect(page.locator(".sale-banner")).toContainText("MEGA LIQUIDA");
   await expect(page.locator('.shop-product[data-product="mochila"]')).toContainText("R$ 399,90");
 });
@@ -537,8 +567,8 @@ test("feed infinito: novidades, postagem própria e marcação sem repetição",
   await page.locator('.ios-gallery-done').click();
   await page.locator('[data-action="publish"]').first().click();
   await expect(page.locator(".mine-post")).toBeVisible();
-  await page.locator('[data-action="day-menu"]').click();
-  await page.locator('[data-action="end-day"]').click();
+  await expect(page.locator(".feed-refresh-loading")).toHaveCount(0);
+  await sleepDay(page, "menu");
   await expect(page.locator(".wake")).toBeVisible();
   // A Bia ja marcou o jogador e ele ja recebeu o popup: nao repetir o aviso.
   await expect(page.locator(".bottom-sheet")).toHaveCount(0);
