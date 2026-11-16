@@ -1,6 +1,7 @@
 
 import { test, expect } from "@playwright/test";
 import { mockC4Service } from "./c4-mock";
+import { sleepDay } from "./day";
 
 test.beforeEach(async ({ page }) => {
   await mockC4Service(page);
@@ -153,7 +154,7 @@ test("publicar foto sobe o feed com carregamento e novos posts recomendados sem 
 
 test("grupo time Motion aparece depois de comprar o tenis e nao antes",async ({page})=>{
  await enter(page);
- await page.locator('.day-sleep-control').click();
+ await sleepDay(page);
  await page.locator('[data-action="open-day"]').click();
  await page.locator('.phone-head [data-action="inbox"]').click();
  await expect(page.locator('.inbox-row').filter({hasText:'time Motion'})).toHaveCount(0);
@@ -269,7 +270,7 @@ test("foto marcada abre card distinto e concede vibe apenas uma vez", async ({ p
 test("Gabi marca o jogador no quinto dia e gera uma nova celebração", async ({ page }) => {
   await enter(page);
   for (let day = 2; day <= 5; day++) {
-    await page.locator(".day-sleep-control").click();
+    await sleepDay(page);
     await page.locator('[data-action="open-day"]').click();
   }
   const card = page.locator(".tag-vibe-overlay");
@@ -595,7 +596,7 @@ test("toque duplo na foto em celular curte, enquanto arrastar não curte", async
 test("stories do dia mantêm autoria e oferecem acesso às lojas fictícias", async ({page})=>{
  await enter(page);
  for(let day=1;day<4;day++){
-   await page.locator('.day-sleep-control').click();
+   await sleepDay(page);
    if(await page.locator('[data-action="hook-decline"]').count())await page.locator('[data-action="hook-decline"]').click();
    await page.locator('[data-action="open-day"]').click();
  }
@@ -634,7 +635,7 @@ test("editor de post permite escolher foto, personalizar legenda e editar public
 test("relogio avanca apos grupos alternados de 2 e 3 posts",async ({page})=>{
  await enter(page);
  await expect(page.locator('.sb-time')).toContainText('SEG · 19:');
- await page.locator('.day-sleep-control').click();
+ await sleepDay(page);
  await page.locator('[data-action="open-day"]').click();
  await expect(page.locator('.sb-time')).toContainText('TER · 19:');
  const posts=page.locator('.post[data-rec-id]');
@@ -662,7 +663,7 @@ test("cada novo dia mostra publicações inéditas e stories renovados", async (
   const firstPosts=await page.locator('.post:not(.ad-post):not(.tagged-post):not(.mine-post)[data-rec-id]').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-rec-id')));
   const firstStories=await page.locator('.story-rail .story').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-story-user')));
   expect(firstPosts.length).toBeGreaterThan(0);
-  await page.locator('.day-sleep-control').click();
+  await sleepDay(page);
   await page.locator('[data-action="open-day"]').click();
   const secondPosts=await page.locator('.post:not(.ad-post):not(.tagged-post):not(.mine-post)[data-rec-id]').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-rec-id')));
   const secondStories=await page.locator('.story-rail .story').evaluateAll(cards=>cards.map(c=>c.getAttribute('data-story-user')));
@@ -755,20 +756,18 @@ test("é possível comentar no post de amigo e no anúncio com texto próprio", 
 test("Bia e Gabi sao notificadas so uma vez, sem segundo aviso de saida",async ({page})=>{
  await enter(page);
  await expect(page.locator('.tagged-post')).toContainText('bia.m');
- await page.locator('[data-action="day-menu"]').click();
- await page.locator('[data-action="end-day"]').click();
+ await sleepDay(page,'menu');
  await expect(page.locator('.wake')).toBeVisible();
  await expect(page.locator('.bottom-sheet')).toHaveCount(0);
  for(let day=2;day<=5;day++){
   await page.locator('[data-action="open-day"]').click();
-  if(day<5)await page.locator('.day-sleep-control').click();
+  if(day<5)await sleepDay(page);
  }
  const card=page.locator('.tag-vibe-overlay');
  await expect(card).toBeVisible();
  await expect(card).toContainText('gabi.n');
  await card.locator('[data-action="tag-vibe-continue"]').click();
- await page.locator('[data-action="day-menu"]').click();
- await page.locator('[data-action="end-day"]').click();
+ await sleepDay(page,'menu');
  await expect(page.locator('.bottom-sheet')).toHaveCount(0);
  await expect(page.locator('.time-guess')).toBeVisible();
  const state=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')));

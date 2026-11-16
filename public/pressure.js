@@ -225,19 +225,33 @@
   validacao_social:"Seu post rendeu poucas curtidas, e o app avisou que posts com o tênis da moda rendem 3x mais.",
   personalizacao_dificil:"Você clicou em “Mostrar menos”, mas o mesmo tema voltou poucos posts depois por um assunto “parecido”."
  };
+ /* O quiz cobre as dez estratégias do relatório C3, na mesma ordem em que o
+  * servidor MCP recalcula as respostas (ele só conhece essas dez chaves).
+  * Os cinco mecanismos de retenção ficam na revelação, fora do quiz. */
+ const REPORT_KEYS=KEYS.slice(0,10);
+ /* Estratégias que costumam aparecer juntas na mesma cena não entram como
+  * alternativa errada uma da outra: a pergunta precisa ter uma resposta só. */
+ const CONFUSABLE={
+  urgencia:["escassez","fomo","dark_patterns"],escassez:["urgencia","fomo","dark_patterns"],
+  prova_social:["influencia","fomo"],influencia:["prova_social","personalizacao","urgencia","escassez"],
+  personalizacao:["influencia","emocao"],fomo:["prova_social","escassez","urgencia","emocao"],
+  preco:["recompensa","dark_patterns","urgencia"],dark_patterns:["preco","urgencia","escassez"],
+  recompensa:["preco","urgencia","escassez"],emocao:["personalizacao","fomo"]
+ };
  /* variants: enunciados alternativos por estratégia, tirados da própria partida. */
  function quiz(ledger,count=5,variants=null){
-  const ranked=profile(ledger);
+  const ranked=profile(ledger).filter(x=>REPORT_KEYS.includes(x.key));
   const chosen=ranked.filter(x=>x.exposed>0).slice(0,count).map(x=>x.key);
-  for(const k of KEYS){if(chosen.length>=count)break;if(!chosen.includes(k))chosen.push(k);}
+  for(const k of REPORT_KEYS){if(chosen.length>=count)break;if(!chosen.includes(k))chosen.push(k);}
   return chosen.map((answer,i)=>{
-   const others=KEYS.filter(k=>k!==answer).sort((a,b)=>hash(answer+a)-hash(answer+b)).slice(0,2);
+   const avoid=CONFUSABLE[answer]||[];
+   const others=REPORT_KEYS.filter(k=>k!==answer&&!avoid.includes(k)).sort((a,b)=>hash(answer+a)-hash(answer+b)).slice(0,2);
    const options=[answer,...others].sort((a,b)=>hash(i+":"+a)-hash(i+":"+b));
-   return {id:"q"+i,answer,prompt:(variants&&variants[answer])||QUIZ_BANK[answer],options};
+   return {id:"q"+i,answer,prompt:(variants&&variants[answer])||QUIZ_BANK[answer],options,seen:(ledger.exposed[answer]||0)>0};
   });
  }
 
- root.PorTrasPressure=Object.freeze({STRATEGIES,KEYS,FEES,TIMER_MS,hash,round,emptyLedger,normalizeLedger,expose,influence,
+ root.PorTrasPressure=Object.freeze({STRATEGIES,KEYS,REPORT_KEYS,CONFUSABLE,FEES,TIMER_MS,hash,round,emptyLedger,normalizeLedger,expose,influence,
   installment,protectionPrice,couponDiscount,bestCoupon,quote,visitTimer,timerLeft,formatClock,visitStock,viewers,soldToday,rating,
   emptyVibe,normalizeVibe,vibeChange,vibeTick,vibeBuy,vibeMood,settle,profile,quiz,QUIZ_BANK});
 })(typeof window!=="undefined"?window:globalThis);

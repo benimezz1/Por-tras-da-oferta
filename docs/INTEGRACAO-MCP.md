@@ -112,3 +112,9 @@ sem solicitar mais do que apelido e senha antes de iniciar.
 - Os registros são de uma simulação e não comprovam autoria nem
   representam diagnóstico psicológico. Limitar ao uso escolar, evitar
   dados pessoais de menores e garantir exclusão após a apresentação.
+
+### Quiz e as dez estratégias do servidor
+
+O servidor (`src/c4-import.mjs`) conhece dez chaves de estratégia e rejeita com 422 (“Respostas do quiz inválidas”) qualquer resposta fora delas. Até a reestruturação final, o quiz do jogo sorteava alternativas entre quinze chaves (as dez do relatório mais cinco mecanismos de retenção): bastava o jogador marcar “Gancho de saída”, “Recompensa variável”, “Rolagem infinita”, “Validação social” ou “Controle de fachada” para o envio automático falhar. Além disso, o servidor recalcula a resposta correta com as dez chaves, então os acertos podiam não bater com o que o jogador viu.
+
+O quiz agora usa só as dez chaves, na mesma ordem do servidor. O teste `tests/pressure.test.mjs` e o mock `tests/e2e/c4-mock.ts` protegem essa regra. Outros limites do servidor que valem lembrar: no máximo 500 chaves por objeto e 65 mil nós no JSON, o que só seria atingido em partidas muito longas.
