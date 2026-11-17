@@ -337,6 +337,8 @@
 .c4-sync-panel{border:1px solid #dfede6;background:#fafefa;border-radius:15px;padding:16px;margin:17px 0}
 .c4-sync-panel p{font-size:13px;margin:8px 0}.c4-sync-status{font-size:14px;font-weight:700}
 .c4-sync-panel .secondary{margin-top:8px}
+
+.push-banner{display:flex!important;align-items:center!important;gap:5px!important}.push-banner .push-open{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;text-align:left;padding:9px 10px;border:0;background:transparent;color:inherit;cursor:pointer}.push-banner .push-dismiss{flex:none;min-width:36px;padding:9px;border:0;background:transparent;color:inherit;font-weight:800;font-size:20px;cursor:pointer}.avatar-placeholder{width:100%;height:100%;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,#ead7ed,#b7d5d4);font-weight:850;color:#45354d}.own-profile-avatar{background:linear-gradient(135deg,#e9aeda,#bda6ec)}.hud-vibe{display:flex;align-items:center;gap:5px}.hud-vibe-number{font-size:12px;font-weight:900;color:#712889;font-variant-numeric:tabular-nums}.reward-skip{display:block;margin:9px auto 0;padding:7px;border:0;background:none;color:#8a7d93;font-size:11px;text-decoration:underline;cursor:pointer}.c4-username-focus{padding:14px;border-radius:15px;border:2px solid #a279d9;background:#f6efff;margin:12px 0;display:flex;flex-wrap:wrap;align-items:center;gap:8px}.c4-username-focus small{font-size:10px;font-weight:850;letter-spacing:.07em;display:block;width:100%;color:#79578c}.c4-username-focus strong{font-size:23px;flex:1;overflow-wrap:anywhere;color:#322044}.c4-username-focus button{font-size:11px;padding:8px}
 </style>
 <link rel="stylesheet" href="/pressure.css" />
 <style>
@@ -972,7 +974,9 @@ const pageLogos={
 };
 function profileAvatar(user,fallback,isPage=false){
  if(isPage&&pageLogos[user])return '<span class="page-logo" role="img" aria-label="Logo da página '+esc(user)+'">'+pageLogos[user]+'</span>';
- return mediaPhoto(avatarSrc(user,fallback),"avatar-photo","Foto de perfil de "+user);
+ const key=avatarMediaMap[String(user).replace(/^@/,"")]||avatarMediaMap[user];
+ if(key)return mediaPhoto(key,"avatar-photo","Foto de perfil de "+user);
+ return `<span class="avatar-placeholder" aria-label="Perfil de ${esc(user)}">${esc(String(user).replace(/^@/,"").slice(0,1).toUpperCase())}</span>`;
 }
 
 function mediaPhoto(kind,cssClass,alt){
@@ -1226,7 +1230,7 @@ function showRewardCelebration(item){
  popup.className='reward-celebration reward-kind-'+item.variant;
  popup.dataset.rewardId=item.id;
  popup.setAttribute('role','dialog');popup.setAttribute('aria-modal','true');popup.setAttribute('aria-labelledby','reward-dialog-title');
- popup.innerHTML='<div class="reward-particles" aria-hidden="true"></div><section class="reward-panel"><div class="reward-headline">✦ RECOMPENSA DESBLOQUEADA ✦</div><div class="reward-medallion" aria-hidden="true"><span class="reward-symbol"></span></div><h2 id="reward-dialog-title"></h2><strong class="reward-amount"></strong><p class="reward-description"></p><p class="reward-balance"></p><button class="reward-continue" type="button" data-action="reward-close"></button><small class="reward-disclaimer">Recompensas fictícias desta experiência educativa.</small></section>';
+ popup.innerHTML='<div class="reward-particles" aria-hidden="true"></div><section class="reward-panel"><div class="reward-headline">✦ RECOMPENSA DESBLOQUEADA ✦</div><div class="reward-medallion" aria-hidden="true"><span class="reward-symbol"></span></div><h2 id="reward-dialog-title"></h2><strong class="reward-amount"></strong><p class="reward-description"></p><p class="reward-balance"></p><button class="reward-continue" type="button" data-action="reward-close"></button><button class="reward-skip" type="button" data-action="reward-close">Agora não, continuar no feed</button><small class="reward-disclaimer">Recompensas fictícias desta experiência educativa.</small></section>';
  const particles=popup.querySelector('.reward-particles');
  for(let i=0;i<32;i++){
   const angle=i*Math.PI*2/32+.18,radius=110+(i%5)*22,part=document.createElement('span');
@@ -1618,8 +1622,8 @@ function clockLabel(){const m=clockMinutes()%(24*60);return pad2(Math.floor(m/60
 function afterMidnight(){return clockMinutes()>=24*60;}
 function clockDayLabel(){return afterMidnight()?(Week.DAYS[state.day]?.short||'SÁB'):dayInfo().short;}
 function advanceClockForVisible(id){
- // Depois de 2 posts vistos, o relogio avanca 18 min; depois de 3,
- // depois de 2, depois de 3... Reabrir posts nao adianta o horario.
+ // Depois de 2 posts vistos, o relogio avanca 18 min; depois de 1,
+ // depois de 2, depois de 1... Reabrir posts nao adianta o horario.
  const result=GameClock.advanceViewedPost(state,state.day,id);
  if(!result.seen)return;
  save();
@@ -1663,7 +1667,7 @@ function pulseVibe(delta){
  const m=Pressure.vibeMood(state.vibe.value);
  el.querySelector('.hud-vibe-emoji').textContent=m.emoji;
  el.querySelector('.hud-vibe-fill').style.width=state.vibe.value+'%';
- el.setAttribute('aria-label','Sua vibe: '+m.label);
+ el.setAttribute('aria-label','Sua vibe: '+state.vibe.value+'/100. '+m.label); el.querySelector('.hud-vibe-number')?.replaceChildren(document.createTextNode(String(state.vibe.value)));
  if(Math.abs(delta)>=2){const chip=document.createElement('span');chip.className='vibe-chip '+(delta>0?'up':'down');chip.textContent=(delta>0?'+':'')+Math.round(delta)+' vibe';el.appendChild(chip);setTimeout(()=>chip.remove(),1700);}
 }
 function price(id){return Week.priceFor(products[id],id,state.day,id==='fone'?state.variant.fone:null);}
@@ -1684,9 +1688,11 @@ function banner(html,attrs={}){bannerQueue.push({html,attrs});if(!bannerTimer)se
 function nextBanner(){
  const phone=document.querySelector('.phone');
  if(!bannerQueue.length||!phone||story){bannerTimer=null;return;}
+ while(bannerQueue.length&&bannerQueue[0].attrs?.['data-thread']&&!(state.threads[bannerQueue[0].attrs['data-thread']]?.unread>0))bannerQueue.shift();
+ if(!bannerQueue.length){bannerTimer=null;return;}
  const item=bannerQueue.shift();
  phone.querySelector('.push-banner')?.remove();
- const b=document.createElement('button');b.type='button';b.className='push-banner';b.innerHTML=item.html;
+ const b=document.createElement('div');b.className='push-banner';b.innerHTML=`<button type="button" class="push-open" aria-label="Abrir aviso">${item.html}</button><button type="button" class="push-dismiss" data-action="dismiss-push" aria-label="Dispensar notificação">×</button>`;
  for(const [k,v] of Object.entries(item.attrs))b.setAttribute(k,v);
  phone.appendChild(b);bannerShown=b;
  bannerTimer=setTimeout(()=>{b.classList.add('out');setTimeout(()=>{b.remove();bannerTimer=null;nextBanner();},320);},4300);
@@ -1859,13 +1865,14 @@ const dmSpeed=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches?
 function dmReveal(id,icon,title,text){const dm=dmState();if(!dm.reveals.some(r=>r.id===id))dm.reveals.push({id,icon,title,text});}
 let dmBannerAt={};
 function dmArrived(k,entries){
- if(!entries.length)return;
+ if(!entries.length||!entries.some(m=>m.f!=='me'))return;
  const th=state.threads[k],t=Week.THREADS[k];dmTouch(k);
  if(chatOpen(k)){refreshChat();return;}
  th.unread=(th.unread||0)+entries.length;
  refreshHeader();
  if(overlay?.type==='inbox')drawOverlay();
  if(state.wake||state.finished||!t)return;
+ if(clockMinutes()>=26*60){if(state.day!==5||state.flags.fridayLatePush)return;state.flags.fridayLatePush=true;save();}
  const now=Date.now();
  if(now-(dmBannerAt[k]||0)<5000)return;
  dmBannerAt[k]=now;
@@ -2037,7 +2044,7 @@ function deliverThread(key,day,opts={}){
  const dialog=Direct.BY_EVENT[key+':'+day];
  if(dialog){
   if(dialog==='lucca-5'&&!state.fixes.some(f=>f.id==='borrow'))return;
-  if(dialog==='nina-5'&&bought('ingresso'))return;
+  // Nina pode oferecer o ingresso para que o jogador diga que ja comprou.
   if(dialog==='mia-4'&&bought('garrafa'))return;
   if(dmStart(dialog,opts)&&key==='livia')expose('influencia','DM da Lívia: “cupom exclusivo SÓ pros meus seguidores”.');
   return;
@@ -2095,7 +2102,7 @@ function threadAvatar(k){
  const t=Week.THREADS[k];
  if(t.kind==='brand')return '<span class="avatar brand-av chat-av">PS</span>';
  if(t.kind==='group')return `<span class="avatar chat-av group-av">${k==='fest'?'🎉':k==='motion'?'👟':'✈️'}</span>`;
- if(!t.avatar)return `<span class="avatar chat-av letter-av">${esc(t.letter||t.name[0].toUpperCase())}</span>`;
+ if(!t.avatar)return `<span class="avatar chat-av photo-avatar">${profileAvatar(t.name,"",false)}</span>`;
  return `<span class="avatar photo-avatar chat-av">${mediaPhoto(t.avatar,'avatar-photo','Foto de '+t.name)}</span>`;
 }
 function lastMessage(k){
@@ -2152,6 +2159,9 @@ function refreshChat(){
 }
 function openChat(k){
  if(!state.threads[k])return;
+ bannerQueue=bannerQueue.filter(n=>n.attrs?.['data-thread']!==k);
+ if(bannerShown?.dataset?.thread===k){bannerShown.remove();bannerShown=null;}
+ state.notifs=state.notifs.filter(n=>n.thread!==k);
  if(story)stopStory();closeModal();
  state.threads[k].unread=0;save();
  overlay={type:'chat',thread:k};drawOverlay();refreshHeader();
@@ -2651,12 +2661,13 @@ function overnight(){
  if(left&&!dm.done.includes('duda-1')){dm.vars.produto=productName(left);dm.vars.dudaItem=left;dmStart('duda-1',{instant:true,silent:true});}
  else if(seen&&d>=3&&!dm.done.includes('friend-nudge')&&products[seen]){
   dm.done.push('friend-nudge');
-  const f=['mia','nina','bia'][Pressure.hash(state.runId+':nudge')%3];
-  dmSay(f,[[f,`vi q vc tava olhando o ${productName(seen)} kkk`],[f,'o meu é mto bom, pega']],{instant:true,silent:true});
+  const f=seen==='fone'?'mia':['mia','nina','bia'][Pressure.hash(state.runId+':nudge')%3];
+  if(seen==='fone')dmStart('mia-fone',{instant:true,silent:true});
+  else dmSay(f,[[f,`vi que vc tava olhando o ${productName(seen)} kkk`],[f,'eu uso e gosto, mas compara os preços antes!']],{instant:true,silent:true});
   expose('personalizacao',`Um amigo “ficou sabendo” do ${productName(seen)} que você só tinha olhado e comentou no direct.`);
   expose('prova_social','No direct: “o meu é muito bom, pega”.');
  }
- if(d===4&&state.flags.biaRef&&state.coupons.some(c=>c.code==='BIA20'&&!c.used))dmStart('bia-4',{instant:true,silent:true});
+ if(d===4&&dm.done.includes('bia-3')&&!state.flags.biaRef)dmStart('bia-4',{instant:true,silent:true});
  const unread=unreadCount();
  if(unread)list.push({icon:'💬',text:`${unread} mensagen${unread>1?'s novas':' nova'} no direct.`,action:'inbox'});
  for(const n of list)notify(n.icon,n.text,{product:n.product||'',action:n.action||''});
@@ -3003,7 +3014,7 @@ function mineCard(item){
  const photo=p.photo||c.photo,liked=(state.mineLikes||[]).includes(p.id);
  const comments=ownPostComments(p),saved=state.bookmarks.includes(p.id);
  return `<article class="post mine-post" data-rec-id="${esc(p.id)}">
- <div class="post-top"><span class="avatar photo-avatar">${mediaPhoto(photo,'avatar-photo','Sua foto')}</span><div class="user-info"><div class="username">${esc(identity?.username||'você')} <span class="meta-tag">você</span></div><div class="post-sub">publicado às ${esc(p.time||clockLabel())}</div></div><button class="icon-button" data-action="edit-my-post" data-post="${esc(p.id)}" aria-label="Editar sua publicação">${icon("more")}</button></div>
+ <div class="post-top"><span class="avatar photo-avatar"><span class="avatar-placeholder own-profile-avatar" aria-label="Seu perfil">🙂</span></span><div class="user-info"><div class="username">${esc(identity?.username||'você')} <span class="meta-tag">você</span></div><div class="post-sub">publicado às ${esc(p.time||clockLabel())}</div></div><button class="icon-button" data-action="edit-my-post" data-post="${esc(p.id)}" aria-label="Editar sua publicação">${icon("more")}</button></div>
  <div class="post-media feed-photo" data-like-mine="${esc(p.id)}" role="group" aria-label="Sua foto. Dois toques para curtir.">${mediaPhoto(photo,'art-photo','Sua publicação')}</div>
  <div class="post-actions">
  <button class="icon-button like-button ${liked?'is-liked':''}" data-action="like-mine" data-post="${esc(p.id)}" aria-pressed="${liked}" aria-label="${liked?'Descurtir':'Curtir'} sua publicação">${icon('heart',liked?'heart-filled':'')}</button>
@@ -3153,7 +3164,7 @@ function stageFeed(){
  const ended=items.some(x=>x.kind==='night');
  const extraToday=Math.max(0,dayStreamCount()-(d.minQuota||7));
  return `<div class="game">${asideLeft()}<main class="phone${state.vibe.value<40?' low-vibe':''}${state.flags.theme?' theme-neon':''}" aria-label="Simulador de rede social">
- <div class="status-bar"><span class="sb-time">${clockDayLabel()} · ${clockLabel()}${afterMidnight()?' <small class="overnight-day">virou o dia</small>':''}</span><span class="hud"><button class="hud-vibe" data-action="vibe-info" aria-label="Sua vibe: ${m.label}"><span class="hud-vibe-emoji">${m.emoji}</span><span class="hud-vibe-track"><span class="hud-vibe-fill" style="width:${state.vibe.value}%"></span></span></button><button class="hud-coins" data-action="coins-info" aria-label="Moedas Pulso">🪙 ${money(state.coins)}</button></span></div>
+ <div class="status-bar"><span class="sb-time">${clockDayLabel()} · ${clockLabel()}${afterMidnight()?' <small class="overnight-day">virou o dia</small>':''}</span><span class="hud"><button class="hud-vibe" data-action="vibe-info" aria-label="Sua vibe: ${m.label}"><span class="hud-vibe-emoji">${m.emoji}</span><strong class="hud-vibe-number">${Math.round(state.vibe.value)}</strong><span class="hud-vibe-track"><span class="hud-vibe-fill" style="width:${state.vibe.value}%"></span></span></button><button class="hud-coins" data-action="coins-info" aria-label="Moedas Pulso">🪙 ${money(state.coins)}</button></span></div>
  <header class="phone-head"><span class="phone-logo">pulso<b>.</b></span><div class="phone-actions">
  <button class="shop-entry" data-action="shop" aria-label="Abrir lojas">${state.day===4?'🔥 Liquida':'Ofertas'}</button><button class="icon-button" data-action="notifications" aria-label="Notificações" style="position:relative">${icon('heart')}${state.notifs.length?'<span class="notif-dot"></span>':''}</button>
  <button class="icon-button hud-dm" data-action="inbox" aria-label="Mensagens" style="position:relative">${icon('send')}${n?`<span class="cart-dot">${n}</span>`:''}</button>
@@ -3704,7 +3715,7 @@ function endStep4(s){
  <div class="end-box"><h3>Por que isso importa</h3><p class="small muted">Na TIC Kids Online Brasil 2025, 55% dos adolescentes de 11 a 17 anos tiveram contato com publicidade em redes sociais, 84% viram conteúdos que divulgavam produtos sem identificação clara, e 51% das crianças e adolescentes pediram algo depois de ver um anúncio online. Reconhecer as estratégias é um passo para o consumo responsável do ODS 12.</p></div>
  <button class="secondary algorithm-final-reveal" data-action="algorithm-final" aria-expanded="false" aria-controls="algorithm-final-panel">ⓘ Entender como o algoritmo montou meu feed</button>
  ${algorithmResults()}
- <div class="c4-sync-panel"><h3>Seu percurso no ChatGPT</h3>
+ <div class="c4-sync-panel"><h3>Seu percurso no ChatGPT</h3><div class="c4-username-focus"><small>SEU APELIDO NO JOGO · USE ESTE NO VÍNCULO</small><strong>${esc(identity?.username||'jogador')}</strong><button type="button" class="secondary" data-action="copy-username">Copiar apelido</button></div>
  <p class="small muted">A partida fictícia da conta <strong>${esc(identity?.username||'jogador')}</strong> é enviada automaticamente ao MCP depois do quiz.</p>
  <p id="c4-sync-status" class="c4-sync-status" role="status">Preparando envio ao MCP…</p>
  <button class="secondary" data-action="retry-c4" hidden>Tentar enviar novamente</button>
@@ -4029,6 +4040,8 @@ root.addEventListener('click',e=>{
  if(a==='tag-vibe-view'){closeTaggedVibeCelebration(true);return;}
  if(a==='sleep-reminder-continue'){closeSleepReminder();return;}
  if(a==='sleep-reminder-sleep'){closeSleepReminder();sleep();return;}
+ if(a==='copy-username'){navigator.clipboard?.writeText(identity?.username||'').then(()=>toast('Apelido copiado!')).catch(()=>toast('Seu apelido: '+identity?.username));return;}
+ if(a==='dismiss-push'){el.closest('.push-banner')?.remove();bannerShown=null;return;}
  if(a==='reward-close'){closeRewardCelebration();return;}
  if(a==='reward-product'){closeRewardCelebration();openProduct(id,'surprise');return;}
  if(a==='open-photo'&&performance.now()<suppressPhotoOpenUntil)return;
@@ -4156,7 +4169,7 @@ root.addEventListener('click',e=>{
  else if(a==='keep-sub'){if(state.flags.cancelStep)influenced(['dark_patterns'],'Desistiu de cancelar a assinatura depois do “Tem certeza?”.');state.flags.cancelStep=0;save();drawOverlay();}
  else if(a==='sub-discount'){const sub=state.subscriptions.find(x=>x.active);if(sub){sub.monthly=Pressure.round(sub.monthly/2);sub.name+=' (50% OFF)';}state.flags.cancelStep=0;influenced(['dark_patterns'],'Aceitou a oferta de retenção em vez de cancelar a assinatura.');save();drawOverlay();}
  else if(a==='sub-help'){toast('Opção indisponível no momento.');}
- else if(a==='vibe-info'){const m=Pressure.vibeMood(state.vibe.value);toast(`Vibe: ${m.label} ${m.emoji} · Um mimo sempre levanta o astral ✨`);expose('emocao','O app sugeria que “um mimo sempre levanta o astral”.');}
+ else if(a==='vibe-info'){const m=Pressure.vibeMood(state.vibe.value);toast(`Vibe ${Math.round(state.vibe.value)}/100: ${m.label} ${m.emoji} · No jogo, compras aumentam a vibe temporariamente.`);expose('emocao','O app sugeria que “um mimo sempre levanta o astral”.');}
  else if(a==='coins-info'){toast(`Você tem ${money(state.coins)} em moedas. Use em compras acima de R$ 50 ou perca tudo · expiram sexta 23:59.`);}
  else if(a==='story'){startStory(Number(el.dataset.index));}
  else if(a==='story-next'){advanceStory(1);}
