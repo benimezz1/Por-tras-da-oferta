@@ -73,9 +73,10 @@
     ask:[{id:"bia-sim",label:"Manda! Vou usar 💜",go:"sim",fx:"bia-accept"},{id:"bia-nao",label:"Não tô precisando de nada",go:"nao",fx:"bia-decline"}],
     nag:[["bia","amigoo 🥺 me responde"],["bia","o cupom expira amanhã"]]},
    sim:{say:[["bia","aeee te amo 💜"],["bia","usa até amanhã senão expira pra nós dois"]]},
-   nao:{say:[["bia","poxa 😕 era pra eu completar o meu tb"],["bia","mas de boa, se mudar de ideia me fala"]]}
+   nao:{say:[["bia","poxa 😕 era pra eu completar o meu tb"],["bia","mas de boa, se mudar de ideia me fala"]],ask:[{id:"bia-mudei",label:"Mudei de ideia! Me passa o cupom 💜",go:"sim",fx:"bia-accept"},{id:"bia-obrigado",label:"Obrigada por entender 💜",go:"agradeceu"}]},
+   agradeceu:{say:[["bia","imagina! boa prova amanhã 💜"]]}
   }},
-  "bia-4":{thread:"bia",nodes:{start:{say:[["bia","usou o cupom? expira hoje 🥺"],["bia","só falta vc pra eu ganhar os meus 20"]]}}},
+  "bia-4":{thread:"bia",nodes:{start:{say:[["bia","usou o cupom? expira hoje 🥺"],["bia","só falta vc pra eu ganhar os meus 20"]],ask:[{id:"bia4-sim",label:"Mudei de ideia, quero usar!",go:"sim",fx:"bia-accept"},{id:"bia4-nao",label:"Ainda vou guardar meu dinheiro",go:"nao"}]},sim:{say:[["bia","aaaa obrigada!! 💜 mandei o cupom de novo"]]},nao:{say:[["bia","tudo bem, sem pressão 💜"]]}}},
   /* Quinta: pedir opinião cria envolvimento antes de mostrar o produto. */
   "mia-4":{thread:"mia",nodes:{
    start:{say:[["mia","me ajuda rapidão"],["mia","tô em dúvida da cor da garrafa pra viagem"]],
@@ -88,12 +89,13 @@
   /* Sexta: escassez vinda de uma amiga, com prazo e concorrente. */
   "nina-5":{thread:"nina",nodes:{
    start:{say:[["nina","ei"],["nina","comprei 2 ingressos do pocket fest sem querer 🤦‍♀️"],["nina","te passo um por R$ 50, mais barato q o lote final"],["nina","mas preciso saber AGORA, o davi tb quer"]],fx:"nina-offer",
-    ask:[{id:"nina-sim",label:"Fico com ele! 🎟️",go:"sim",fx:"nina-buy"},{id:"nina-pensar",label:"Deixa eu pensar",go:"pensar"},{id:"nina-nao",label:"Não vou, tô guardando pra viagem",go:"nao",fx:"nina-no"}],
+    ask:[{id:"nina-sim",label:"Fico com ele! 🎟️",go:"sim",fx:"nina-buy"},{id:"nina-ja",label:"Eu já comprei o ingresso 😅",go:"ja"},{id:"nina-pensar",label:"Deixa eu pensar",go:"pensar"},{id:"nina-nao",label:"Não vou, tô guardando pra viagem",go:"nao",fx:"nina-no"}],
     nag:[["nina","??"],["nina","o davi tá perguntando aqui"]],expire:"expirou"},
    sim:{say:[["nina","aeee 🎉 te mando o qr code"],["nina","te vejo lá!!"]]},
    semsaldo:{say:[["nina","ih, o pix não chegou… deixa, passo pro davi 😕"]]},
+   ja:{say:[["nina","aah então fechou!! te vejo lá 🎉"],["nina","vou oferecer o extra pro davi kkk"]]},
    pensar:{say:[["nina","pensa rápido 😬"]],
-    ask:[{id:"nina-sim",label:"Tá, fico com ele!",go:"sim",fx:"nina-buy"},{id:"nina-nao",label:"Melhor não",go:"nao",fx:"nina-no"}],nag:[["nina","e aí??"],["nina","vou passar pro davi hein"]],expire:"expirou"},
+    ask:[{id:"nina-sim",label:"Tá, fico com ele!",go:"sim",fx:"nina-buy"},{id:"nina-ja",label:"Já garanti meu ingresso",go:"ja"},{id:"nina-nao",label:"Melhor não",go:"nao",fx:"nina-no"}],nag:[["nina","e aí??"],["nina","vou passar pro davi hein"]],expire:"expirou"},
    nao:{say:[["nina","ahh 😢 blz"],["nina","vai todo mundo… mas te entendo"]]},
    expirou:{say:[["nina","passei pro davi 😕 fica pra próxima"]]}
   }},
@@ -124,7 +126,8 @@
     ask:[{id:"gabi-confio",label:"Confio, ele é de boa",go:"fim"},{id:"gabi-nunca",label:"Nunca kkkk",go:"fim"}]},
    fim:{say:[["gabi","vamos ver né 😂"],["gabi","boa prova amanhã! e já deixa os 400 do boleto separados, sábado é só pagar e embarcar"]]}
   }},
-  "gabi-5":{thread:"gabi",nodes:{
+  "mia-fone":{thread:"mia",nodes:{start:{say:[["mia","vi que vc tava olhando o Atmos One kkk"],["mia","é esse aqui ó, o meu 🎧"],["mia",card("product",{id:"fone",source:"dm"})],["mia","gosto muito dele, mas vê se compensa pra vc"]],ask:[{id:"mia-fone-vale",label:"Valeu por mostrar! 💜",go:"obrigado"},{id:"mia-fone-ver",label:"Quero ver a oferta",go:"ver",fx:"open-fone"},{id:"mia-fone-nao",label:"Vou pensar melhor",go:"obrigado"}]},obrigado:{say:[["mia","imagina!! qualquer coisa me chama 🥰"]]},ver:{say:[["mia","me conta depois se gostou!"]]} }},
+ "gabi-5":{thread:"gabi",nodes:{
    start:{say:[["gabi","cartão pronto 🎂 todo mundo assinou menos vc"],["gabi","assina amanhã no portão, 6h30!"]],
     ask:[{id:"gabi-fechou",label:"Fechou! Até amanhã 🚌",go:"fim"}]},
    fim:{say:[["gabi","até! vai ser a melhor viagem 💜"]]}
@@ -132,7 +135,7 @@
  };
 
  /* Conversa que o evento "chat" do roteiro entrega em cada dia. */
- const BY_EVENT={"lucca:1":"lucca-1","livia:2":"livia-2","lucca:5":"lucca-5","gabi:1":"gabi-1","gabi:2":"gabi-2","gabi:3":"gabi-3","gabi:5":"gabi-5","bia:3":"bia-3","mia:4":"mia-4","nina:5":"nina-5"};
+ const BY_EVENT={"lucca:1":"lucca-1","livia:2":"livia-2","lucca:5":"lucca-5","gabi:1":"gabi-1","gabi:2":"gabi-2","gabi:3":"gabi-3","gabi:5":"gabi-5","bia:3":"bia-3","bia:4":"bia-4","mia:4":"mia-4","nina:5":"nina-5"};
 
  /* ---------- motor ---------- */
  function emptyBox(){return {log:[],queue:[],ask:null,picks:[]};}

@@ -37,7 +37,7 @@
    caption:"comprei o Motion 88 na live da Lívia!!! chega quinta 😍👟 quem mais?",
    comments:[["nina","EU"],["gabi","vou comprar tbm"],["livia.looks","arrasou amiga 💖"]],
    vibe:-8,strategies:["prova_social","fomo"],moment:"Bia mostrou o tênis comprado na live."},
-  c3:{id:"c3",who:"gabi.n",when:"há 31 min",topic:"luminaria",productArt:"luminaria",likes:356,
+  c3:{id:"c3",who:"gabi.n",when:"há 31 min",topic:"luminaria",photo:"study_close",likes:356,
    caption:"meu cantinho de estudos novo ✨ produtividade 1000% (ou quase kkk)",
    comments:[["mia","que aesthetic"],["lucca","agora tira 10 né"],["gabi.n","a luz muda TUDO"]],
    vibe:-6,strategies:["prova_social","emocao"],moment:"Gabi mostrou o cantinho de estudos “perfeito”."},
@@ -66,7 +66,7 @@
   ]},
   turma:{name:"1B ✈️ viagem",avatar:"group",kind:"group",blocks:[
    {day:2,messages:[["gabi","GENTE FALTAM 4 DIAS 😭😭"],["gabi","lembrando: o boleto de R$ 400 vence sábado de manhã, sem pagar não embarca"],["bia","eu vou de tênis novo kkkk"],["lucca","a mochila da escola serve né?"],["gabi","serve sim, o prof falou q é só roupa pra 1 dia"]],
-    ifMissing:{product:"tenis",messages:[["bia","bora todo mundo de Motion 88 na foto da viagem? 👟📸"],["mia","SIMMM combinado"],["nina","quem não tiver fica na ponta da foto kkkk"]]},
+    ifMissing:{product:"tenis",messages:[["bia","bora todo mundo de Motion 88 na foto da viagem? 👟📸"],["mia","SIMMM combinado"],["nina","quem não tiver fica na ponta da foto kkkk"],["bia","olha a oferta do Motion 88 no Pulso Shop, vou mandar o link aqui 👟"]]},
     choices:[{id:"trip-yes",label:"Tô dentro! 🙌",reply:""}]},
    {day:4,ifMissing:{product:"tenis",messages:[["bia","foto da viagem: só quem tiver o Motion 88 no meio 😂👟"],["lucca","já criei o grupo “time Motion” pra combinar"]]},messages:[["bia","gente comprei a Trail Mini na mega liquida 😍"],["nina","eu comprei a garrafa da vida.fit"],["gabi","eu não comprei nada e tô de boa kkk"],["bia","kkkk a gabi sempre do contra"],["mia","depois não vem pedir emprestado 😂"],["gabi","amanhã 6h30 no portão!! 🚌"]]}
   ]},

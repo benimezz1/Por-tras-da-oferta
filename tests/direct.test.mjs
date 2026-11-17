@@ -57,3 +57,30 @@ describe("motor do direct", () => {
     expect(livia.log[0].t).toContain("separei um 40");
   });
 });
+
+
+describe("respostas contextuais da semana",()=>{
+ it("permite recusar cupom e mudar de ideia na mesma conversa",()=>{
+  const box=D.emptyBox();
+  D.play(box,"bia-3","start",{instant:true,day:3});D.pump(box,0,true);
+  let r=D.choose(box,"bia-nao",{day:3});
+  D.play(box,r.dialog,r.go,{instant:true,day:3});D.pump(box,0,true);
+  expect(D.choices(box).some(x=>x.id==="bia-mudei")).toBe(true);
+  r=D.choose(box,"bia-mudei",{day:3});
+  expect(r.fx).toBe("bia-accept");
+ });
+ it("aceita resposta de quem ja comprou o Pocket Fest",()=>{
+  const box=D.emptyBox();
+  D.play(box,"nina-5","start",{instant:true,day:5});D.pump(box,0,true);
+  expect(D.choices(box).some(x=>x.id==="nina-ja")).toBe(true);
+  const r=D.choose(box,"nina-ja",{day:5});
+  D.play(box,r.dialog,r.go,{instant:true,day:5});D.pump(box,0,true);
+  expect(box.log.at(-1).t).toContain("davi");
+ });
+ it("mostra fone e aceita agradecimento sem compra",()=>{
+  const box=D.emptyBox();
+  D.play(box,"mia-fone","start",{instant:true,day:3});D.pump(box,0,true);
+  expect(box.log.find(x=>x.c?.type==="product")?.c.id).toBe("fone");
+  expect(D.choices(box).some(x=>x.id==="mia-fone-vale")).toBe(true);
+ });
+});
