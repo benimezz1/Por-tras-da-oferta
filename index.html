@@ -1279,7 +1279,7 @@ function showTaggedVibeCelebration(tagged){
  state.taggedVibeSeen.push(tagged.id);
  expose('validacao_social','Ao abrir o feed, a marcação numa foto de '+tagged.who+' gerou '+earned+' pontos de vibe.');
  save();pulseVibe(earned);
- const photo=Variation.taggedPhoto(tagged.day,accountFeedSeed())||tagged.photo;
+ const photo=tagged.day===5?'friends_trip':(Variation.taggedPhoto(tagged.day,accountFeedSeed())||tagged.photo);
  const popup=document.createElement('div');
  popup.className='tag-vibe-overlay';
  popup.dataset.tagId=tagged.id;
@@ -1668,6 +1668,7 @@ function pulseVibe(delta){
  el.querySelector('.hud-vibe-emoji').textContent=m.emoji;
  el.querySelector('.hud-vibe-fill').style.width=state.vibe.value+'%';
  el.setAttribute('aria-label','Sua vibe: '+state.vibe.value+'/100. '+m.label); el.querySelector('.hud-vibe-number')?.replaceChildren(document.createTextNode(String(state.vibe.value)));
+ if(delta<=-3&&!overlay&&!modal&&!story&&clockMinutes()<26*60){banner(`<span class="push-app">💜 Sua vibe caiu ${Math.abs(Math.round(delta))} pontos</span><span class="push-text">No Pulso, novidades e compras podem melhorar sua vibe por um tempo.</span>`,{'data-action':'vibe-info'});}
  if(Math.abs(delta)>=2){const chip=document.createElement('span');chip.className='vibe-chip '+(delta>0?'up':'down');chip.textContent=(delta>0?'+':'')+Math.round(delta)+' vibe';el.appendChild(chip);setTimeout(()=>chip.remove(),1700);}
 }
 function price(id){return Week.priceFor(products[id],id,state.day,id==='fone'?state.variant.fone:null);}
@@ -2140,6 +2141,7 @@ function chatBody(k){
   const cs=Direct.choices(box);
   if(cs.length)html+=`<div class="chat-choices">${cs.map(c=>`<button class="chat-choice" data-action="dm-choice" data-thread="${k}" data-choice="${c.id}">${esc(c.label)}</button>`).join('')}</div>`;
  }
+ if(k==='turma'&&state.day===2&&!bought('tenis'))html+='<button class="chat-cta" data-action="product" data-product="tenis" data-source="dm">👟 Ver o tênis que a Bia indicou</button>';
  if(k==='livia'&&state.day===2)html+='<button class="chat-cta" data-action="live">🔴 Entrar na live</button>';
  else if(k==='pulso'&&!state.flags.roleta&&state.day===1)html+='<button class="chat-cta" data-action="roleta">🎁 Girar a roleta</button>';
  else if(k==='pulso'&&state.day===4)html+='<button class="chat-cta" data-action="sale">🔥 Ver a Mega Liquida</button>';
@@ -3011,7 +3013,7 @@ function toggleOwnLike(id,like){
 function mineCard(item){
  const p=state.myPosts.find(x=>x.id===item.id);if(!p)return '';
  const c=postChoices().find(x=>x.id===p.choice)||POST_CHOICES[0];
- const photo=p.photo||c.photo,liked=(state.mineLikes||[]).includes(p.id);
+ const photo=p.origin==='purchase'?'product_'+p.topic:(p.photo||c.photo),liked=(state.mineLikes||[]).includes(p.id);
  const comments=ownPostComments(p),saved=state.bookmarks.includes(p.id);
  return `<article class="post mine-post" data-rec-id="${esc(p.id)}">
  <div class="post-top"><span class="avatar photo-avatar"><span class="avatar-placeholder own-profile-avatar" aria-label="Seu perfil">🙂</span></span><div class="user-info"><div class="username">${esc(identity?.username||'você')} <span class="meta-tag">você</span></div><div class="post-sub">publicado às ${esc(p.time||clockLabel())}</div></div><button class="icon-button" data-action="edit-my-post" data-post="${esc(p.id)}" aria-label="Editar sua publicação">${icon("more")}</button></div>
@@ -3035,7 +3037,7 @@ function surpriseCard(item){
 }
 function taggedCard(item){
  const base=TAGGED_EVENTS[item?.day];
- const c=base?{...base,photo:Variation.taggedPhoto(item.day,accountFeedSeed())||base.photo}:null,id=c?.id;
+ const c=base?{...base,photo:item.day===5?'friends_trip':(Variation.taggedPhoto(item.day,accountFeedSeed())||base.photo)}:null,id=c?.id;
  if(!c)return '';
  const liked=state.liked.includes(id),saved=state.bookmarks.includes(id);
  return `<article class="post compare-post tagged-post" id="${id}" data-rec-id="${id}" data-rec-topic="${c.topic}" data-rec-author="${esc(c.who)}">
