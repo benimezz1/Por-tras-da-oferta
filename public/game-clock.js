@@ -1,5 +1,5 @@
 /* Relogio simulado do Pulso.
- * Uma passagem do tempo a cada 2, depois 3, depois 2, depois 3
+ * Uma passagem do tempo a cada 2, depois 1, depois 2, depois 1
  * publicacoes distintas vistas. Contagem local, reproduzivel e persistida.
  */
 (function(root){
@@ -7,7 +7,7 @@
  const MINUTES_PER_TICK=18;
  const DAY_START=19*60;
  function int(n){return Number.isFinite(Number(n))?Math.max(0,Math.floor(Number(n))):0;}
- function nextThreshold(state){return int(state?.clockViewed)%2===0?2:3;}
+ function nextThreshold(state){return int(state?.clockViewed)%2===0?2:1;}
  function minutes(state){return DAY_START+int(state?.clockViewed)*MINUTES_PER_TICK;}
  function advanceViewedPost(state,day,id){
   if(!state||!id)return {seen:false,tick:false};
