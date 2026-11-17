@@ -5,7 +5,7 @@ const clock=globalThis.NoFeedClock;
 const state=()=>({clockViewed:0,clockSeen:[],clockProgress:0});
 
 describe("relogio do feed simulado",()=>{
- it("avanca 18 minutos depois de 2, depois 3, depois 2, depois 3 posts",()=>{
+ it("avanca 18 minutos depois de 2, depois 1, depois 2, depois 1 posts",()=>{
   const session=state();
   const ticks=[];
   for(let n=1;n<=12;n++){
@@ -13,8 +13,8 @@ describe("relogio do feed simulado",()=>{
    expect(res.seen).toBe(true);
    ticks.push(session.clockViewed);
   }
-  expect(ticks).toEqual([0,1,1,1,2,2,3,3,3,4,4,5]);
-  expect(clock.minutes(session)).toBe(19*60+5*18);
+  expect(ticks).toEqual([0,1,2,2,3,4,4,5,6,6,7,8]);
+  expect(clock.minutes(session)).toBe(19*60+8*18);
  });
  it("nao adianta hora ao rever post ou recarregar com estado persistido",()=>{
   const session=state();
@@ -29,13 +29,13 @@ describe("relogio do feed simulado",()=>{
  it("ao voltar ao inicio os posts antigos nao contam de novo, mas novos contam",()=>{
   const session=state();
   for(let i=1;i<=5;i++)clock.advanceViewedPost(session,2,"post-"+i);
-  expect(session.clockViewed).toBe(2);
-  for(let i=1;i<=5;i++)clock.advanceViewedPost(session,2,"post-"+i);
-  expect(session.clockViewed).toBe(2);
-  clock.advanceViewedPost(session,2,"recomendado-6");
-  expect(session.clockViewed).toBe(2);
-  clock.advanceViewedPost(session,2,"recomendado-7");
   expect(session.clockViewed).toBe(3);
+  for(let i=1;i<=5;i++)clock.advanceViewedPost(session,2,"post-"+i);
+  expect(session.clockViewed).toBe(3);
+  clock.advanceViewedPost(session,2,"recomendado-6");
+  expect(session.clockViewed).toBe(4);
+  clock.advanceViewedPost(session,2,"recomendado-7");
+  expect(session.clockViewed).toBe(4);
  });
  it("proximo dia recomeça as 19h sem reaproveitar contagem anterior",()=>{
   const session=state();
