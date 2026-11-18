@@ -1858,6 +1858,14 @@ function dmBox(k){
  const dm=dmState();
  if(!dm.boxes[k])dm.boxes[k]=Direct.emptyBox();
  if(!state.threads[k])state.threads[k]={days:[],unread:0,picked:{}};
+ // Partidas em andamento podem ter recebido apenas a mensagem de texto.
+ // Completa o historico antigo sem repetir o cartao nas novas partidas.
+ if(k==='turma'){
+  const box=dm.boxes[k];
+  const at=box.log.findIndex(m=>m.f==='bia'&&typeof m.t==='string'&&m.t.includes('vou mandar o link aqui'));
+  const already=[...box.log,...box.queue].some(m=>m.c?.type==='product'&&m.c.id==='tenis');
+  if(at>=0&&!already)box.log.splice(at+1,0,{d:box.log[at].d,f:'bia',c:{type:'product',id:'tenis',source:'dm'}});
+ }
  return dm.boxes[k];
 }
 function dmTouch(k){const dm=dmState();dm.order=dm.order.filter(x=>x!==k);dm.order.push(k);}
@@ -2060,9 +2068,12 @@ function deliverThread(key,day,opts={}){
   expose('fomo','No grupo da turma, combinaram algo só para quem tinha o tênis da moda.');
  }
  let at=Math.max(Date.now(),box.queue.length?box.queue.at(-1).at:0);
- lines.forEach(([from,text],i)=>{
+ lines.forEach(([from,body],i)=>{
   at+=opts.instant?0:1300*dmSpeed();
-  const m={d:day,f:from,t:text,at};
+  const m={d:day,f:from,at};
+  if(typeof body==='string')m.t=body;
+  else if(body?.card)m.c=body.card;
+  else return;
   if(i===lines.length-1&&block.choices)m.ask={legacy:true};
   box.queue.push(m);
  });
@@ -2118,10 +2129,11 @@ function inboxPage(){
   return `<button class="inbox-row ${th.unread?'unread':''}" data-action="chat" data-thread="${k}">${threadAvatar(k)}<span class="inbox-text"><strong>${esc(t.name)}</strong><small>${box.queue.length&&!th.unread?'<em class="inbox-typing">digitando…</em>':esc(lastMessage(k))}</small></span>${th.unread?`<b class="inbox-dot">${th.unread}</b>`:''}</button>`;}).join('')
  :'<div class="empty"><div style="font-size:40px">💬</div><h3>Nenhuma mensagem ainda</h3><p>Quando seus amigos escreverem, as conversas aparecem aqui.</p></div>'}</div>`;
 }
-function dmCard(c){
- if(c.type==='contact')return `<div class="msg in dm-card"><span class="dm-card-kind">📇 Contato</span><strong>${esc(c.name)}</strong><small>${esc(c.sub||'')}</small><button class="dm-card-btn" data-action="open-contact" data-thread="${esc(c.thread)}">Abrir conversa</button></div>`;
- if(c.type==='product'&&products[c.id]){const pr=price(c.id);return `<div class="msg in dm-card dm-product"><span class="dm-card-thumb">${art(products[c.id].kind,true)}</span><strong>${esc(pr.name)}</strong><small>${pr.old?`<del>${money(pr.old)}</del> `:''}<b>${money(pr.price)}</b></small><button class="dm-card-btn" data-action="product" data-product="${c.id}" data-source="${esc(c.source||'dm')}">${bought(c.id)?'Ver produto':'Ver na loja →'}</button></div>`;}
- if(c.type==='coupon')return `<div class="msg in dm-card dm-coupon"><span class="dm-card-kind">🎟️ Cupom</span><strong>${esc(c.code)}</strong><small>${esc(c.label||'')}</small></div>`;
+function dmCard(c,from='',group=false){
+ const sender=group?`<small class="dm-group-author">${esc(SENDERS[from]||from)}</small>`:'';
+ if(c.type==='contact')return `<div class="msg in dm-card">${sender}<span class="dm-card-kind">📇 Contato</span><strong>${esc(c.name)}</strong><small>${esc(c.sub||'')}</small><button class="dm-card-btn" data-action="open-contact" data-thread="${esc(c.thread)}">Abrir conversa</button></div>`;
+ if(c.type==='product'&&products[c.id]){const pr=price(c.id);return `<div class="msg in dm-card dm-product">${sender}<span class="dm-card-thumb">${art(products[c.id].kind,true)}</span><strong>${esc(pr.name)}</strong><small>${pr.old?`<del>${money(pr.old)}</del> `:''}<b>${money(pr.price)}</b></small><button class="dm-card-btn" data-action="product" data-product="${c.id}" data-source="${esc(c.source||'dm')}">${bought(c.id)?'Ver produto':'Ver na loja →'}</button></div>`;}
+ if(c.type==='coupon')return `<div class="msg in dm-card dm-coupon">${sender}<span class="dm-card-kind">🎟️ Cupom</span><strong>${esc(c.code)}</strong><small>${esc(c.label||'')}</small></div>`;
  return '';
 }
 function chatBody(k){
@@ -2130,7 +2142,7 @@ function chatBody(k){
  let html='',day=0;
  for(const m of box.log){
   if(m.d!==day){day=m.d;html+=`<div class="chat-day">${Week.DAYS[Math.max(1,Math.min(5,day))-1].label}</div>`;}
-  if(m.c)html+=dmCard(m.c);
+  if(m.c)html+=dmCard(m.c,m.f,t.kind==='group');
   else html+=m.f==='me'?`<div class="msg out">${esc(m.t)}</div>`:`<div class="msg in">${who(m.f)}${esc(m.t)}</div>`;
  }
  if(box.queue.length)html+='<div class="msg in typing" role="status" aria-label="digitando"><i></i><i></i><i></i></div>';
@@ -2141,8 +2153,7 @@ function chatBody(k){
   const cs=Direct.choices(box);
   if(cs.length)html+=`<div class="chat-choices">${cs.map(c=>`<button class="chat-choice" data-action="dm-choice" data-thread="${k}" data-choice="${c.id}">${esc(c.label)}</button>`).join('')}</div>`;
  }
- if(k==='turma'&&state.day===2&&!bought('tenis'))html+='<button class="chat-cta" data-action="product" data-product="tenis" data-source="dm">👟 Ver o tênis que a Bia indicou</button>';
- if(k==='livia'&&state.day===2)html+='<button class="chat-cta" data-action="live">🔴 Entrar na live</button>';
+  if(k==='livia'&&state.day===2)html+='<button class="chat-cta" data-action="live">🔴 Entrar na live</button>';
  else if(k==='pulso'&&!state.flags.roleta&&state.day===1)html+='<button class="chat-cta" data-action="roleta">🎁 Girar a roleta</button>';
  else if(k==='pulso'&&state.day===4)html+='<button class="chat-cta" data-action="sale">🔥 Ver a Mega Liquida</button>';
  return html;
