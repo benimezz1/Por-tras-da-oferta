@@ -84,3 +84,13 @@ describe("respostas contextuais da semana",()=>{
   expect(D.choices(box).some(x=>x.id==="mia-fone-vale")).toBe(true);
  });
 });
+
+describe("oferta do tenis no grupo da turma",()=>{
+ it("a Bia envia um card de produto como mensagem, nao apenas um botao de rodape",()=>{
+  const group=W.THREADS.turma.blocks.find(b=>b.day===2);
+  expect(group).toBeTruthy();
+  const last=group.ifMissing.messages.at(-1);
+  expect(last[0]).toBe("bia");
+  expect(last[1]).toMatchObject({card:{type:"product",id:"tenis",source:"dm"}});
+ });
+});
