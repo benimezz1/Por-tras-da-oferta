@@ -66,7 +66,7 @@
   ]},
   turma:{name:"1B ✈️ viagem",avatar:"group",kind:"group",blocks:[
    {day:2,messages:[["gabi","GENTE FALTAM 4 DIAS 😭😭"],["gabi","lembrando: o boleto de R$ 400 vence sábado de manhã, sem pagar não embarca"],["bia","eu vou de tênis novo kkkk"],["lucca","a mochila da escola serve né?"],["gabi","serve sim, o prof falou q é só roupa pra 1 dia"]],
-    ifMissing:{product:"tenis",messages:[["bia","bora todo mundo de Motion 88 na foto da viagem? 👟📸"],["mia","SIMMM combinado"],["nina","quem não tiver fica na ponta da foto kkkk"],["bia","olha a oferta do Motion 88 no Pulso Shop, vou mandar o link aqui 👟"]]},
+    ifMissing:{product:"tenis",messages:[["bia","bora todo mundo de Motion 88 na foto da viagem? 👟📸"],["mia","SIMMM combinado"],["nina","quem não tiver fica na ponta da foto kkkk"],["bia","olha a oferta do Motion 88 no Pulso Shop, vou mandar o link aqui 👟"],["bia",{card:{type:"product",id:"tenis",source:"dm"}}]]},
     choices:[{id:"trip-yes",label:"Tô dentro! 🙌",reply:""}]},
    {day:4,ifMissing:{product:"tenis",messages:[["bia","foto da viagem: só quem tiver o Motion 88 no meio 😂👟"],["lucca","já criei o grupo “time Motion” pra combinar"]]},messages:[["bia","gente comprei a Trail Mini na mega liquida 😍"],["nina","eu comprei a garrafa da vida.fit"],["gabi","eu não comprei nada e tô de boa kkk"],["bia","kkkk a gabi sempre do contra"],["mia","depois não vem pedir emprestado 😂"],["gabi","amanhã 6h30 no portão!! 🚌"]]}
   ]},

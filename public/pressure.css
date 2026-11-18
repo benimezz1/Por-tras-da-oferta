@@ -414,3 +414,6 @@
 .phone.theme-neon .phone-head{box-shadow:0 2px 0 #ec477e55,0 6px 18px #7e62eb22}
 .live-reserved{display:block;font-style:normal;font-size:11px;font-weight:850;color:#ffe08a;margin:4px 0 2px}
 @media(prefers-reduced-motion:reduce){.msg.typing i{animation:none}}
+
+/* Cartoes de produto enviados dentro de grupos preservam a autoria da mensagem. */
+.dm-card .dm-group-author{display:block;font-size:11px;font-weight:850;color:#a93b8e;margin-bottom:5px;line-height:1.3}
