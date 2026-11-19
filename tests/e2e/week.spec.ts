@@ -121,6 +121,45 @@ test("tempo real e viagem tem destaque; envio somente ao MCP registra quiz em br
  await expect(page.locator('.budget-timeline')).toContainText('Dinheiro livre após essas cobranças');
 });
 
+test("falha de rede e retentativa usam a mesma revisao MCP e nao duplicam conclusoes",async ({page})=>{
+ await enter(page);
+ await enterFinishedFixture(page);
+ await page.locator('[data-action="guess-time"]').click();
+ await page.locator('[data-action="time-reveal-next"]').click();
+ const attempts:string[]=[];
+ await page.route("**/api/c4/client/complete",async route=>{
+  const doc=route.request().postDataJSON();
+  attempts.push(doc.exportadoEm);
+  if(attempts.length===1)await route.fulfill({status:503,contentType:"application/json",
+    headers:{"access-control-allow-origin":"*"},body:'{"erro":"Falha de rede simulada"}'});
+  else await route.fallback();
+ });
+ await page.locator('[data-action="trip-mcp"]').click();
+ await expect(page.locator('#trip-mcp-status')).toContainText('Falha de rede simulada');
+ await page.locator('[data-action="trip-mcp"]').click();
+ await expect(page.locator('#trip-mcp-status')).toContainText('recebido pelo MCP');
+ expect(attempts).toHaveLength(2);
+ expect(attempts[1]).toBe(attempts[0]);
+});
+
+test("encerramento no quarto dia nao envia conclusao e informa que a viagem e inconclusiva",async ({page})=>{
+ await enter(page);
+ await page.addInitScript((key)=>{
+  const state=JSON.parse(localStorage.getItem(key)||"null");
+  if(!state?.started)return;
+  state.day=4;state.finished=true;state.endStep=0;state.endPrelude="guess";
+  state.flags.endedEarly=4;state.finishedAt=new Date().toISOString();
+  localStorage.setItem(key,JSON.stringify(state));
+ },KEY);
+ const sends:string[]=[];
+ page.on('request',request=>{if(request.url().includes("/api/c4/client/complete"))sends.push(request.url());});
+ await page.reload();
+ await page.locator('[data-action="guess-time"]').click();
+ await page.locator('[data-action="time-reveal-next"]').click();
+ await expect(page.locator('.trip-impact')).toContainText('encerrou a semana antes do sábado');
+ expect(sends).toHaveLength(0);
+});
+
 test("viagem perdida e sair sem salvar nao enviam partida nem deixam historico local",async ({page})=>{
  await enter(page);
  await enterFinishedFixture(page,{wallet:250});
@@ -406,9 +445,13 @@ test("comprar no Pix além da folga faz perder a viagem", async ({ page }) => {
     await page.locator('.purchase-modal [data-channel="nenhum"]').click();
   }
   expect((await saved(page)).wallet).toBeLessThan(400);
-  await page.locator('.phone-footer [data-action="profile"]').click();
-  await page.locator('.layer [data-action="finish"]').click();
-  await passGuess(page);
+  // Fixture conclui os cinco dias preservando o saldo e as compras simuladas.
+  // Encerrar via perfil antecipadamente mostraria apenas resultado parcial.
+  const remaining=(await saved(page)).wallet;
+  await enterFinishedFixture(page,{wallet:remaining});
+  await page.locator('[data-action="guess-time"]').click();
+  await page.locator('[data-action="time-reveal-next"]').click();
+  await page.locator('[data-action="trip-details"]').click();
   await expect(page.locator(".end")).toContainText("O ônibus saiu sem você");
   await expect(page.locator(".budget-outcome.missed")).toContainText("Faltou dinheiro para a viagem");
   await expect(page.locator(".verdict-card")).toContainText("O FEED LEVOU A MELHOR");
@@ -426,9 +469,11 @@ test("encerrar a semana pelo perfil antes de sexta não vira vitória", async ({
   await page.locator('.layer [data-action="finish"]').click();
   await page.locator('[data-action="guess-time"]').click();
   await page.locator('[data-action="time-reveal-next"]').click();
-  await expect(page.locator(".trip-impact")).toContainText("encerrada antes do fim");
+  await expect(page.locator(".trip-impact")).toContainText("encerrou a semana antes do sábado");
+  await expect(page.locator('[data-action="trip-mcp"]')).toHaveCount(0);
   await page.locator('[data-action="trip-details"]').click();
-  await expect(page.locator(".verdict-card")).toContainText("SEMANA INCOMPLETA");
+  await expect(page.locator(".end-step-0")).toContainText("SEMANA INTERROMPIDA");
+  await expect(page.locator(".end-step-0")).not.toContainText("NaN");
   expect((await saved(page)).flags.endedEarly).toBe(1);
 });
 
