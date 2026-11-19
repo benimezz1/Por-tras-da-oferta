@@ -120,7 +120,7 @@ test("surpresa dispara popup explosivo ao chegar no gatilho, credita uma vez e n
  await expect(page.locator('.ev-surprise')).toHaveCount(0);
  const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')).coins);
  expect(after).toBe(before+3);
- await reward.locator('[data-action="reward-close"]').click();
+ await reward.locator('[data-action="reward-close"]').first().click();
  await expect(reward).toHaveCount(0);
  await page.reload();
  await expect(page.locator('.reward-celebration')).toHaveCount(0);
@@ -632,7 +632,7 @@ test("editor de post permite escolher foto, personalizar legenda e editar public
   await page.locator('[data-action="save-my-post"]').click();
   await expect(page.locator('.mine-post')).toContainText('Legenda revisada');
 });
-test("relogio avanca apos grupos alternados de 2 e 3 posts",async ({page})=>{
+test("relogio avanca apos grupos alternados de 2 e 1 posts",async ({page})=>{
  await enter(page);
  await expect(page.locator('.sb-time')).toContainText('SEG · 19:');
  await sleepDay(page);
@@ -649,7 +649,7 @@ test("relogio avanca apos grupos alternados de 2 e 3 posts",async ({page})=>{
    const state=JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e'));
    return {seen:state.clockSeen.length,ticks:state.clockViewed};
   });
-  expect(progress.ticks).toBe(Math.floor(progress.seen/5)*2+(progress.seen%5>=2?1:0));
+  expect(progress.ticks).toBe(Math.floor(progress.seen/3)*2+(progress.seen%3>=2?1:0));
  }
  const before=await page.evaluate(()=>JSON.parse(localStorage.getItem('nofeed-simulator-v4:user:player-e2e')).clockViewed);
  await page.reload();
