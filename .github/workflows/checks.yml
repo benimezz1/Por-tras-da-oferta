@@ -22,7 +22,8 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - name: Smoke test de encerramento (desktop)
+        run: npx playwright test week.spec.ts --grep "comprar no Pix|encerrar a semana pelo perfil" --project=desktop
       # Contrato real: Vite no navegador -> API MCP -> banco temporario -> consulta.
       - uses: actions/checkout@v4
         with:
@@ -47,6 +48,7 @@ jobs:
           RUN_C4_INTEGRATION: "1"
           VITE_C4_MCP_ORIGIN: http://127.0.0.1:38123
         run: npx playwright test mcp-live.spec.ts --project=desktop
+      - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
