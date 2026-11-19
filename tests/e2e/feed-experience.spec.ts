@@ -632,6 +632,17 @@ test("editor de post permite escolher foto, personalizar legenda e editar public
   await page.locator('[data-action="save-my-post"]').click();
   await expect(page.locator('.mine-post')).toContainText('Legenda revisada');
 });
+test("compartilhar copia o link real e confirma somente apos sucesso",async ({page})=>{
+ await enter(page);
+ await page.evaluate(()=>{
+  (window as any).__sharedUrl=null;
+  Object.defineProperty(navigator,"clipboard",{configurable:true,value:{
+   writeText:async (url:string)=>{(window as any).__sharedUrl=url;}
+  }});
+ });
+ await page.locator('.post[data-rec-id] [data-action="share"]').first().click();
+ await expect.poll(()=>page.evaluate(()=>(window as any).__sharedUrl)).toBe("http://127.0.0.1:4174/");
+});
 test("relogio avanca apos grupos alternados de 2 e 1 posts",async ({page})=>{
  await enter(page);
  await expect(page.locator('.sb-time')).toContainText('SEG · 19:');
