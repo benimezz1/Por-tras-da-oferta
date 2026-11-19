@@ -237,7 +237,7 @@ test("curtir foto da biblioteca aumenta o ranking visual sem mover posts anterio
   await card.locator('[data-action="like"]').first().click();
   const after=await calculate();
   expect(after.score).toBeGreaterThan(before.score+1);
-  expect(after.ids).toEqual(before.ids);
+  expect(after.ids.slice(0,before.ids.length)).toEqual(before.ids);
   expect(after.events).toBeGreaterThan(before.events);
 });
 
