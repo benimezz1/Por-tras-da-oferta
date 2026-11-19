@@ -3552,7 +3552,9 @@ function endStep0(s){
  const pix=Math.max(0,Pressure.round(620-state.wallet-fixes));
  const rows=(label,value,cls='')=>`<div class="ex-row ${cls}"><span>${label}</span><b>${value}</b></div>`;
  const purchases=state.purchases.map(p=>`<div class="event-row"><span>${p.method==='trial'?'🎧':'🛍️'}</span><div><strong>${esc(p.name||productName(p.id))}</strong><p>${p.method==='pix'?'Pix':p.method==='trial'?'Teste grátis → assinatura':p.method==='card10'?'Pulso Pay 10x':p.method==='card3'?'Pulso Pay 3x':'Pulso Pay'}${p.protection?' · com Proteção Pulso+':''}</p></div><strong>${money(p.cost)}</strong></div>`).join('');
- const photo=mediaPhoto('post_p10','art-photo',s.tripPaid?'A turma reunida na viagem':'A viagem vista de longe, pelos stories');
+ const completeWeek=state.day===Week.DAYS.length&&!state.flags?.endedEarly;
+ const photo=mediaPhoto('post_p10','art-photo',completeWeek&&s.tripPaid?'A turma reunida na viagem':'A viagem vista de longe, pelos stories');
+ if(!completeWeek)return `<div class="eyebrow" style="margin-top:23px">SEMANA INTERROMPIDA</div><h1>Você encerrou antes do resultado da viagem.</h1><p class="end-lead">Este saldo é parcial: não há resultado de embarque nem envio de conclusão ao MCP. Recomece para jogar os cinco dias.</p><div class="end-box"><h3>Seu saldo parcial</h3><strong>${money(s.available)}</strong><p>As compras e estímulos registrados nesta simulação continuam sendo fictícios.</p></div><button class="primary" data-action="restart">Recomeçar a semana</button>`;
  return `<div class="eyebrow" style="margin-top:23px">SÁBADO · 06:10</div>
  <h1>${s.tripPaid?'Você embarcou. 🚌':'O ônibus saiu sem você.'}</h1>
  <div class="trip-photo ${s.tripPaid?'':'missed'}">${photo}<span>${s.tripPaid?'Viagem da turma · você está na foto':'Story da gabi.n · “saudades de quem ficou 💔”'}</span></div>
@@ -3716,7 +3718,7 @@ function endStep4(s){
  <h1>${right>=4?'Olho treinado. 👀':right>=2?'Você está pegando o jeito.':'O marketing é bom no que faz.'}</h1>
  <div class="end-grid">
  <div class="end-stat"><label>Reconheceu</label><strong>${right}/${qs.length}</strong><span class="small muted">estratégias no quiz</span></div>
- <div class="end-stat"><label>Viagem</label><strong>${s.tripPaid?'Foi ✅':'Ficou ❌'}</strong><span class="small muted">${s.tripPaid?'reserva de R$ 400 preservada':'faltaram '+money(s.missing)}</span></div>
+ <div class="end-stat"><label>Viagem</label><strong>${state.flags?.endedEarly||state.day<Week.DAYS.length?'Inconclusiva':s.tripPaid?'Foi ✅':'Ficou ❌'}</strong><span class="small muted">${state.flags?.endedEarly||state.day<Week.DAYS.length?'sem conclusão dos cinco dias':s.tripPaid?'reserva de R$ 400 preservada':'faltaram '+money(s.missing)}</span></div>
  <div class="end-stat"><label>Gasto total</label><strong>${money(s.spent)}</strong><span class="small muted">incluindo parcelas e assinatura</span></div>
  <div class="end-stat"><label>Estratégias que te pegaram</label><strong>${prof.filter(p=>p.influenced).length}/${Pressure.KEYS.length}</strong><span class="small muted">${prof.reduce((a,p)=>a+p.exposed,0)} estímulos recebidos</span></div>
  </div>
@@ -3812,8 +3814,8 @@ function tripRevealPage(){
  const status=sent?'✓ Percurso recebido pelo MCP.':'';
  return `<main class="end end-impact trip-impact ${!completedWeek?'incomplete':went?'success':'missed'}"><div class="end-impact-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
  <section class="end-impact-card" aria-labelledby="trip-reveal-title">
-  <div class="trip-confetti" aria-hidden="true">${confetti}</div>
-  <div class="end-impact-eyebrow">SÁBADO · O RESULTADO DA VIAGEM</div>
+  <div class="trip-confetti" aria-hidden="true">${completedWeek?confetti:''}</div>
+  <div class="end-impact-eyebrow">${completedWeek?'SÁBADO · O RESULTADO DA VIAGEM':'ENCERRAMENTO ANTECIPADO'}</div>
   <div class="trip-icon" aria-hidden="true">${!completedWeek?'🚌⏸️':went?'🚌🎉':'🚌💔'}</div>
   <h1 id="trip-reveal-title">${esc(title)}</h1>
   <p class="end-impact-explanation">${esc(explanation)}</p>
@@ -3865,19 +3867,20 @@ function renderEnd(){
  <p class="end-disclaimer">Simulação educativa do Colégio Rio Branco · C4. Nenhuma compra é real. Ao concluir, o jogo envia o percurso fictício ao MCP da conta identificada, se houver conexão. O jogo não faz diagnósticos.</p>
  </div></main>`;
  window.scrollTo(0,0);root.querySelector('.end')?.scrollTo?.(0,0);
- if(step===4){showC4SyncStatus();if(state.c4SyncedRunId!==state.runId||state.c4SyncedMode==='viagem-sem-quiz')void sendCompletedC4();}
+ if(step===4){showC4SyncStatus();if(state.day===Week.DAYS.length&&!state.flags?.endedEarly&&(state.c4SyncedRunId!==state.runId||state.c4SyncedMode==='viagem-sem-quiz'))void sendCompletedC4();}
 }
 function showC4SyncStatus(){
  const node=document.getElementById('c4-sync-status'),retry=root.querySelector('[data-action="retry-c4"]');
  if(!node)return;
  const sent=state.c4SyncedRunId===state.runId&&!(state.endStep===4&&state.c4SyncedMode==='viagem-sem-quiz');
+ if(state.flags?.endedEarly||state.day<Week.DAYS.length){node.textContent='A semana foi encerrada antes do quinto dia. Esta partida não pode ser enviada como conclusão ao MCP.';if(retry)retry.hidden=true;return;}
  node.textContent=sent?'✓ Percurso recebido pelo MCP. Agora o ChatGPT pode consultar esta conta após o vínculo.'
   :syncInFlight?'Enviando suas respostas e escolhas ao MCP…'
   :syncMessage||'O envio será realizado automaticamente.';
  if(retry){retry.hidden=sent||syncInFlight;retry.textContent=ContaC4.account()?'Tentar enviar novamente':'Entrar novamente para enviar';}
 }
 async function sendCompletedC4(){
- if(!identity||!state.finished||(state.endStep!==4&&state.endPrelude!=='mcp')||syncInFlight)return;
+ if(!identity||!state.finished||state.day<Week.DAYS.length||state.flags?.endedEarly||(state.endStep!==4&&state.endPrelude!=='mcp')||syncInFlight)return;
  if(state.c4SyncedRunId===state.runId&&(state.endStep!==4||state.c4SyncedMode!=='viagem-sem-quiz'))return;
  const playerId=identity.id,run=state.runId;
  syncInFlight=true;syncMessage='';
