@@ -3825,11 +3825,11 @@ function tripRevealPage(){
   </div>
   <div class="end-impact-actions">
    <button class="primary" data-action="trip-details">Ver detalhes e entender minhas escolhas →</button>
-   ${state.day<Week.DAYS.length&&!sent?'':`<button class="secondary" data-action="trip-mcp" ${syncInFlight||sent?'disabled':''}>${sent?'✓ Enviado ao MCP':'Só salvar meu resultado (sem quiz)'}</button>`}
+   ${!completedWeek?'':`<button class="secondary" data-action="trip-mcp" ${syncInFlight||sent?'disabled':''}>${sent?'✓ Enviado ao MCP':'Só salvar meu resultado (sem quiz)'}</button>`}
    <button class="subtle-quit" data-action="trip-exit">${sent?'Sair e limpar dados locais':'Sair sem salvar'}</button>
   </div>
   <p id="trip-mcp-status" class="trip-mcp-status" role="status">${esc(syncMessage||status)}</p>
-  <p class="small muted">Salvar envia o resultado para a sua conta do projeto (MCP) e precisa de internet. ${sent?'Sua conta já recebeu esta partida; sair agora apaga somente a cópia deste dispositivo.':'Sair sem salvar apaga esta partida deste dispositivo.'}</p>
+  <p class="small muted">${!completedWeek?'Como a semana terminou antes do quinto dia, o MCP não registra este encerramento como resultado final.': 'Salvar envia o resultado para a sua conta do projeto (MCP) e precisa de internet. ' + (sent?'Sua conta já recebeu esta partida; sair agora apaga somente a cópia deste dispositivo.':'Sair sem salvar apaga esta partida deste dispositivo.')}</p>
  </section></div></main>`;
 }
 
@@ -3862,7 +3862,7 @@ function renderEnd(){
  const s=Pressure.settle(state),step=Math.max(0,Math.min(4,state.endStep||0));
  const body=[endStep0,endStep1,endStep2,endStep3,endStep4][step](s);
  root.innerHTML=`<main class="end end-step-${step}"><div class="end-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
- <div class="end-progress">${['Sábado','Por trás','Aprenda','Quiz','Raio-x'].map((l,i)=>`<span class="${i<=step?'on':''}">${l}</span>`).join('')}</div>
+ <div class="end-progress">${[(state.flags?.endedEarly||state.day<Week.DAYS.length)?'Parcial':'Sábado','Por trás','Aprenda','Quiz','Raio-x'].map((l,i)=>`<span class="${i<=step?'on':''}">${l}</span>`).join('')}</div>
  ${body}
  <p class="end-disclaimer">Simulação educativa do Colégio Rio Branco · C4. Nenhuma compra é real. Ao concluir, o jogo envia o percurso fictício ao MCP da conta identificada, se houver conexão. O jogo não faz diagnósticos.</p>
  </div></main>`;
