@@ -445,6 +445,8 @@ test("comprar no Pix além da folga faz perder a viagem", async ({ page }) => {
     await page.locator('.purchase-modal [data-channel="nenhum"]').click();
   }
   expect((await saved(page)).wallet).toBeLessThan(400);
+  // O resultado oficial da viagem so existe depois dos cinco dias.
+  for(let d=1;d<5;d++)await nextDay(page);
   await page.locator('.phone-footer [data-action="profile"]').click();
   await page.locator('.layer [data-action="finish"]').click();
   await passGuess(page);
@@ -465,9 +467,11 @@ test("encerrar a semana pelo perfil antes de sexta não vira vitória", async ({
   await page.locator('.layer [data-action="finish"]').click();
   await page.locator('[data-action="guess-time"]').click();
   await page.locator('[data-action="time-reveal-next"]').click();
-  await expect(page.locator(".trip-impact")).toContainText("encerrada antes do fim");
+  await expect(page.locator(".trip-impact")).toContainText("encerrou a semana antes do sábado");
+  await expect(page.locator('[data-action="trip-mcp"]')).toHaveCount(0);
   await page.locator('[data-action="trip-details"]').click();
-  await expect(page.locator(".verdict-card")).toContainText("SEMANA INCOMPLETA");
+  await expect(page.locator(".end-step-0")).toContainText("SEMANA INTERROMPIDA");
+  await expect(page.locator(".end-step-0")).not.toContainText("NaN");
   expect((await saved(page)).flags.endedEarly).toBe(1);
 });
 
