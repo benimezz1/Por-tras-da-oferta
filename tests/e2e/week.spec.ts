@@ -121,6 +121,45 @@ test("tempo real e viagem tem destaque; envio somente ao MCP registra quiz em br
  await expect(page.locator('.budget-timeline')).toContainText('Dinheiro livre após essas cobranças');
 });
 
+test("falha de rede e retentativa usam a mesma revisao MCP e nao duplicam conclusoes",async ({page})=>{
+ await enter(page);
+ await enterFinishedFixture(page);
+ await page.locator('[data-action="guess-time"]').click();
+ await page.locator('[data-action="time-reveal-next"]').click();
+ const attempts:string[]=[];
+ await page.route("**/api/c4/client/complete",async route=>{
+  const doc=route.request().postDataJSON();
+  attempts.push(doc.exportadoEm);
+  if(attempts.length===1)await route.fulfill({status:503,contentType:"application/json",
+    headers:{"access-control-allow-origin":"*"},body:'{"erro":"Falha de rede simulada"}'});
+  else await route.fallback();
+ });
+ await page.locator('[data-action="trip-mcp"]').click();
+ await expect(page.locator('#trip-mcp-status')).toContainText('Falha de rede simulada');
+ await page.locator('[data-action="trip-mcp"]').click();
+ await expect(page.locator('#trip-mcp-status')).toContainText('recebido pelo MCP');
+ expect(attempts).toHaveLength(2);
+ expect(attempts[1]).toBe(attempts[0]);
+});
+
+test("encerramento no quarto dia nao envia conclusao e informa que a viagem e inconclusiva",async ({page})=>{
+ await enter(page);
+ await page.addInitScript((key)=>{
+  const state=JSON.parse(localStorage.getItem(key)||"null");
+  if(!state?.started)return;
+  state.day=4;state.finished=true;state.endStep=0;state.endPrelude="guess";
+  state.flags.endedEarly=4;state.finishedAt=new Date().toISOString();
+  localStorage.setItem(key,JSON.stringify(state));
+ },KEY);
+ const sends:string[]=[];
+ page.on('request',request=>{if(request.url().includes("/api/c4/client/complete"))sends.push(request.url());});
+ await page.reload();
+ await page.locator('[data-action="guess-time"]').click();
+ await page.locator('[data-action="time-reveal-next"]').click();
+ await expect(page.locator('.trip-impact')).toContainText('encerrou a semana antes do sábado');
+ expect(sends).toHaveLength(0);
+});
+
 test("viagem perdida e sair sem salvar nao enviam partida nem deixam historico local",async ({page})=>{
  await enter(page);
  await enterFinishedFixture(page,{wallet:250});
