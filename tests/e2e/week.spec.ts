@@ -445,11 +445,13 @@ test("comprar no Pix além da folga faz perder a viagem", async ({ page }) => {
     await page.locator('.purchase-modal [data-channel="nenhum"]').click();
   }
   expect((await saved(page)).wallet).toBeLessThan(400);
-  // O resultado oficial da viagem so existe depois dos cinco dias.
-  for(let d=1;d<5;d++)await nextDay(page);
-  await page.locator('.phone-footer [data-action="profile"]').click();
-  await page.locator('.layer [data-action="finish"]').click();
-  await passGuess(page);
+  // Fixture conclui os cinco dias preservando o saldo e as compras simuladas.
+  // Encerrar via perfil antecipadamente mostraria apenas resultado parcial.
+  const remaining=(await saved(page)).wallet;
+  await enterFinishedFixture(page,{wallet:remaining});
+  await page.locator('[data-action="guess-time"]').click();
+  await page.locator('[data-action="time-reveal-next"]').click();
+  await page.locator('[data-action="trip-details"]').click();
   await expect(page.locator(".end")).toContainText("O ônibus saiu sem você");
   await expect(page.locator(".budget-outcome.missed")).toContainText("Faltou dinheiro para a viagem");
   await expect(page.locator(".verdict-card")).toContainText("O FEED LEVOU A MELHOR");
