@@ -712,7 +712,7 @@ const Pressure=window.PorTrasPressure,Week=window.PorTrasWeek,Direct=window.PorT
 // O feed agora é infinito: o histórico salvo só tem um teto de segurança.
 const MAX_WEEK_HISTORY_ITEMS=2500;
 // Limite real da partida (30 min). Plataformas reais não fazem isso.
-const TIME_LIMIT_MS=6*60*60*1000;
+const TIME_LIMIT_MS=30*60*1000;
 const emptyAttention=()=>({extraItems:0,realMs:0,exitHooks:0,exitHookDays:[],surprises:0,adSwaps:0,refreshes:0,lateNights:0,guess:null});
 
 const Recommender=window.NoFeedRecommender;
@@ -1087,7 +1087,7 @@ function postCard(post,instanceId=null){
  const link=relatedPostLinks[post.id];
  const button=link?`<button class="post-shop-link" data-action="product" data-product="${link.topic}" data-source="post">${esc(link.label)} · ${money(price(link.topic).price)} <span aria-hidden="true">→</span></button>`:"";
  const photoAction=link?` data-action="open-photo" data-product="${link.topic}" data-source="post"`:"";
- return `<article class="post" id="${esc(instanceId||post.id)}" data-rec-id="${post.id}" data-clock-id="${esc(instanceId||post.id)}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":CLOSE_FRIENDS.has(String(post.who).replace(/^@/,''))?"amigo":"sugerido"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(post.who)}</strong> ${esc(post.caption)}</p>${commentTeaser(post.id,post.comments||[])}${button}</article>`;
+ return `<article class="post" id="${esc(instanceId||post.id)}" data-rec-id="${post.id}" data-clock-id="${esc(instanceId||post.id)}" data-rec-topic="${post.topic}" data-rec-author="${esc(post.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(post.who,post.photo,isPage)}</span><div class="user-info"><div class="username">${post.who}</div><div class="post-sub">${post.when}<span class="meta-tag ${isPage?"page":""}">${isPage?"página":CLOSE_FRIENDS.has(String(post.who).replace(/^@/,''))?"amigo":"sugerido"}</span></div></div><button class="icon-button" data-action="post-more" data-post="${post.id}" aria-label="Opções da publicação">${icon("more")}</button></div><div class="post-media feed-photo"${photoAction} data-like-post="${post.id}" role="group" aria-label="Foto de ${esc(post.who)}. Dois toques para curtir.${link?' Um toque para ver produto.':''}">${art(post.art,false,"",post.photo)}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${post.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${post.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Copiar link do jogo">${icon("send")}</button><button class="icon-button push" data-action="bookmark" data-post="${post.id}" aria-label="Salvar publicação" style="color:${saved?"#e84a80":"inherit"}">${icon("bookmark")}</button></div><p class="likecount">${post.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(post.who)}</strong> ${esc(post.caption)}</p>${commentTeaser(post.id,post.comments||[])}${button}</article>`;
 }
 function setupFeedAssist(){
  const scroller=document.querySelector('#feed-scroll'),cue=document.querySelector('.scroll-cue');
@@ -2798,7 +2798,7 @@ function publishPost(choice){
  expose('validacao_social',boosted?`Seu post com ${productName(c.topic)} rendeu 3x mais curtidas.`:`Seu post rendeu poucas curtidas, e o app sugeriu que com ${productName(c.topic)} renderia 3x mais.`);
  modal=null;save();refreshAndReturnToTop('publicacao no feed');
 }
-function finishWeek(){stopStory();clearInterval(liveTimer);state.finished=true;state.finishedAt ||= new Date().toISOString();state.endStep=0;state.endPrelude='guess';save();overlay=null;modal=null;renderEnd();}
+function finishWeek(){stopStory();clearInterval(liveTimer);if(state.day<Week.DAYS.length)state.flags.endedEarly=state.day;state.finished=true;state.finishedAt ||= new Date().toISOString();state.endStep=0;state.endPrelude='guess';save();overlay=null;modal=null;renderEnd();}
 
 /* ---------- cards do roteiro ---------- */
 function eventCard(item){
@@ -3055,14 +3055,14 @@ function taggedCard(item){
  <div class="post-top"><span class="avatar photo-avatar">${profileAvatar(c.who,c.photo,false)}</span><div class="user-info"><div class="username">${esc(c.who)} <span class="meta-tag">marcou você</span></div><div class="post-sub">há poucos minutos · amigo</div></div><button class="icon-button" data-action="post-more" data-post="${id}" aria-label="Mais opções">${icon('more')}</button></div>
  <div class="post-media feed-photo" data-like-post="${id}" role="group" aria-label="Foto de ${esc(c.who)} com você. Dois toques para curtir.">${mediaPhoto(c.photo,'art-photo','Foto da turma')}</div>
  <div class="post-actions"><button class="icon-button like-button ${liked?'is-liked':''}" data-action="like" data-post="${id}" aria-label="Curtir a foto" aria-pressed="${liked}">${icon('heart',liked?'heart-filled':'')}</button>
- <button class="icon-button" data-action="comments" data-post="${id}" aria-label="Ver comentários">${icon('comment')}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon('send')}</button>
+ <button class="icon-button" data-action="comments" data-post="${id}" aria-label="Ver comentários">${icon('comment')}</button><button class="icon-button" data-action="share" aria-label="Copiar link do jogo">${icon('send')}</button>
  <button class="icon-button push" data-action="bookmark" data-post="${id}" aria-label="${saved?'Remover dos salvos':'Salvar publicação'}" style="color:${saved?'#e84a80':'inherit'}">${icon('bookmark')}</button></div>
  <p class="likecount">${c.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(c.who)}</strong> ${esc(c.caption)}</p>${commentTeaser(id,c.comments)}</article>`;
 }
 function comparePostCard(c){
  const liked=state.liked.includes(c.id);
  const media=c.productArt?art(c.productArt,true):art(c.topic,false,'',c.photo);
- return `<article class="post compare-post" id="${c.id}" data-rec-id="${c.id}" data-rec-topic="${c.topic}" data-rec-author="${esc(c.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(c.who,c.photo,false)}</span><div class="user-info"><div class="username">${esc(c.who)}</div><div class="post-sub">${esc(c.when)}<span class="meta-tag">amigo</span></div></div></div><div class="post-media feed-photo" data-like-post="${c.id}" role="group" aria-label="Foto de ${esc(c.who)}. Dois toques para curtir.">${media}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${c.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${c.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Compartilhar">${icon("send")}</button></div><p class="likecount">${c.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(c.who)}</strong> ${esc(c.caption)}</p>${commentTeaser(c.id,c.comments||[])}<button class="post-shop-link" data-action="product" data-product="${c.topic}" data-source="compare">Ver produto do post · ${money(price(c.topic).price)} <span aria-hidden="true">→</span></button></article>`;
+ return `<article class="post compare-post" id="${c.id}" data-rec-id="${c.id}" data-rec-topic="${c.topic}" data-rec-author="${esc(c.who)}"><div class="post-top"><span class="avatar photo-avatar">${profileAvatar(c.who,c.photo,false)}</span><div class="user-info"><div class="username">${esc(c.who)}</div><div class="post-sub">${esc(c.when)}<span class="meta-tag">amigo</span></div></div></div><div class="post-media feed-photo" data-like-post="${c.id}" role="group" aria-label="Foto de ${esc(c.who)}. Dois toques para curtir.">${media}</div><div class="post-actions"><button class="icon-button like-button ${liked?"is-liked":""}" data-action="like" data-post="${c.id}" aria-label="${liked?"Descurtir":"Curtir"} publicação" aria-pressed="${liked}">${icon("heart",liked?"heart-filled":"")}</button><button class="icon-button" data-action="comments" data-post="${c.id}" aria-label="Ver comentários">${icon("comment")}</button><button class="icon-button" data-action="share" aria-label="Copiar link do jogo">${icon("send")}</button></div><p class="likecount">${c.likes+(liked?1:0)} curtidas</p><p class="post-caption"><strong>${esc(c.who)}</strong> ${esc(c.caption)}</p>${commentTeaser(c.id,c.comments||[])}<button class="post-shop-link" data-action="product" data-product="${c.topic}" data-source="compare">Ver produto do post · ${money(price(c.topic).price)} <span aria-hidden="true">→</span></button></article>`;
 }
 function nightCard(item){
  const last=item.day>=Week.DAYS.length;
@@ -3082,7 +3082,7 @@ function tick(){
 function countTime(){
  if(!identity||!state.started||state.finished||state.wake||document.visibilityState!=='visible')return;
  state.attention.realMs+=1000;
- if(state.attention.realMs>=TIME_LIMIT_MS){state.flags.timeLimit=true;finishWeek();return;}
+ if(state.attention.realMs>=TIME_LIMIT_MS){state.flags.timeLimit=true;if(state.day<Week.DAYS.length)state.flags.endedEarly=state.day;finishWeek();return;}
  if(state.attention.realMs%10000===0)save();
 }
 tickTimer=setInterval(()=>{countTime();tick();checkMoments();},1000);
@@ -3802,18 +3802,19 @@ function timeRevealPage(){
   </section></div></main>`;
 }
 function tripRevealPage(){
- const outcome=Pressure.settle(state),went=outcome.tripPaid,sent=state.c4SyncedRunId===state.runId;
+ const outcome=Pressure.settle(state),completedWeek=state.day===Week.DAYS.length&&!state.flags.endedEarly, went=completedWeek&&outcome.tripPaid,sent=state.c4SyncedRunId===state.runId;
  const confetti=Array.from({length:36},(_,i)=>'<i style="--cx:'+(3+(i*41)%94)+'%;--cd:'+(i%9*.065)+'s;--cc:'+['#ec538a','#ffc65c','#8d6be3','#65c6ac'][i%4]+'"></i>').join('');
- const title=went?'Você conseguiu embarcar! 🚌':'O ônibus partiu sem você.';
- const explanation=went
+ const title=!completedWeek?'Você encerrou a semana antes do sábado.':went?'Você conseguiu embarcar! 🚌':'O ônibus partiu sem você.';
+ const explanation=!completedWeek?'A simulação foi encerrada antes do resultado oficial da viagem. Seu saldo é mostrado para reflexão, mas não significa que você embarcou ou perdeu o ônibus.'
+  :went
   ?'Sobrou dinheiro para pagar os R$ 400 da viagem. '+(['consciente','resolvido'].includes(verdict(outcome).id)?'E você ainda resolveu o que precisava.':verdict(outcome).id==='incompleta'?'Só que a semana foi encerrada antes do fim.':'Mas embarcar não conta a história toda: veja quanto a semana custou.')
   :'Faltaram '+money(outcome.missing)+' para pagar os R$ 400 da viagem. Algumas decisões de compra e cobranças futuras alteraram o dinheiro disponível na hora de embarcar.';
  const status=sent?'✓ Percurso recebido pelo MCP.':'';
- return `<main class="end end-impact trip-impact ${went?'success':'missed'}"><div class="end-impact-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
+ return `<main class="end end-impact trip-impact ${!completedWeek?'incomplete':went?'success':'missed'}"><div class="end-impact-inner"><div class="brandline"><span class="brand-symbol">↗</span> POR TRÁS DA OFERTA</div>
  <section class="end-impact-card" aria-labelledby="trip-reveal-title">
   <div class="trip-confetti" aria-hidden="true">${confetti}</div>
   <div class="end-impact-eyebrow">SÁBADO · O RESULTADO DA VIAGEM</div>
-  <div class="trip-icon" aria-hidden="true">${went?'🚌🎉':'🚌💔'}</div>
+  <div class="trip-icon" aria-hidden="true">${!completedWeek?'🚌⏸️':went?'🚌🎉':'🚌💔'}</div>
   <h1 id="trip-reveal-title">${esc(title)}</h1>
   <p class="end-impact-explanation">${esc(explanation)}</p>
   <div class="end-time-comparison">
@@ -3882,8 +3883,16 @@ async function sendCompletedC4(){
  syncInFlight=true;syncMessage='';
  showC4SyncStatus();
  try{
-  const payload=ExportC4.build(state,{pressure:Pressure,recommender:Recommender});
-  if(state.endPrelude==='mcp'&&state.endStep!==4)payload.modoEnvio='viagem-sem-quiz';
+  // Conserva a data da submissao nas retentativas da mesma etapa.
+  // Ao completar o quiz depois de enviar so a viagem, cria uma nova revisao.
+  const mode=state.endPrelude==='mcp'&&state.endStep!==4?'viagem-sem-quiz':'quiz-completo';
+  if(state.c4SubmissionMode!==mode||!Number.isFinite(Date.parse(state.c4SubmissionAt||''))){
+   state.c4SubmissionMode=mode;
+   state.c4SubmissionAt=new Date().toISOString();
+   save();
+  }
+  const payload=ExportC4.build(state,{pressure:Pressure,recommender:Recommender,now:new Date(state.c4SubmissionAt)});
+  if(mode==='viagem-sem-quiz')payload.modoEnvio=mode;
   const result=await ContaC4.complete(payload);
   if(result?.usuario?.id!==playerId||result?.partida!==run)
    throw Error('O servidor não confirmou a conta e a partida corretas.');
@@ -4235,7 +4244,11 @@ root.addEventListener('click',e=>{
  else if(a==='profile'){overlay={type:'profile'};drawOverlay();}
  else if(a==='profile-post'){overlay={type:'own-post',id:post};drawOverlay();}
  else if(a==='notifications'){overlay={type:'notifications'};drawOverlay();}
- else if(a==='share')toast('Link copiado ✓')
+ else if(a==='share'){
+  const url=window.location.origin+window.location.pathname;
+  if(!navigator.clipboard?.writeText)toast('Seu navegador não permite copiar links automaticamente.');
+  else void navigator.clipboard.writeText(url).then(()=>toast('Link do jogo copiado ✓')).catch(()=>toast('Não foi possível copiar o link do jogo.'));
+ }
  else if(a==='feedtop')document.querySelector('#feed-scroll')?.scrollTo({top:0,behavior:'smooth'});
  else if(a==='scroll-cue')document.querySelector('#feed-scroll')?.scrollBy({top:340,behavior:'smooth'});
  else if(a==='add-cart')addToCart(id)
