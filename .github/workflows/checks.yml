@@ -23,6 +23,30 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      # Contrato real: Vite no navegador -> API MCP -> banco temporario -> consulta.
+      - uses: actions/checkout@v4
+        with:
+          repository: benimezz1/Por-tras-da-oferta-MCP
+          path: mcp-service
+      - name: Start MCP for integration
+        run: |
+          PUBLIC_BASE_URL=http://127.0.0.1:38123 \
+          C4_GAME_ORIGIN=http://127.0.0.1:4174 \
+          PORT=38123 HOST=127.0.0.1 \
+          REGISTRATION_CODE=CI_REGISTRATION_ONLY_123456789 \
+          C4_SIGNUP_ENABLED=true DATA_FILE="${{ runner.temp }}/c4-ci-db.json" \
+          node mcp-service/src/server.mjs > "${{ runner.temp }}/c4-mcp.log" 2>&1 &
+          for i in $(seq 1 50); do
+            if curl -fsS http://127.0.0.1:38123/health >/dev/null; then exit 0; fi
+            sleep 0.2
+          done
+          cat "${{ runner.temp }}/c4-mcp.log"
+          exit 1
+      - name: Browser to real MCP integration
+        env:
+          RUN_C4_INTEGRATION: "1"
+          VITE_C4_MCP_ORIGIN: http://127.0.0.1:38123
+        run: npx playwright test mcp-live.spec.ts --project=desktop
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
