@@ -3414,7 +3414,7 @@ function renderAccountGate(message=""){
    </form>
    <p class="account-status" id="c4-account-status" role="status" aria-live="polite">${esc(message)}</p>
    <div class="account-privacy"><strong>Como seus dados serão usados?</strong>
-    <p>No encerramento, você poderá ver os detalhes, escolher enviar apenas ao MCP ou sair sem enviar. Se concluir o quiz, suas escolhas fictícias serão enviadas <b>automaticamente</b> ao MCP, após você vincular a conta. A senha não entra no JSON. Você pode solicitar a exclusão do percurso.</p>
+    <p>No encerramento, você poderá ver os detalhes, escolher enviar apenas ao MCP ou sair sem enviar. Se concluir o quiz, suas escolhas fictícias serão enviadas <b>automaticamente</b> ao MCP. Vincule a conta depois, no ChatGPT, para consultar o percurso. A senha não entra no JSON. Você pode solicitar a exclusão do percurso.</p>
    </div>
    <p class="account-hint">Use somente dados fictícios. O projeto não faz diagnósticos nem compras reais.</p>
   </section>
@@ -3594,7 +3594,7 @@ function endStep0(s){
   <p>Antes de comprar, reserve o dinheiro das suas metas e avalie o custo total — incluindo parcelas, assinaturas, taxas e juros. Desconto e cashback não significam dinheiro livre na conta.</p>
  </div>
  </section>
- <div class="end-box"><h3>O que você comprou</h3>${purchases||(state.extras.length?'':'<p class="small muted">Nenhuma compra. O feed tentou bastante.</p>')}
+ <div class="end-box"><h3>O que você comprou</h3>${purchases?'<p class="small muted">A lista mostra o valor de cada item, incluindo adicionais selecionados. No extrato acima, o débito no Pix considera os ajustes do pedido, como frete, taxas e descontos.</p>':''}${purchases||(state.extras.length?'':'<p class="small muted">Nenhuma compra. O feed tentou bastante.</p>')}
  ${state.extras.map(x=>`<div class="event-row"><span>✨</span><div><strong>${esc(x.label)}</strong><p>Microcompra no app</p></div><strong>${money(x.cost)}</strong></div>`).join('')}
  ${state.fixes.length?`<p class="small muted" style="margin-top:10px">Alternativas que você usou: ${state.fixes.map(f=>esc(f.label)).join(' · ')}.</p>`:''}
  ${state.cart.length?`<p class="small muted">Ficaram na sacola: ${state.cart.map(id=>esc(productName(id))).join(', ')}.</p>`:''}</div>
@@ -3842,11 +3842,11 @@ function guessPage(){
  <button class="primary" data-action="guess-time">Continuar →</button></div></main>`;
 }
 function attentionBox(){
- const a=state.attention,real=Math.max(1,Math.round(a.realMs/60000)),diff=real-(a.guess||0);
+ const a=state.attention,feedback=attentionTimeFeedback();
  const likes=state.myPosts.reduce((n,p)=>n+myLikes(p),0);
  const row=(i,t,d)=>`<div class="insight"><strong>${i} ${t}</strong><p>${d}</p></div>`;
  return `<div class="end-box attention-box"><h3>Raio-X da atenção</h3>
- ${row('⏱️',`Você achou que jogou ${a.guess??'?'} min. Jogou ${real} min.`,diff>0?`O feed levou ${diff} min a mais do que você percebeu.`:'Você percebeu bem o próprio tempo. Na vida real, sem relógio na tela, isso fica mais difícil.')}
+ ${row('⏱️',`Você achou que jogou ${a.guess??'?'} min. Jogou ${readableDuration(feedback.actual)}.`,esc(feedback.explanation))}
  ${row('♾️',`${a.extraItems} conteúdos além dos posts de cada dia`,`Nenhum deles era necessário: o feed só não tinha fim. ${a.lateNights?`Em ${a.lateNights} noite(s) você passou das 23h.`:''}`)}
  ${row('🪝',`${a.exitHookDays.length} gancho(s) de saída, ${a.exitHooks} funcionaram`,'Quando você tentou sair, apareceu algo “imperdível” sobre você.')}
  ${row('🎲',`${a.surprises} surpresa(s) e ${a.refreshes} atualização(ões)`,'Recompensas imprevisíveis fazem a gente continuar procurando a próxima.')}
